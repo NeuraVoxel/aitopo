@@ -32,6 +32,7 @@ jobs:
         working-directory: aitopo
         run: |
           pnpm install
+          pnpm add -D ../ai-eng-kit
           pnpm run typecheck
           pnpm test
           pnpm run verify-notes
