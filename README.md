@@ -18,7 +18,7 @@ Design ideas come from `twaver.vector` (SDK2D reference tree, not shipped here).
 
 Peer repository (`NeuraVoxel/aitopo`, private). deepseek-harness consumes this engine via git submodule (then npm). Engine + vanilla demo ship Editor interactions (move, drop, marquee, optional undo). Session UI adapters (`agent-observe`) stay in deepseek-harness.
 
-Agent workflow uses `@neuravoxel/ai-eng` (see [AGENTS.md](AGENTS.md)).
+Agent workflow uses `@neuravoxel/ai-eng` (see [AGENTS.md](AGENTS.md)). Locally the kit is a sibling checkout at `../ai-eng-kit` (`link:` in `package.json`). CI checks out both repos; set repository secret `AI_ENG_KIT_TOKEN` (PAT with `repo` read on `NeuraVoxel/ai-eng-kit`) if the default Actions token cannot read the private kit.
 
 ## Commands
 

@@ -36,6 +36,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@neuravoxel/ai-eng": "link:../ai-eng-kit",
     "@types/node": "^22.13.10",
     "typescript": "~5.8.2",
     "vite": "^6.3.5",
