@@ -1,0 +1,3 @@
+# Approve native postinstall scripts required by vite/esbuild on fresh clones.
+allowBuilds:
+  esbuild: true

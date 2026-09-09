@@ -1,0 +1,45 @@
+{
+  "name": "@neuravoxel/aitopo",
+  "description": "Canvas topology engine for AI graphs (Document/Patch/Events + dirty-rect Network)",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "lib/types/index.js",
+  "types": "lib/types/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./lib/types/index.d.ts",
+      "default": "./lib/types/index.js"
+    },
+    "./src/*": "./src/*",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "lib/types/**/*.d.ts",
+    "lib/types/**/*.d.ts.map",
+    "lib/types/**/*.js",
+    "src",
+    "docs",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "vitest run --config vitest.config.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json",
+    "demo": "vite --config demo/vite.config.ts",
+    "verify-notes": "ai-eng verify-notes .agents/notes"
+  },
+  "engines": {
+    "node": "^22.19.0 || >=24.0.0"
+  },
+  "dependencies": {
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.10",
+    "typescript": "~5.8.2",
+    "vite": "^6.3.5",
+    "vitest": "^4.1.8"
+  },
+  "license": "MIT"
+}
