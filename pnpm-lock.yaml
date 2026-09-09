@@ -12,6 +12,9 @@ importers:
         specifier: ^4.3.6
         version: 4.5.4
     devDependencies:
+      '@neuravoxel/ai-eng':
+        specifier: github:NeuraVoxel/ai-eng-kit#832a5f2302c6732f5f35045a95db7ac52cba0405
+        version: git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#832a5f2302c6732f5f35045a95db7ac52cba0405
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
@@ -186,6 +189,12 @@ packages:
     cpu: [x64]
     os: [linux]
     libc: [glibc]
+
+  '@neuravoxel/ai-eng@git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#832a5f2302c6732f5f35045a95db7ac52cba0405':
+    resolution: {commit: 832a5f2302c6732f5f35045a95db7ac52cba0405, repo: git@github.com:NeuraVoxel/ai-eng-kit.git, type: git}
+    version: 0.1.0
+    engines: {node: ^22.19.0 || >=24.0.0}
+    hasBin: true
 
   '@rollup/rollup-android-arm-eabi@4.63.1':
     resolution: {integrity: sha512-UZ8sUxPTiHWYX9QNdJedb1kDZSpS1t/VPWBWGSgqHNi9w3Cu6IXvu2mzbhiTiPvtrqgTQJ+zqiAq2iPIPilpaQ==}
@@ -646,6 +655,8 @@ snapshots:
 
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
+
+  '@neuravoxel/ai-eng@git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#832a5f2302c6732f5f35045a95db7ac52cba0405': {}
 
   '@rollup/rollup-android-arm-eabi@4.63.1':
     optional: true

@@ -9,17 +9,7 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Checkout aitopo
-        uses: actions/checkout@v4
-        with:
-          path: aitopo
-      - name: Checkout ai-eng-kit
-        uses: actions/checkout@v4
-        with:
-          repository: NeuraVoxel/ai-eng-kit
-          path: ai-eng-kit
-          # Same-org private sibling; set AI_ENG_KIT_TOKEN if default GITHUB_TOKEN cannot read the kit.
-          token: ${{ secrets.AI_ENG_KIT_TOKEN || secrets.GITHUB_TOKEN }}
+      - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v4
         with:
           version: 11
@@ -27,12 +17,16 @@ jobs:
         with:
           node-version: '22'
           cache: pnpm
-          cache-dependency-path: aitopo/pnpm-lock.yaml
+      - name: Auth private GitHub deps
+        run: |
+          # Lockfile may record SSH remotes for github: deps; map both HTTPS and SSH to a token URL.
+          TOKEN="${{ secrets.AI_ENG_KIT_TOKEN }}"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
       - name: Install and verify
-        working-directory: aitopo
         run: |
           pnpm install
-          pnpm add -D ../ai-eng-kit
           pnpm run typecheck
           pnpm test
           pnpm run verify-notes

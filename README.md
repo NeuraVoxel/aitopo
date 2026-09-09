@@ -18,7 +18,7 @@ Design ideas come from `twaver.vector` (SDK2D reference tree, not shipped here).
 
 Peer repository (`NeuraVoxel/aitopo`, private). deepseek-harness consumes this engine via git submodule (then npm). Engine + vanilla demo ship Editor interactions (move, drop, marquee, optional undo). Session UI adapters (`agent-observe`) stay in deepseek-harness.
 
-Agent workflow uses `@neuravoxel/ai-eng` (see [AGENTS.md](AGENTS.md)). Keep a sibling checkout at `../ai-eng-kit` and run `pnpm add -D ../ai-eng-kit` when you need `verify-notes` (not a locked dependency — so deepseek-harness can submodule this package without resolving the kit). CI checks out both repos the same way; set repository secret `AI_ENG_KIT_TOKEN` if the default Actions token cannot read the private kit.
+Agent workflow uses `@neuravoxel/ai-eng` as a committed `devDependency` (`github:NeuraVoxel/ai-eng-kit#…`; see [AGENTS.md](AGENTS.md)). After `pnpm install`, run `pnpm run verify-notes`. Bump the kit commit when upgrading process gates. CI needs repository secret `AI_ENG_KIT_TOKEN` (read access to the private kit) so `pnpm install` can fetch that GitHub dependency.
 
 ## Commands
 
