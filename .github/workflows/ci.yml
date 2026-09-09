@@ -18,7 +18,12 @@ jobs:
           node-version: '22'
           cache: pnpm
       - name: Auth private GitHub deps
-        run: git config --global url."https://x-access-token:${{ secrets.AI_ENG_KIT_TOKEN }}@github.com/".insteadOf "https://github.com/"
+        run: |
+          # Lockfile may record SSH remotes for github: deps; map both HTTPS and SSH to a token URL.
+          TOKEN="${{ secrets.AI_ENG_KIT_TOKEN }}"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "ssh://git@github.com/"
+          git config --global url."https://x-access-token:${TOKEN}@github.com/".insteadOf "git@github.com:"
       - name: Install and verify
         run: |
           pnpm install
