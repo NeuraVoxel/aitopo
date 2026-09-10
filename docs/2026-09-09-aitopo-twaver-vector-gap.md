@@ -52,7 +52,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `Label2Attachment.js` | Secondary label | `later` | |
 | `IconsAttachment.js` | Icon strip | `later` | Host/`data` extension if needed |
 | `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction` |
-| `EditAttachment.js` | Resize/rotate handles | `later` | With edit interaction |
+| `EditAttachment.js` | Resize/rotate handles | `done` (resize) | Overlay handles via `ResizeNodeInteraction`; rotate still `later` |
 | `HTMLNodeUI.js` | HTML overlay node | `wont` | |
 | `HTMLLinkUI.js` | HTML overlay link | `wont` | |
 | `HTMLLabelAttachment.js` | HTML label | `wont` | |
@@ -77,8 +77,8 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `interaction/CreateElementInteraction.js` | Click-to-create element | `later` | Host adds via `externalDrop` + `addNode` |
 | `interaction/CreateShapeNodeInteraction.js` | Draw shape node | `wont` unless product asks | |
 | `interaction/CreateShapeLinkInteraction.js` | Draw shape link | `wont` unless product asks | |
-| `interaction/EditInteraction.js` | Resize / rotate / link points | `later` | Explicitly out of Editor F1 |
-| `interaction/MoveLinkInteraction.js` | Drag link control points | `later` | |
+| `interaction/EditInteraction.js` | Resize / rotate / link points | `done` (resize) | `ResizeNodeInteraction` corners; rotate / link points still `later` |
+| `interaction/MoveLinkInteraction.js` | Drag link control points | `later` | Needs edge bend protocol |
 | `interaction/MagnifyInteraction.js` | Magnifier | `wont` | |
 | `interaction/TouchInteraction.js` | Touch gestures | `later` | Desktop-first |
 | `interaction/MSTouchInteraction.js` | MS pointer touch | `later` | |
@@ -88,7 +88,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | Item | Status | Notes |
 |---|---|---|
 | Emit `alarmChanged` on `setAlarms` / alarm-bearing patches | `done` | Emitted for `setAlarms` ops after `apply` |
-| Marquee Shift-append selection | `later` | Replace-only today |
+| Marquee Shift-append selection | `done` | Ctrl/Meta at marquee pointer-up unions with selection |
 | Multi-level SubNetwork stack UI | `later` | Root ↔ one child only |
 | Alarm propagation tree | `wont` (current phases) | Display + model only |
 | WebGL `Renderer` | `later` | Interface reserved; `createRenderer` injects backends |
@@ -106,14 +106,15 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 ### P1 — engine debt
 
 - [x] Emit `alarmChanged` on alarm mutations
-- [ ] Marquee Shift-append if shell needs multi-select add
+- [x] Marquee Shift-append if shell needs multi-select add
 - [x] Temporary highlight for drop-target group during move (DefaultInteraction `parentRect` idea)
 
 ### P2 — deeper edit
 
 - [x] Lazy move ghost on overlay
-- [ ] Resize (and optional rotate) edit handles
+- [x] Resize edit handles (rotate still open)
 - [ ] Move-link / link-handler equivalents
+- [ ] Rotate handles (needs protocol field)
 
 ### Explicit non-goals
 
