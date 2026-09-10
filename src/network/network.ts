@@ -11,13 +11,13 @@ import type { GraphDocument, GraphEdge, GraphGroup, GraphNode, GraphViewport } f
 import { Canvas2DRenderer } from '../render/canvas2d.ts'
 import type { Renderer } from '../render/canvas2d.ts'
 import {
-  edgeAnchors,
   groupBounds,
   hitTestEdges,
   hitTestGroups,
   hitTestNodes,
   nodeBounds,
-} from '../ui/bounds.ts'
+  ViewSet,
+} from '../ui/index.ts'
 import {
   PanZoomInteraction,
   SelectActivateInteraction,
@@ -77,6 +77,7 @@ export class Network {
   readonly scene = new GraphScene()
   readonly viewport = new Viewport()
   private readonly dirty = new DirtyAccumulator()
+  private readonly views = new ViewSet()
   private readonly listeners = new Set<GraphEventHandler>()
   private view: HTMLDivElement | null = null
   private rootCanvas: HTMLCanvasElement | null = null
@@ -118,6 +119,8 @@ export class Network {
    */
   load(input: unknown): void {
     this.scene.load(input)
+    this.views.rebuild(this.scene)
+    this.views.validateDirty(this.scene)
     const cam = this.scene.camera
     this.viewport.setCamera(cam)
     this.dirty.markAll()
@@ -180,9 +183,14 @@ export class Network {
         ? layoutGrid(doc)
         : (() => { throw new Error(`Unknown layout: ${name}`) })()
     this.scene.writePositions(positions)
-    for (const [id, pos] of Object.entries(positions)) {
-      const node = this.scene.nodes.get(id)
-      if (node !== undefined) this.dirty.add(growRect(nodeBounds({ ...node, ...pos }), 4))
+    this.views.sync(this.scene)
+    for (const id of Object.keys(positions)) {
+      this.views.markNodeGeometryDirty(this.scene, id)
+    }
+    this.views.validateDirty(this.scene)
+    for (const id of Object.keys(positions)) {
+      const view = this.views.getNode(id)
+      if (view?.isActive === true) this.dirty.add(growRect(view.bounds, 4))
     }
     this.needsPaint = true
     this.emit({ type: 'layoutCompleted', name, positions })
@@ -193,6 +201,8 @@ export class Network {
    */
   enterSubNetwork(id: string): void {
     this.scene.enterSubNetwork(id)
+    this.views.rebuild(this.scene)
+    this.views.validateDirty(this.scene)
     this.dirty.markAll()
     this.needsPaint = true
     this.emit({
@@ -204,6 +214,8 @@ export class Network {
 
   exitSubNetwork(): void {
     this.scene.exitSubNetwork()
+    this.views.rebuild(this.scene)
+    this.views.validateDirty(this.scene)
     this.dirty.markAll()
     this.needsPaint = true
     this.emit({
@@ -439,6 +451,7 @@ export class Network {
     const node = this.scene.nodes.get(id)
     if (node === undefined) return
     this.scene.writePositions({ [id]: { x, y } })
+    this.views.markNodeGeometryDirty(this.scene, id)
     this.dirty.markAll()
     this.needsPaint = true
   }
@@ -626,28 +639,41 @@ export class Network {
   }
 
   private syncDirtyFromScene(): void {
+    this.views.sync(this.scene)
     const peek = this.scene.takeDirty()
     if (peek.invalidateAll) {
+      for (const view of this.views.nodeViews()) view.markDirty()
+      for (const view of this.views.edgeViews()) view.markDirty()
+      for (const view of this.views.groupViews()) view.markDirty()
       this.dirty.markAll()
       return
     }
     for (const id of peek.ids) {
-      const node = this.scene.nodes.get(id)
-      if (node !== undefined) {
-        this.dirty.add(growRect(nodeBounds(node), 8))
-        continue
+      if (this.scene.nodes.has(id)) {
+        this.views.markNodeGeometryDirty(this.scene, id)
+      } else {
+        this.views.markDirty(id)
       }
-      const edge = this.scene.edges.get(id)
-      if (edge !== undefined) {
-        const from = this.scene.nodes.get(edge.from)
-        const to = this.scene.nodes.get(edge.to)
-        if (from !== undefined && to !== undefined) {
-          this.dirty.add(growRect(edgeAnchors(from, to).bounds, 8))
+    }
+    this.views.validateDirty(this.scene)
+    for (const id of peek.ids) {
+      const nodeView = this.views.getNode(id)
+      if (nodeView?.isActive === true) {
+        this.dirty.add(growRect(nodeView.bounds, 8))
+        for (const edge of this.scene.edges.values()) {
+          if (edge.from !== id && edge.to !== id) continue
+          const edgeView = this.views.getEdge(edge.id)
+          if (edgeView?.isActive === true) this.dirty.add(growRect(edgeView.bounds, 8))
         }
         continue
       }
-      const group = this.scene.groups.get(id)
-      if (group !== undefined) this.dirty.add(growRect(groupBounds(group), 8))
+      const edgeView = this.views.getEdge(id)
+      if (edgeView?.isActive === true) {
+        this.dirty.add(growRect(edgeView.bounds, 8))
+        continue
+      }
+      const groupView = this.views.getGroup(id)
+      if (groupView?.isActive === true) this.dirty.add(growRect(groupView.bounds, 8))
     }
   }
 
@@ -655,6 +681,7 @@ export class Network {
     const renderer: Renderer | null = this.renderer
     if (renderer === null) return
     this.needsPaint = false
+    this.views.validateDirty(this.scene)
     const cam = this.viewport.state
     const snapshot = this.dirty.take()
     // Filtered drag paint must wipe the whole root layer; partial dirty would leave
@@ -668,40 +695,37 @@ export class Network {
       const filter = this.dragPaintFilter
       if (filter === undefined) {
         for (const group of this.scene.groups.values()) {
-          renderer.drawGroup(group, { bounds: groupBounds(group) })
+          const view = this.views.getGroup(group.id)
+          if (view === undefined || !view.isActive) continue
+          renderer.drawGroup(group, view.toPaintView())
         }
       }
       for (const edge of this.scene.edges.values()) {
         if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
-        const from = this.scene.nodes.get(edge.from)
-        const to = this.scene.nodes.get(edge.to)
-        if (from === undefined || to === undefined) continue
-        const anchors = edgeAnchors(from, to)
+        const view = this.views.getEdge(edge.id)
+        if (view === undefined || !view.isActive) continue
         const hoverId = this.scene.hover
         const hoverIsNode = hoverId !== undefined && this.scene.nodes.has(hoverId)
         // Node hover lights incident data edges so payload routes stand out without bright idle strokes.
         const relatedData = hoverIsNode
           && edge.kind === 'data'
           && (edge.from === hoverId || edge.to === hoverId)
-        renderer.drawEdge(edge, {
-          from: anchors.from,
-          to: anchors.to,
-          selected: this.scene.selectedIds.has(edge.id),
-          hovered: hoverId === edge.id || relatedData,
-          orientation: anchors.orientation,
-          points: anchors.points,
-        })
+        renderer.drawEdge(edge, view.toPaintView(
+          this.scene.selectedIds.has(edge.id),
+          hoverId === edge.id || relatedData,
+        ))
       }
       for (const node of this.scene.nodes.values()) {
         if (filter !== undefined && !filter.has(node.id)) continue
-        const bounds = nodeBounds(node)
-        renderer.drawNode(node, {
-          bounds,
-          selected: this.scene.selectedIds.has(node.id),
-          hovered: this.scene.hover === node.id,
-        })
-        if (this.scene.selectedIds.has(node.id)) {
-          renderer.drawSelectionOverlay(bounds)
+        const view = this.views.getNode(node.id)
+        if (view === undefined || !view.isActive) continue
+        const paint = view.toPaintView(
+          this.scene.selectedIds.has(node.id),
+          this.scene.hover === node.id,
+        )
+        renderer.drawNode(node, paint)
+        if (paint.selected) {
+          renderer.drawSelectionOverlay(paint.bounds)
         }
       }
       if (this.marqueeRect !== undefined) {
