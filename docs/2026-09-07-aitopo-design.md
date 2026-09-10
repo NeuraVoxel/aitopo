@@ -174,23 +174,27 @@ Validate Document/Patch with zod (or equivalent) at the protocol boundary. Inval
 
 ### Views
 
-- `NodeView` / `EdgeView` / `GroupView` / `AlarmBadge`: cache body bounds, paths, text metrics.
-- `markDirty()` → main loop `validate()` → `paint(renderer)`.
-- Hit-test: geometry first (rect / rounded rect / polyline tolerance). Offscreen pixel hit-test is optional later.
+- `NodeView` / `EdgeView` / `GroupView` (package-private under `src/ui/`, owned by `ViewSet`): cache body / route / band bounds.
+- Alarm badges paint inline on nodes (no separate AlarmBadge View class in Wave A).
+- `markDirty()` → main loop `validate()` → `paint(renderer)` via `toPaintView` DTOs.
+- Hit-test: geometry first (rect / polyline tolerance via `ui/bounds`). Offscreen pixel hit-test is optional later.
 
 ### Renderer
 
 ```ts
 interface Renderer {
-  beginFrame(viewport: ViewportState, dirty: readonly Rect[]): void
+  beginFrame(viewport: ViewportState, dirty: readonly Rect[] | 'all'): void
   drawGroup(group, view): void
   drawEdge(edge, view): void
   drawNode(node, view): void
   endFrame(): void
+  drawSelectionOverlay(bounds: Rect): void
+  drawMarquee(rect: Rect): void
+  drawEdgeRubberBand(from: Point, to: Point): void
 }
 ```
 
-Phase 1: `Canvas2DRenderer`. Network must not call Canvas 2D APIs directly outside the renderer.
+Phase 1: `Canvas2DRenderer` via `NetworkOptions.createRenderer` (default). Network must not call Canvas 2D APIs directly outside the renderer.
 
 ### Dirty-rect loop
 

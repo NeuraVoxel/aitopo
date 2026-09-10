@@ -41,13 +41,13 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 | Reference path | Idea | Status | AITopo / notes |
 |---|---|---|---|
-| `ElementUI.js` | Validate bounds → paint | `gap` | Design names `NodeView` / `EdgeView` / `GroupView`; impl is `ui/bounds` + direct Canvas2D |
-| `NodeUI.js` | Node body paint | `gap` | Same as above |
-| `LinkUI.js` | Link / edge paint | `gap` | Orthogonal polylines + mid-edge label in renderer |
-| `GroupUI.js` | Group band + outline styles | `done` (styles) | `GraphGroup.style`; no separate GroupUI class |
+| `ElementUI.js` | Validate bounds → paint | `done` | `NodeView` / `EdgeView` / `GroupView` + `ViewSet` |
+| `NodeUI.js` | Node body paint | `done` | `NodeView` + `Canvas2DRenderer.drawNode` |
+| `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + orthogonal polylines in renderer |
+| `GroupUI.js` | Group band + outline styles | `done` | `GroupView` + `GraphGroup.style` |
 | `Attachment.js` | Attachment base | `wont` | No attachment hierarchy |
 | `BasicAttachment.js` | Shared attachment paint | `wont` | |
-| `AlarmAttachment.js` | Alarm badge | `gap` | Inline badge paint; protocol has `alarmChanged` but Network does not emit it |
+| `AlarmAttachment.js` | Alarm badge | `done` (display) | Inline badge paint; `alarmChanged` emitted on `setAlarms` |
 | `LabelAttachment.js` | Primary label | `done` (simplified) | Drawn inside `drawNode` |
 | `Label2Attachment.js` | Secondary label | `later` | |
 | `IconsAttachment.js` | Icon strip | `later` | Host/`data` extension if needed |
@@ -87,14 +87,14 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 | Item | Status | Notes |
 |---|---|---|
-| Emit `alarmChanged` on `setAlarms` / alarm-bearing patches | `gap` | Event type exists; Network never emits |
+| Emit `alarmChanged` on `setAlarms` / alarm-bearing patches | `done` | Emitted for `setAlarms` ops after `apply` |
 | Marquee Shift-append selection | `later` | Replace-only today |
 | Multi-level SubNetwork stack UI | `later` | Root ↔ one child only |
 | Alarm propagation tree | `wont` (current phases) | Display + model only |
-| WebGL `Renderer` | `later` | Interface reserved |
+| WebGL `Renderer` | `later` | Interface reserved; `createRenderer` injects backends |
 | React / `agent-observe` adapter | `gap` (plugin) | Outside `@neuravoxel/aitopo` |
 | Orchestrator F1 host wiring | `gap` (plugin) | Engine Editor APIs ready |
-| Extract View classes from renderer | `gap` | Align with design layout |
+| Extract View classes from renderer | `done` | `ViewSet` + `src/ui/*-view.ts` |
 
 ## Suggested next waves
 
@@ -105,7 +105,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 ### P1 — engine debt
 
-- [ ] Emit `alarmChanged` on alarm mutations
+- [x] Emit `alarmChanged` on alarm mutations
 - [ ] Marquee Shift-append if shell needs multi-select add
 - [ ] Temporary highlight for drop-target group during move (DefaultInteraction `parentRect` idea)
 

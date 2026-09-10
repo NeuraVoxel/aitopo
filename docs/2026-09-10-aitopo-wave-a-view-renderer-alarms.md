@@ -1,8 +1,8 @@
 # AITopo Wave A — View cache, injectable Renderer, alarmChanged
 
-> **Owning proposal:** [.agents/notes/proposed/architecture/2026-09-10-wave-a-view-renderer-alarms.md](../.agents/notes/proposed/architecture/2026-09-10-wave-a-view-renderer-alarms.md) (ai-eng Agent Note). This file is the **execution checklist** only — file map, task steps, verify commands. Do not treat it as the decision home.
+> **Owning decision:** [.agents/notes/implemented/architecture/2026-09-10-wave-a-view-renderer-alarms.md](../.agents/notes/implemented/architecture/2026-09-10-wave-a-view-renderer-alarms.md) (ai-eng Agent Note). This file is the **execution checklist** only — file map, task steps, verify commands. Do not treat it as the decision home.
 
-> **For agentic workers:** Implement task-by-task from this checklist. Steps use checkbox (`- [ ]`) syntax. Do not skip Verify gates. Clean-room: **no** SDK2D imports, **no** twaver public API names. When the wave ships, promote the Agent Note `proposed/` → `implemented/` in the same PR as the code (rewrite Proposal → Decision; do not create a second note).
+> **For agentic workers:** Wave A has shipped on `refactor`. Historical task steps remain below for audit. Clean-room: **no** SDK2D imports, **no** twaver public API names.
 
 **Goal:** Close the Phase-1 design gap by giving each graph element a cached View lifecycle, making `Renderer` injectable at mount, and emitting `alarmChanged` when alarm patches apply — without changing the Document/Patch/Events dual-face model.
 
@@ -10,7 +10,7 @@
 
 **Tech Stack:** TypeScript ESM, vitest (`environment: 'node'`), existing Canvas2D path. Ideas only from `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` ElementUI invalidate/validate (new names).
 
-**Requirements / context:** [design](./2026-09-07-aitopo-design.md), [gap backlog](./2026-09-09-aitopo-twaver-vector-gap.md) (View extract + `alarmChanged`), [SDK2D path note](../.agents/notes/implemented/process/2026-09-10-sdk2d-design-reference-path.md), [Wave A proposal](../.agents/notes/proposed/architecture/2026-09-10-wave-a-view-renderer-alarms.md).
+**Requirements / context:** [design](./2026-09-07-aitopo-design.md), [gap backlog](./2026-09-09-aitopo-twaver-vector-gap.md), [SDK2D path note](../.agents/notes/implemented/process/2026-09-10-sdk2d-design-reference-path.md), [Wave A decision](../.agents/notes/implemented/architecture/2026-09-10-wave-a-view-renderer-alarms.md).
 
 **Out of scope (Wave B+):** Overlay marker protocol, lazy-move ghost, drop-target group highlight, resize/rotate handles, Attachment tree, pixel hit-test, Logical/Mixed zoom, Overview, HTML UI.
 
@@ -34,7 +34,7 @@
 | `tests/alarm-events.spec.ts` | **Create** — `alarmChanged` on `setAlarms` |
 | `docs/2026-09-09-aitopo-twaver-vector-gap.md` | Mark View extract + `alarmChanged` `done` |
 | `docs/2026-09-07-aitopo-design.md` | Note Views are implemented (facts only) |
-| `.agents/notes/proposed/architecture/2026-09-10-wave-a-view-renderer-alarms.md` | **Promote** to `implemented/architecture/` when shipping (same note) |
+| `.agents/notes/implemented/architecture/2026-09-10-wave-a-view-renderer-alarms.md` | Decision record (promoted from proposed) |
 
 ---
 
