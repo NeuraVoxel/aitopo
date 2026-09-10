@@ -11,6 +11,8 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Editor milestone (orchestrator): [docs/2026-09-08-aitopo-editor-requirements.md](docs/2026-09-08-aitopo-editor-requirements.md)
 - Editor implementation plan: [docs/2026-09-09-aitopo-editor-implementation-plan.md](docs/2026-09-09-aitopo-editor-implementation-plan.md)
 - twaver.vector gap backlog: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md)
+- Wave A proposal: [.agents/notes/proposed/architecture/2026-09-10-wave-a-view-renderer-alarms.md](.agents/notes/proposed/architecture/2026-09-10-wave-a-view-renderer-alarms.md)
+- Wave A execution checklist: [docs/2026-09-10-aitopo-wave-a-view-renderer-alarms.md](docs/2026-09-10-aitopo-wave-a-view-renderer-alarms.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
