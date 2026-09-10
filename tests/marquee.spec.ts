@@ -49,11 +49,15 @@ class FakeHitCanvas {
     partial: Pick<PointerEvent, 'button' | 'clientX' | 'clientY'> & {
       pointerId?: number
       shiftKey?: boolean
+      ctrlKey?: boolean
+      metaKey?: boolean
     },
   ): void {
     const event = {
       pointerId: 1,
       shiftKey: false,
+      ctrlKey: false,
+      metaKey: false,
       ...partial,
     } as PointerEvent
     for (const listener of this.listeners.get(type) ?? []) listener(event)
@@ -85,10 +89,13 @@ function createHost(options: {
   const nodes = [...options.nodes]
   const hitId = options.hitId
   let gestureDragged = false
+  let selectedIds: string[] = []
   const marqueeRects: Array<Rect | undefined> = []
   const chromeList: Array<import('../src/interaction/types.ts').OverlayChrome> = []
 
-  const setSelection = vi.fn()
+  const setSelection = vi.fn((ids: readonly string[]) => {
+    selectedIds = [...ids]
+  })
   const markGestureDragged = vi.fn(() => {
     gestureDragged = true
   })
@@ -108,6 +115,7 @@ function createHost(options: {
       drawEdgeRubberBand: vi.fn(),
       drawLazyMoveGhost: vi.fn(),
       drawDropTargetHighlight: vi.fn(),
+      drawResizeHandle: vi.fn(),
     }
     if (chromeList.length === 0) {
       marqueeRects.push(undefined)
@@ -141,11 +149,13 @@ function createHost(options: {
     getNodes: () => nodes,
     getEdges: () => [],
     getGroups: () => [],
-    getSelectedIds: () => [],
+    getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition: vi.fn(),
+    previewNodeBounds: vi.fn(),
     commitNodeMove: vi.fn(),
+    commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
     markGestureDragged,
@@ -266,6 +276,26 @@ describe('MarqueeSelectInteraction', () => {
 
     canvas.dispatch('pointerup', { button: 0, clientX: 50, clientY: 40, shiftKey: true })
     expect(host.marqueeRects.at(-1)).toBeUndefined()
+    dispose()
+  })
+
+  it('Ctrl+Shift marquee appends intersecting ids to selection', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [
+        node({ id: 'keep', x: 200, y: 200 }),
+        node({ id: 'add', x: 20, y: 20 }),
+      ],
+    })
+    host.setSelection(['keep'])
+    const dispose = new MarqueeSelectInteraction().attach(host)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 0, clientY: 0, shiftKey: true, ctrlKey: true })
+    canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 80, shiftKey: true, ctrlKey: true })
+    canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 80, shiftKey: true, ctrlKey: true })
+
+    expect(host.setSelection).toHaveBeenLastCalledWith(['keep', 'add'])
     dispose()
   })
 })

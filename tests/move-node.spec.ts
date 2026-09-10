@@ -124,6 +124,7 @@ function createHost(options: {
       drawDropTargetHighlight: vi.fn(() => {
         dropTargetPaints += 1
       }),
+      drawResizeHandle: vi.fn(),
     }
     for (const chrome of chromeList) chrome.paint(renderer)
   }
@@ -162,7 +163,9 @@ function createHost(options: {
     hitTestGroupScreen: () => groupOnUp,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition,
+    previewNodeBounds: vi.fn(),
     commitNodeMove,
+    commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
     markGestureDragged,

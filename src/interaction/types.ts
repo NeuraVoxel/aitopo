@@ -62,6 +62,15 @@ export interface InteractionHost {
   /** Live preview during drag (does not emit nodeMoved). */
   previewNodePosition(id: string, x: number, y: number): void
   /**
+   * Live preview bounds during resize (does not emit nodeResized).
+   * @param id - node id.
+   * @param bounds - world x/y/w/h.
+   */
+  previewNodeBounds(
+    id: string,
+    bounds: { x: number; y: number; w: number; h: number },
+  ): void
+  /**
    * Commit move: apply updateNode, optional membership patch, emit nodeMoved
    * and groupMembershipChanged when membership changes.
    *
@@ -75,6 +84,15 @@ export interface InteractionHost {
     from: { x: number; y: number }
     to: { x: number; y: number }
     toGroupId?: string | undefined
+  }): void
+  /**
+   * Commit resize: apply updateNode x/y/w/h, emit nodeResized.
+   * @param args - from/to bounds.
+   */
+  commitNodeResize(args: {
+    nodeId: string
+    from: { x: number; y: number; w: number; h: number }
+    to: { x: number; y: number; w: number; h: number }
   }): void
   /**
    * Commit a new directed edge: apply `addEdge`, emit `edgeCreated`.

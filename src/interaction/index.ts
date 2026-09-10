@@ -18,5 +18,6 @@ export {
   MoveNodeInteraction,
   type MoveNodeInteractionOptions,
 } from './move-node.ts'
+export { ResizeNodeInteraction } from './resize-node.ts'
 export { PanZoomInteraction } from './pan-zoom.ts'
 export { SelectActivateInteraction } from './select-activate.ts'

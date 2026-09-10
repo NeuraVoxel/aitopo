@@ -100,6 +100,7 @@ function createHost(options: {
       }),
       drawLazyMoveGhost: vi.fn(),
       drawDropTargetHighlight: vi.fn(),
+      drawResizeHandle: vi.fn(),
     }
     for (const chrome of chromeList) chrome.paint(renderer)
   }
@@ -135,7 +136,9 @@ function createHost(options: {
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition: vi.fn(),
+    previewNodeBounds: vi.fn(),
     commitNodeMove: vi.fn(),
+    commitNodeResize: vi.fn(),
     commitEdgeCreate,
     commitEdgeRemove: vi.fn(),
     markGestureDragged: () => {

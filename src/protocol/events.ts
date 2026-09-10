@@ -64,6 +64,14 @@ export interface NodeMovedEvent {
   readonly to: { readonly x: number; readonly y: number }
 }
 
+/** Node bounds committed after a resize gesture. */
+export interface NodeResizedEvent {
+  readonly type: 'nodeResized'
+  readonly nodeId: string
+  readonly from: { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
+  readonly to: { readonly x: number; readonly y: number; readonly w: number; readonly h: number }
+}
+
 /** Node entered, left, or moved between groups. */
 export interface GroupMembershipChangedEvent {
   readonly type: 'groupMembershipChanged'
@@ -107,6 +115,7 @@ export type GraphEvent =
   | SubNetworkChangedEvent
   | DocumentChangedEvent
   | NodeMovedEvent
+  | NodeResizedEvent
   | GroupMembershipChangedEvent
   | ExternalDropEvent
   | EdgeCreatedEvent

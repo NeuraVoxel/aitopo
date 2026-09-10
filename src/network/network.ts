@@ -455,6 +455,22 @@ export class Network {
   }
 
   /**
+   * Live preview bounds during resize (no nodeResized / documentChanged until commit).
+   * @param id - node id.
+   * @param bounds - world x/y/w/h.
+   */
+  previewNodeBounds(
+    id: string,
+    bounds: { x: number; y: number; w: number; h: number },
+  ): void {
+    if (this.scene.nodes.get(id) === undefined) return
+    this.scene.writeBounds({ [id]: bounds })
+    this.views.markNodeGeometryDirty(this.scene, id)
+    this.dirty.markAll()
+    this.needsPaint = true
+  }
+
+  /**
    * Commit a node move with optional group membership change.
    * Emits `nodeMoved`; emits `groupMembershipChanged` when membership changes.
    *
@@ -533,6 +549,38 @@ export class Network {
         toGroupId,
       })
     }
+  }
+
+  /**
+   * Commit a node resize.
+   * @param args - from/to bounds.
+   */
+  commitNodeResize(args: {
+    nodeId: string
+    from: { x: number; y: number; w: number; h: number }
+    to: { x: number; y: number; w: number; h: number }
+  }): void {
+    if (this.scene.nodes.get(args.nodeId) === undefined) {
+      throw new Error(`commitNodeResize: missing node ${args.nodeId}`)
+    }
+    this.apply({
+      ops: [{
+        op: 'updateNode',
+        id: args.nodeId,
+        patch: {
+          x: args.to.x,
+          y: args.to.y,
+          w: args.to.w,
+          h: args.to.h,
+        },
+      }],
+    })
+    this.emit({
+      type: 'nodeResized',
+      nodeId: args.nodeId,
+      from: { ...args.from },
+      to: { ...args.to },
+    })
   }
 
   /**

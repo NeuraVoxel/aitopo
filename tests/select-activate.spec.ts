@@ -68,7 +68,9 @@ function createHost(canvas: FakeHitCanvas): InteractionHost & {
     hitTestGroupScreen: () => undefined,
     screenToWorld: () => ({ x: 0, y: 0 }),
     previewNodePosition: vi.fn(),
+    previewNodeBounds: vi.fn(),
     commitNodeMove: vi.fn(),
+    commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
     markGestureDragged: () => {

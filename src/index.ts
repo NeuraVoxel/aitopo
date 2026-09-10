@@ -39,6 +39,7 @@ export {
   ExternalDropInteraction,
   MarqueeSelectInteraction,
   MoveNodeInteraction,
+  ResizeNodeInteraction,
   PanZoomInteraction,
   SelectActivateInteraction,
   type CreateEdgeInteractionOptions,

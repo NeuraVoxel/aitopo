@@ -7,6 +7,7 @@ import {
   DeleteEdgeInteraction,
   ExternalDropInteraction,
   MoveNodeInteraction,
+  ResizeNodeInteraction,
   MarqueeSelectInteraction,
   type GraphEvent,
   type GraphPatch,
@@ -121,7 +122,10 @@ function editorInteractions(): ConstructorParameters<typeof Network>[0] {
       new ExternalDropInteraction(),
       ...(linkMode
         ? []
-        : [new MoveNodeInteraction({ hideOthersWhileDragging })]),
+        : [
+          new ResizeNodeInteraction(),
+          new MoveNodeInteraction({ hideOthersWhileDragging }),
+        ]),
       new DeleteEdgeInteraction(),
       new CreateEdgeInteraction({
         kind: edgeKind,

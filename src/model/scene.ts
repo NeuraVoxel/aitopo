@@ -193,6 +193,27 @@ export class GraphScene {
     }
   }
 
+  /**
+   * Replace node bounds (live resize preview path).
+   * @param bounds - id → x/y/w/h.
+   */
+  writeBounds(bounds: Readonly<Record<string, { x: number; y: number; w: number; h: number }>>): void {
+    for (const [id, box] of Object.entries(bounds)) {
+      const node = this.nodeMap.get(id)
+      if (node === undefined) continue
+      this.nodeMap.set(id, { ...node, x: box.x, y: box.y, w: box.w, h: box.h })
+      this.markDirty(id)
+    }
+    this.sceneVersion += 1
+    this.active = {
+      version: 1,
+      nodes: [...this.nodeMap.values()],
+      edges: [...this.edgeMap.values()],
+      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
+      viewport: this.viewport,
+    }
+  }
+
   setSelection(ids: readonly string[]): void {
     this.selection = new Set(ids)
   }

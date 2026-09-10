@@ -45,6 +45,7 @@ import {
   applyPatch,
   PatchHistory,
   MoveNodeInteraction,
+  ResizeNodeInteraction,
   ExternalDropInteraction,
   MarqueeSelectInteraction,
 } from '@neuravoxel/aitopo'
@@ -53,6 +54,7 @@ const network = new Network({
   // Extra interactions are appended to defaults (PanZoom + SelectActivate).
   interactions: [
     new ExternalDropInteraction(),
+    new ResizeNodeInteraction(),
     new MoveNodeInteraction(),
     new MarqueeSelectInteraction(),
   ],
@@ -70,15 +72,17 @@ Pass `defaultInteractions: false` to attach only the listed modules (tests / cus
 
 | Class | Role |
 |---|---|
-| `MoveNodeInteraction` | Drag unlocked selected nodes; commit `updateNode` (+ membership); emit `nodeMoved` / `groupMembershipChanged`. Option `hideOthersWhileDragging` (default **false**) paints only movers + incident edges while dragging |
+| `MoveNodeInteraction` | Drag unlocked selected nodes; commit `updateNode` (+ membership); emit `nodeMoved` / `groupMembershipChanged`. Options: `hideOthersWhileDragging`, `lazyMove` |
+| `ResizeNodeInteraction` | Corner handles on selected unlocked nodes; commit `updateNode` x/y/w/h; emit `nodeResized`. Pack **before** `MoveNodeInteraction` |
 | `CreateEdgeInteraction` | **Alt+drag** node→node (or `requireAlt: false` exclusive link mode); rubber-band; `commitEdgeCreate` → `edgeCreated` |
 | `DeleteEdgeInteraction` | Delete/Backspace removes selected edges → `edgeRemoved` |
 | `ExternalDropInteraction` | HTML5 drop → opaque `externalDrop` (engine does **not** `addNode`) |
-| `MarqueeSelectInteraction` | **Shift+empty-space** drag; intersect select; unmodified empty drag stays pan |
+| `MarqueeSelectInteraction` | **Shift+empty-space** drag; intersect select; **Ctrl/Meta** at pointer-up appends; unmodified empty drag stays pan |
 
 ### Events
 
 - `nodeMoved` — `{ nodeId, from, to }` after pointer-up commit
+- `nodeResized` — `{ nodeId, from, to }` bounds after resize commit
 - `groupMembershipChanged` — `{ nodeId, fromGroupId, toGroupId }` when membership changes
 - `externalDrop` — `{ x, y, data, groupId? }` scene coords + opaque string
 - `edgeCreated` — `{ edgeId, from, to, kind? }` after Alt-link (or link mode) commit

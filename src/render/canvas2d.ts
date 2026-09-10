@@ -57,6 +57,8 @@ export interface Renderer {
   drawLazyMoveGhost(bounds: Rect): void
   /** Overlay: highlight group under pointer during membership drop. */
   drawDropTargetHighlight(bounds: Rect): void
+  /** Overlay: resize handle square at a corner. */
+  drawResizeHandle(center: Point, size: number): void
   /** Optional debug stroke of dirty unions. */
   setDebugPaintRects?(value: boolean): void
 }
@@ -358,6 +360,24 @@ export class Canvas2DRenderer implements Renderer {
     ctx.setLineDash([])
     ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
     ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    ctx.restore()
+  }
+
+  /**
+   * Draw a resize handle centered on a world point.
+   * @param center - handle center in world space.
+   * @param size - handle edge length in world space.
+   */
+  drawResizeHandle(center: Point, size: number): void {
+    const ctx = this.overlayCtx
+    const half = size / 2
+    ctx.save()
+    ctx.fillStyle = '#ffffff'
+    ctx.strokeStyle = '#3b82f6'
+    ctx.lineWidth = 1 / this.viewport.zoom
+    ctx.setLineDash([])
+    ctx.fillRect(center.x - half, center.y - half, size, size)
+    ctx.strokeRect(center.x - half, center.y - half, size, size)
     ctx.restore()
   }
 }

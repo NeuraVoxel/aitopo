@@ -26,6 +26,7 @@ export type {
   LayoutCompletedEvent,
   NodeActivatedEvent,
   NodeMovedEvent,
+  NodeResizedEvent,
   SelectionChangedEvent,
   SubNetworkChangedEvent,
   ViewportChangedEvent,

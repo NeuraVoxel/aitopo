@@ -134,7 +134,15 @@ export class MarqueeSelectInteraction implements Interaction {
         for (const node of network.getNodes()) {
           if (intersectsRect(band, nodeBounds(node))) ids.push(node.id)
         }
-        network.setSelection(ids)
+        if (event.ctrlKey || event.metaKey) {
+          const merged = [...network.getSelectedIds()]
+          for (const id of ids) {
+            if (!merged.includes(id)) merged.push(id)
+          }
+          network.setSelection(merged)
+        } else {
+          network.setSelection(ids)
+        }
         releaseCapture()
       }
       clearMarquee()
