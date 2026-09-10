@@ -32,19 +32,19 @@
 
 ### Task 1: Marquee append
 
-- [ ] At pointer-up, if `event.ctrlKey || event.metaKey`, `setSelection([...new Set([...getSelectedIds(), ...ids])])`; else replace.
-- [ ] Test append and replace paths.
-- [ ] Commit: `feat(interaction): Ctrl/Meta marquee appends to selection`
+- [x] At pointer-up, if `event.ctrlKey || event.metaKey`, `setSelection([...new Set([...getSelectedIds(), ...ids])])`; else replace.
+- [x] Test append and replace paths.
+- [x] Commit: `feat(interaction): Ctrl/Meta marquee appends to selection`
 
 ### Task 2: Resize interaction + protocol event
 
-- [ ] Add `NodeResizedEvent`; Network `previewNodeBounds` / `commitNodeResize`.
-- [ ] `ResizeNodeInteraction` + `drawResizeHandle`; min 24×24; skip locked.
-- [ ] Tests; commit: `feat(interaction): resize unlocked nodes via corner handles`
+- [x] Add `NodeResizedEvent`; Network `previewNodeBounds` / `commitNodeResize`.
+- [x] `ResizeNodeInteraction` + `drawResizeHandle`; min 24×24; skip locked.
+- [x] Tests; commit: `feat(interaction): resize unlocked nodes via corner handles`
 
 ### Task 3: Docs + promote note
 
-- [ ] Gap backlog + README links; promote Agent Note; verify-notes.
+- [x] Gap backlog + README links; promote Agent Note; verify-notes.
 
 ---
 
