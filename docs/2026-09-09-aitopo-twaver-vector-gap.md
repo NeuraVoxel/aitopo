@@ -93,7 +93,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | Alarm propagation tree | `wont` (current phases) | Display + model only |
 | WebGL `Renderer` | `later` | Interface reserved; `createRenderer` injects backends |
 | React / `agent-observe` adapter | `done` (plugin) | Fleet/flow via `AITopoHost`; SVG stage retired |
-| Orchestrator F1 host wiring | `gap` (plugin) | Wave D: locked + editor interactions + layout apply; CommitSink later |
+| Orchestrator F1 host wiring | `done` (chrome) | Wave D: locked + editor interactions + session layout; CommitSink later |
 | Extract View classes from renderer | `done` | `ViewSet` + `src/ui/*-view.ts` |
 
 ## Suggested next waves
@@ -101,7 +101,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 ### P0 — product hosts
 
 - [x] `plugins/agent-observe`: snapshot/flow → `GraphDocument` + mount `Network`
-- [ ] `plugins/agent-orchestrator` F1 chrome (Wave D): map `locked`, attach editor interactions, layout apply + optional `PatchHistory`
+- [x] `plugins/agent-orchestrator` F1 chrome (Wave D): map `locked`, attach editor interactions, layout apply + optional `PatchHistory`
 - [ ] `plugins/agent-orchestrator` F1 commit: CommitSink / preset draft write-back (after Wave D)
 
 ### P1 — engine debt
