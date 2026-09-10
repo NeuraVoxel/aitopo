@@ -92,16 +92,17 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | Multi-level SubNetwork stack UI | `later` | Root ↔ one child only |
 | Alarm propagation tree | `wont` (current phases) | Display + model only |
 | WebGL `Renderer` | `later` | Interface reserved; `createRenderer` injects backends |
-| React / `agent-observe` adapter | `gap` (plugin) | Outside `@neuravoxel/aitopo` |
-| Orchestrator F1 host wiring | `gap` (plugin) | Engine Editor APIs ready |
+| React / `agent-observe` adapter | `done` (plugin) | Fleet/flow via `AITopoHost`; SVG stage retired |
+| Orchestrator F1 host wiring | `gap` (plugin) | Wave D: locked + editor interactions + layout apply; CommitSink later |
 | Extract View classes from renderer | `done` | `ViewSet` + `src/ui/*-view.ts` |
 
 ## Suggested next waves
 
 ### P0 — product hosts
 
-- [ ] `plugins/agent-observe`: snapshot/flow → `GraphDocument` + mount `Network`
-- [ ] `plugins/agent-orchestrator` F1: map `locked`, attach editor interactions, optional `PatchHistory`
+- [x] `plugins/agent-observe`: snapshot/flow → `GraphDocument` + mount `Network`
+- [ ] `plugins/agent-orchestrator` F1 chrome (Wave D): map `locked`, attach editor interactions, layout apply + optional `PatchHistory`
+- [ ] `plugins/agent-orchestrator` F1 commit: CommitSink / preset draft write-back (after Wave D)
 
 ### P1 — engine debt
 

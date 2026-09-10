@@ -17,6 +17,8 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave B execution checklist: [docs/2026-09-10-aitopo-wave-b-overlay-lazy-move.md](docs/2026-09-10-aitopo-wave-b-overlay-lazy-move.md)
 - Wave C (marquee append / resize): [.agents/notes/implemented/architecture/2026-09-10-wave-c-marquee-resize.md](.agents/notes/implemented/architecture/2026-09-10-wave-c-marquee-resize.md)
 - Wave C execution checklist: [docs/2026-09-10-aitopo-wave-c-marquee-resize.md](docs/2026-09-10-aitopo-wave-c-marquee-resize.md)
+- Wave D (orchestrator F1 chrome): [.agents/notes/proposed/architecture/2026-09-10-wave-d-orchestrator-f1-chrome.md](.agents/notes/proposed/architecture/2026-09-10-wave-d-orchestrator-f1-chrome.md)
+- Wave D execution checklist: [docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md](docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
