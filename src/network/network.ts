@@ -36,6 +36,38 @@ export interface NetworkOptions {
   /** Attach default pan/zoom + select when true (default true). */
   readonly defaultInteractions?: boolean
   debugPaintRects?: boolean
+  /**
+   * Build the paint backend after canvases exist.
+   * Default: Canvas2DRenderer with the mounted root/overlay canvases.
+   */
+  readonly createRenderer?: (canvases: {
+    readonly root: HTMLCanvasElement
+    readonly overlay: HTMLCanvasElement
+    readonly debugPaintRects: boolean
+  }) => Renderer
+}
+
+/**
+ * Resolve the paint backend for a mounted Network.
+ * @param options - Network options (may supply createRenderer).
+ * @param canvases - mounted root/overlay canvases and debug flag.
+ */
+export function resolveRenderer(
+  options: NetworkOptions,
+  canvases: {
+    readonly root: HTMLCanvasElement
+    readonly overlay: HTMLCanvasElement
+    readonly debugPaintRects: boolean
+  },
+): Renderer {
+  if (options.createRenderer !== undefined) {
+    return options.createRenderer(canvases)
+  }
+  return new Canvas2DRenderer({
+    root: canvases.root,
+    overlay: canvases.overlay,
+    ...(canvases.debugPaintRects ? { debugPaintRects: true } : {}),
+  })
 }
 
 /**
@@ -48,7 +80,7 @@ export class Network {
   private readonly listeners = new Set<GraphEventHandler>()
   private view: HTMLDivElement | null = null
   private rootCanvas: HTMLCanvasElement | null = null
-  private renderer: Canvas2DRenderer | null = null
+  private renderer: Renderer | null = null
   private rafId = 0
   private needsPaint = true
   private disposed = false
@@ -208,10 +240,10 @@ export class Network {
     parent.appendChild(view)
     this.view = view
     this.rootCanvas = root
-    this.renderer = new Canvas2DRenderer({
+    this.renderer = resolveRenderer(this.options, {
       root,
       overlay,
-      ...(this.options.debugPaintRects === true ? { debugPaintRects: true } : {}),
+      debugPaintRects: this.options.debugPaintRects === true,
     })
     this.syncSize()
     this.resizeObserver = new ResizeObserver(() => {
@@ -255,7 +287,7 @@ export class Network {
   }
 
   setDebugPaintRects(value: boolean): void {
-    this.renderer?.setDebugPaintRects(value)
+    this.renderer?.setDebugPaintRects?.(value)
     this.needsPaint = true
     this.dirty.markAll()
   }
@@ -668,14 +700,14 @@ export class Network {
           selected: this.scene.selectedIds.has(node.id),
           hovered: this.scene.hover === node.id,
         })
-        if (this.scene.selectedIds.has(node.id) && renderer instanceof Canvas2DRenderer) {
+        if (this.scene.selectedIds.has(node.id)) {
           renderer.drawSelectionOverlay(bounds)
         }
       }
-      if (this.marqueeRect !== undefined && renderer instanceof Canvas2DRenderer) {
+      if (this.marqueeRect !== undefined) {
         renderer.drawMarquee(this.marqueeRect)
       }
-      if (this.edgeRubberBand !== undefined && renderer instanceof Canvas2DRenderer) {
+      if (this.edgeRubberBand !== undefined) {
         renderer.drawEdgeRubberBand(this.edgeRubberBand.from, this.edgeRubberBand.to)
       }
       renderer.endFrame()

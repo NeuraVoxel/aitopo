@@ -47,6 +47,14 @@ export interface Renderer {
   drawEdge(edge: GraphEdge, view: EdgePaintView): void
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
+  /** Overlay: selection ring (no-op OK for headless fakes). */
+  drawSelectionOverlay(bounds: Rect): void
+  /** Overlay: marquee rubber band. */
+  drawMarquee(rect: Rect): void
+  /** Overlay: edge-create rubber band. */
+  drawEdgeRubberBand(from: Point, to: Point): void
+  /** Optional debug stroke of dirty unions. */
+  setDebugPaintRects?(value: boolean): void
 }
 
 export interface Canvas2DRendererOptions {
