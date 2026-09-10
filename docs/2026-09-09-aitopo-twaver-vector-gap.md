@@ -2,13 +2,13 @@
 
 **Status:** living checklist (2026-09-09)
 **Package:** `@neuravoxel/aitopo`
-**Design reference (read-only):** `vendor/SDK2D/twaver/vector/`
+**Design reference (read-only):** `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/`
 **Base design:** [2026-09-07-aitopo-design.md](./2026-09-07-aitopo-design.md)
 **Editor requirements:** [2026-09-08-aitopo-editor-requirements.md](./2026-09-08-aitopo-editor-requirements.md)
 
 ## Summary
 
-AITopo borrows **ideas** from `twaver.vector`; it is a clean-room TypeScript rewrite. This file maps each `vendor/SDK2D/twaver/vector/**/*.js` module to an AITopo status so follow-up work stays product-driven, not feature-parity-driven.
+AITopo borrows **ideas** from `twaver.vector`; it is a clean-room TypeScript rewrite. This file maps each `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/**/*.js` module to an AITopo status so follow-up work stays product-driven, not feature-parity-driven.
 
 Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteraction`, …), or treat this backlog as a commitment to port every module.
 
@@ -117,7 +117,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 ### Explicit non-goals
 
-Overview, HTML node/link UI, Magnify, MixedZoom, GridUI, PropertyBox, GIS, DXF, copying or wrapping `vendor/SDK2D`.
+Overview, HTML node/link UI, Magnify, MixedZoom, GridUI, PropertyBox, GIS, DXF, copying or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D`.
 
 ## Maintenance
 

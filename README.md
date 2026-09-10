@@ -12,7 +12,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Editor implementation plan: [docs/2026-09-09-aitopo-editor-implementation-plan.md](docs/2026-09-09-aitopo-editor-implementation-plan.md)
 - twaver.vector gap backlog: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md)
 
-Design ideas come from `twaver.vector` (SDK2D reference tree, not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
+Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
 ## Status
 
@@ -101,10 +101,10 @@ Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply
 - React bindings (plugin adapter later)
 - WebGL renderer (interface reserved)
 - Overview / HTML node UI
-- Copying or wrapping `vendor/SDK2D`
+- Copying or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D`
 - Resize / rotate handles
 
-Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-editor-requirements.md), [Editor plan](docs/2026-09-09-aitopo-editor-implementation-plan.md). Implementation borrows **ideas** from `vendor/SDK2D/twaver/vector/` under the same clean-room rules as the observation engine.
+Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-editor-requirements.md), [Editor plan](docs/2026-09-09-aitopo-editor-implementation-plan.md). Implementation borrows **ideas** from `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` under the same clean-room rules as the observation engine.
 
 ## Known Limitations and Deferred Work
 

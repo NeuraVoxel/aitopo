@@ -10,7 +10,7 @@
 
 **Tech Stack:** TypeScript ESM, zod, Canvas 2D, Vite demo, vitest (`environment: 'node'` + mocked `InteractionHost`).
 
-**Design reference (read-only):** `vendor/SDK2D/twaver/vector/` — ideas only. Clean-room rewrite: **no** SDK2D imports, **no** twaver public names (`DataBox`, `ElementBox`, `ElementUI`, `s()` / `c()`, `DefaultInteraction`, etc.). `SDK2D/` is gitignored design-reference; see `vendor/README.md`.
+**Design reference (read-only):** `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` — ideas only. Clean-room rewrite: **no** SDK2D imports, **no** twaver public names (`DataBox`, `ElementBox`, `ElementUI`, `s()` / `c()`, `DefaultInteraction`, etc.).
 
 **Out of scope here:** AT-E7 (CreateEdge — orchestrator F2); orchestrator F1 UI; agent-observe changes; View-class rewrite from Phase 1; twaver `EditInteraction` resize/rotate/link-point editing.
 
@@ -18,7 +18,7 @@
 
 ## Design reference map (`twaver.vector` → AITopo)
 
-Primary sources under `vendor/SDK2D/`:
+Primary sources under `/home/jeff/Documents/AI/coding-agent/SDK2D/`:
 
 | Reference path | Idea to borrow |
 |---|---|
@@ -55,7 +55,7 @@ Primary sources under `vendor/SDK2D/`:
 | Pointer composition | Drag threshold (4px screen) before move/marquee; `SelectActivate` suppresses activation when a drag gesture consumed the pointer; PanZoom still only on empty space |
 | Multi-select move | Drag moves **all selected unlocked** nodes by one delta (twaver `moveSelectedElements` idea); emit one `nodeMoved` per moved id **or** a single batch documented in events — **choose:** emit `nodeMoved` per id for simple host mirroring |
 | Feature detection | Export named interaction classes; hosts check `typeof MoveNodeInteraction === 'function'` (or import) before enabling edit chrome |
-| SDK2D reference | Consult `vendor/SDK2D/twaver/vector/interaction/{Base,Default}Interaction.js` + `Network.js` while coding; never import or copy identifiers into `vendor/aitopo/src` |
+| SDK2D reference | Consult `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/interaction/{Base,Default}Interaction.js` + `Network.js` while coding; never import or copy identifiers into `vendor/aitopo/src` |
 
 ---
 
@@ -341,8 +341,8 @@ Membership rules:
 - [x] **Step 4: While coding, skim reference (do not copy)**
 
 Read for behavior only:
-- `vendor/SDK2D/twaver/vector/interaction/DefaultInteraction.js` — `handle_mousedown` / `handle_mousemove` / `end` move + select paths; `paint` rect-select + lazy outline
-- `vendor/SDK2D/twaver/vector/Network.js` — `isMovable`, `moveSelectedElements`
+- `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/interaction/DefaultInteraction.js` — `handle_mousedown` / `handle_mousemove` / `end` move + select paths; `paint` rect-select + lazy outline
+- `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/Network.js` — `isMovable`, `moveSelectedElements`
 Confirm: no `twaver` / `SDK2D` strings in `vendor/aitopo/src` except README/docs.
 
 **Verify:** `pnpm --filter @neuravoxel/aitopo test -- tests/move-node.spec.ts`

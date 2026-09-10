@@ -9,4 +9,10 @@ Standing orders for AI-assisted work in this repository.
 - Tests describe behavior, not "correctness."
 - Run the smallest relevant checks before push (`ai-eng verify-notes` when notes change; package tests for code). Add a `verify-notes` script that runs `ai-eng verify-notes .agents/notes` when helpful.
 
+## Design reference
+
+- **Original reference project:** `twaver.vector` (ideas only; clean-room rewrite — no SDK2D imports, no twaver public API names).
+- **Authoritative local path:** `/home/jeff/Documents/AI/coding-agent/SDK2D` (vector sources under `twaver/vector/`).
+- Do not use or recreate `vendor/SDK2D` under deepseek-harness; that path is retired.
+
 Product-specific runtime rules belong in this file only when this repository owns that runtime.
