@@ -1,6 +1,8 @@
 # AITopo Wave C — Marquee append and node resize
 
-> **Owning proposal:** [.agents/notes/proposed/architecture/2026-09-10-wave-c-marquee-resize.md](../.agents/notes/proposed/architecture/2026-09-10-wave-c-marquee-resize.md). Execution checklist only.
+> **Owning decision:** [.agents/notes/implemented/architecture/2026-09-10-wave-c-marquee-resize.md](../.agents/notes/implemented/architecture/2026-09-10-wave-c-marquee-resize.md). Execution checklist only.
+
+> **For agentic workers:** Wave C has shipped on `refactor`. Historical task steps remain below for audit.
 
 **Goal:** Ctrl/Meta+Shift marquee appends to selection; `ResizeNodeInteraction` resizes unlocked nodes via corner handles.
 
