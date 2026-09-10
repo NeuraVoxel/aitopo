@@ -53,6 +53,10 @@ export interface Renderer {
   drawMarquee(rect: Rect): void
   /** Overlay: edge-create rubber band. */
   drawEdgeRubberBand(from: Point, to: Point): void
+  /** Overlay: ghost outline while lazy-moving a node. */
+  drawLazyMoveGhost(bounds: Rect): void
+  /** Overlay: highlight group under pointer during membership drop. */
+  drawDropTargetHighlight(bounds: Rect): void
   /** Optional debug stroke of dirty unions. */
   setDebugPaintRects?(value: boolean): void
 }
@@ -322,6 +326,38 @@ export class Canvas2DRenderer implements Renderer {
     ctx.moveTo(from.x, from.y)
     ctx.lineTo(to.x, to.y)
     ctx.stroke()
+    ctx.restore()
+  }
+
+  /**
+   * Draw a lazy-move ghost outline for a node bounds.
+   * @param bounds - world-space ghost rect.
+   */
+  drawLazyMoveGhost(bounds: Rect): void {
+    const ctx = this.overlayCtx
+    ctx.save()
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.85)'
+    ctx.fillStyle = 'rgba(59, 130, 246, 0.08)'
+    ctx.lineWidth = 1.5 / this.viewport.zoom
+    ctx.setLineDash([5 / this.viewport.zoom, 4 / this.viewport.zoom])
+    ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    ctx.restore()
+  }
+
+  /**
+   * Draw a drop-target group highlight on the overlay.
+   * @param bounds - group band bounds.
+   */
+  drawDropTargetHighlight(bounds: Rect): void {
+    const ctx = this.overlayCtx
+    ctx.save()
+    ctx.strokeStyle = '#22c55e'
+    ctx.fillStyle = 'rgba(34, 197, 94, 0.12)'
+    ctx.lineWidth = 2 / this.viewport.zoom
+    ctx.setLineDash([])
+    ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
+    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
     ctx.restore()
   }
 }

@@ -47,6 +47,8 @@ export class CreateEdgeInteraction implements Interaction {
     let startClientX = 0
     let startClientY = 0
     let capturedPointerId: number | null = null
+    let band: { from: { x: number; y: number }; to: { x: number; y: number } } | undefined
+    let removeChrome: (() => void) | undefined
 
     const nodeCenter = (id: string): { x: number; y: number } | undefined => {
       const node = network.getNode(id)
@@ -57,7 +59,22 @@ export class CreateEdgeInteraction implements Interaction {
     }
 
     const clearBand = (): void => {
-      network.setEdgeRubberBand(undefined)
+      band = undefined
+      removeChrome?.()
+      removeChrome = undefined
+    }
+
+    const showBand = (next: { from: { x: number; y: number }; to: { x: number; y: number } }): void => {
+      band = next
+      if (removeChrome === undefined) {
+        removeChrome = network.addOverlayChrome({
+          paint(renderer) {
+            if (band !== undefined) renderer.drawEdgeRubberBand(band.from, band.to)
+          },
+        })
+      } else {
+        network.requestPaint()
+      }
     }
 
     const releaseCapture = (): void => {
@@ -120,7 +137,7 @@ export class CreateEdgeInteraction implements Interaction {
       if (from === undefined) return
       const rect = canvas.getBoundingClientRect()
       const to = network.screenToWorld(event.clientX - rect.left, event.clientY - rect.top)
-      network.setEdgeRubberBand({ from, to })
+      showBand({ from, to })
     }
 
     const onPointerUp = (event: PointerEvent): void => {

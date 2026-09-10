@@ -78,8 +78,8 @@ function createHost(canvas: FakeHitCanvas): InteractionHost & {
     clearGestureDragged: () => {
       gestureDragged = false
     },
-    setMarqueeRect: vi.fn(),
-    setEdgeRubberBand: vi.fn(),
+    addOverlayChrome: vi.fn(() => () => {}),
+    requestPaint: vi.fn(),
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),
     apply: vi.fn(),

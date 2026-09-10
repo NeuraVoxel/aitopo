@@ -76,19 +76,27 @@ function createHost(options: {
   hitId?: string
   groupOnUp?: string | undefined
   zoom?: number
+  groups?: import('../src/protocol/types.ts').GraphGroup[]
 }): InteractionHost & {
   commitNodeMove: ReturnType<typeof vi.fn>
   previewNodePosition: ReturnType<typeof vi.fn>
   markGestureDragged: ReturnType<typeof vi.fn>
   setSelection: ReturnType<typeof vi.fn>
   setDragPaintFilter: ReturnType<typeof vi.fn>
+  addOverlayChrome: ReturnType<typeof vi.fn>
+  ghostPaints: number
+  dropTargetPaints: number
 } {
   const nodes = new Map(options.nodes.map(n => [n.id, n]))
+  const groups = [...(options.groups ?? [])]
   let selectedIds = [...(options.selectedIds ?? [])]
   let gestureDragged = false
   const hitId = options.hitId ?? options.nodes[0]?.id
   const zoom = options.zoom ?? 1
   let groupOnUp = options.groupOnUp
+  let ghostPaints = 0
+  let dropTargetPaints = 0
+  const chromeList: Array<import('../src/interaction/types.ts').OverlayChrome> = []
 
   const commitNodeMove = vi.fn()
   const previewNodePosition = vi.fn()
@@ -100,7 +108,43 @@ function createHost(options: {
   })
   const setDragPaintFilter = vi.fn()
 
+  const paintChrome = (): void => {
+    const renderer = {
+      beginFrame: vi.fn(),
+      drawGroup: vi.fn(),
+      drawEdge: vi.fn(),
+      drawNode: vi.fn(),
+      endFrame: vi.fn(),
+      drawSelectionOverlay: vi.fn(),
+      drawMarquee: vi.fn(),
+      drawEdgeRubberBand: vi.fn(),
+      drawLazyMoveGhost: vi.fn(() => {
+        ghostPaints += 1
+      }),
+      drawDropTargetHighlight: vi.fn(() => {
+        dropTargetPaints += 1
+      }),
+    }
+    for (const chrome of chromeList) chrome.paint(renderer)
+  }
+
+  const addOverlayChrome = vi.fn((chrome: import('../src/interaction/types.ts').OverlayChrome) => {
+    chromeList.push(chrome)
+    paintChrome()
+    return () => {
+      const index = chromeList.indexOf(chrome)
+      if (index >= 0) chromeList.splice(index, 1)
+      paintChrome()
+    }
+  })
+
   return {
+    get ghostPaints() {
+      return ghostPaints
+    },
+    get dropTargetPaints() {
+      return dropTargetPaints
+    },
     getHitElement: () => options.canvas as unknown as HTMLCanvasElement,
     getViewElement: () => null,
     hitTestScreen: () =>
@@ -113,7 +157,7 @@ function createHost(options: {
     getNode: id => nodes.get(id),
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
-    getGroups: () => [],
+    getGroups: () => groups,
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => groupOnUp,
     screenToWorld: (x, y) => ({ x, y }),
@@ -126,8 +170,10 @@ function createHost(options: {
     clearGestureDragged: () => {
       gestureDragged = false
     },
-    setMarqueeRect: vi.fn(),
-    setEdgeRubberBand: vi.fn(),
+    addOverlayChrome,
+    requestPaint: vi.fn(() => {
+      paintChrome()
+    }),
     setDragPaintFilter,
     emit: vi.fn(),
     apply: vi.fn(),
@@ -413,6 +459,42 @@ describe('MoveNodeInteraction', () => {
     expect(host.setDragPaintFilter).toHaveBeenCalledWith(['a'])
     canvas.dispatch('pointerup', { button: 0, clientX: 30, clientY: 10 })
     expect(host.setDragPaintFilter).toHaveBeenLastCalledWith(undefined)
+    dispose()
+  })
+
+  it('lazyMove does not preview positions and paints ghosts', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'a', x: 10, y: 20, w: 40, h: 40 })],
+      selectedIds: ['a'],
+      hitId: 'a',
+    })
+    const dispose = new MoveNodeInteraction({ lazyMove: true }).attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointermove', { button: 0, clientX: 40, clientY: 10 })
+    expect(host.previewNodePosition).not.toHaveBeenCalled()
+    expect(host.ghostPaints).toBeGreaterThan(0)
+    canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 10 })
+    expect(host.commitNodeMove).toHaveBeenCalled()
+    dispose()
+  })
+
+  it('highlights drop-target group while dragging', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'a', x: 10, y: 20 })],
+      selectedIds: ['a'],
+      hitId: 'a',
+      groupOnUp: 'g1',
+      groups: [{ id: 'g1', label: 'G', memberIds: [], x: 0, y: 0, w: 100, h: 80 }],
+    })
+    const dispose = new MoveNodeInteraction().attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointermove', { button: 0, clientX: 40, clientY: 10 })
+    expect(host.dropTargetPaints).toBeGreaterThan(0)
+    canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 10 })
     dispose()
   })
 })

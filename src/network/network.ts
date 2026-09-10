@@ -21,8 +21,8 @@ import {
 import {
   PanZoomInteraction,
   SelectActivateInteraction,
-  type EdgeRubberBand,
   type Interaction,
+  type OverlayChrome,
 } from '../interaction/index.ts'
 import { layoutFlowColumns, layoutGrid } from '../layout/index.ts'
 import { DirtyAccumulator } from './dirty.ts'
@@ -90,10 +90,8 @@ export class Network {
   private readonly options: NetworkOptions
   private interactionModules: Interaction[] = []
   private gestureDragged = false
-  /** Live Shift-marquee world rect painted on the overlay during validate. */
-  private marqueeRect: Rect | undefined
-  /** Live edge-create rubber-band painted on the overlay during validate. */
-  private edgeRubberBand: EdgeRubberBand | undefined
+  /** Transient overlay painters registered by interactions. */
+  private readonly overlayChrome: OverlayChrome[] = []
   /**
    * When set, validate paints only these node ids, incident edges, and skips groups.
    * `undefined` paints the full scene.
@@ -384,21 +382,22 @@ export class Network {
   }
 
   /**
-   * Live marquee rect on the overlay (world space), or clear.
-   * @param rect - world rect during Shift-marquee drag, or undefined to clear.
+   * Register transient overlay paint; disposer removes it and requests a repaint.
+   * @param chrome - painter invoked each validate after scene paint.
+   * @returns disposer.
    */
-  setMarqueeRect(rect: Rect | undefined): void {
-    this.marqueeRect = rect
-    this.dirty.markAll()
-    this.needsPaint = true
+  addOverlayChrome(chrome: OverlayChrome): () => void {
+    this.overlayChrome.push(chrome)
+    this.requestPaint()
+    return () => {
+      const index = this.overlayChrome.indexOf(chrome)
+      if (index >= 0) this.overlayChrome.splice(index, 1)
+      this.requestPaint()
+    }
   }
 
-  /**
-   * Live edge-create rubber-band on the overlay, or clear.
-   * @param band - world-space segment, or undefined to clear.
-   */
-  setEdgeRubberBand(band: EdgeRubberBand | undefined): void {
-    this.edgeRubberBand = band
+  /** Schedule a full-frame repaint (chrome state changed without a scene mutation). */
+  requestPaint(): void {
     this.dirty.markAll()
     this.needsPaint = true
   }
@@ -409,8 +408,7 @@ export class Network {
    */
   setDragPaintFilter(nodeIds: readonly string[] | undefined): void {
     this.dragPaintFilter = nodeIds === undefined ? undefined : new Set(nodeIds)
-    this.dirty.markAll()
-    this.needsPaint = true
+    this.requestPaint()
   }
 
   /** @returns selected element ids. */
@@ -728,11 +726,8 @@ export class Network {
           renderer.drawSelectionOverlay(paint.bounds)
         }
       }
-      if (this.marqueeRect !== undefined) {
-        renderer.drawMarquee(this.marqueeRect)
-      }
-      if (this.edgeRubberBand !== undefined) {
-        renderer.drawEdgeRubberBand(this.edgeRubberBand.from, this.edgeRubberBand.to)
+      for (const chrome of this.overlayChrome) {
+        chrome.paint(renderer)
       }
       renderer.endFrame()
     } catch {

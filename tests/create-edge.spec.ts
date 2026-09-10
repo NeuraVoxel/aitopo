@@ -76,14 +76,49 @@ function createHost(options: {
   hitAt: (x: number, y: number) => { id: string; kind: 'node' | 'edge' } | undefined
 }): InteractionHost & {
   commitEdgeCreate: ReturnType<typeof vi.fn>
-  setEdgeRubberBand: ReturnType<typeof vi.fn>
+  addOverlayChrome: ReturnType<typeof vi.fn>
+  rubberBandClears: number
 } {
   const nodes = new Map(options.nodes.map(n => [n.id, n]))
   const commitEdgeCreate = vi.fn(() => 'e-new')
-  const setEdgeRubberBand = vi.fn()
   let gestureDragged = false
+  let rubberBandClears = 0
+  const chromeList: Array<import('../src/interaction/types.ts').OverlayChrome> = []
+  let bandPaintCount = 0
+
+  const paintChrome = (): void => {
+    const renderer = {
+      beginFrame: vi.fn(),
+      drawGroup: vi.fn(),
+      drawEdge: vi.fn(),
+      drawNode: vi.fn(),
+      endFrame: vi.fn(),
+      drawSelectionOverlay: vi.fn(),
+      drawMarquee: vi.fn(),
+      drawEdgeRubberBand: vi.fn(() => {
+        bandPaintCount += 1
+      }),
+      drawLazyMoveGhost: vi.fn(),
+      drawDropTargetHighlight: vi.fn(),
+    }
+    for (const chrome of chromeList) chrome.paint(renderer)
+  }
+
+  const addOverlayChrome = vi.fn((chrome: import('../src/interaction/types.ts').OverlayChrome) => {
+    chromeList.push(chrome)
+    paintChrome()
+    return () => {
+      const index = chromeList.indexOf(chrome)
+      if (index >= 0) chromeList.splice(index, 1)
+      rubberBandClears += 1
+      paintChrome()
+    }
+  })
 
   return {
+    get rubberBandClears() {
+      return rubberBandClears
+    },
     getHitElement: () => options.canvas as unknown as HTMLCanvasElement,
     getViewElement: () => null,
     hitTestScreen: (x, y) => options.hitAt(x, y),
@@ -110,11 +145,16 @@ function createHost(options: {
     clearGestureDragged: () => {
       gestureDragged = false
     },
-    setMarqueeRect: vi.fn(),
-    setEdgeRubberBand,
+    addOverlayChrome,
+    requestPaint: vi.fn(() => {
+      paintChrome()
+    }),
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),
     apply: vi.fn(),
+    get bandPaintCount() {
+      return bandPaintCount
+    },
   }
 }
 
@@ -135,10 +175,10 @@ describe('CreateEdgeInteraction', () => {
 
     canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10, altKey: true })
     canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 10, altKey: true })
-    expect(host.setEdgeRubberBand).toHaveBeenCalled()
+    expect(host.addOverlayChrome).toHaveBeenCalled()
     canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 10, altKey: true })
     expect(host.commitEdgeCreate).toHaveBeenCalledWith({ from: 'a', to: 'b', kind: 'data' })
-    expect(host.setEdgeRubberBand).toHaveBeenLastCalledWith(undefined)
+    expect(host.rubberBandClears).toBeGreaterThan(0)
     dispose()
   })
 

@@ -2,7 +2,7 @@
  * Interaction exports.
  */
 
-export type { EdgeRubberBand, Interaction, InteractionHost } from './types.ts'
+export type { EdgeRubberBand, Interaction, InteractionHost, OverlayChrome } from './types.ts'
 export {
   EXTERNAL_DROP_MIME_AITOPO,
   EXTERNAL_DROP_MIME_PLAIN,

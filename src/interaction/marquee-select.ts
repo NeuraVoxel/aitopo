@@ -41,6 +41,8 @@ export class MarqueeSelectInteraction implements Interaction {
     let startWorld = { x: 0, y: 0 }
     /** Pointer id held via setPointerCapture; null when none. */
     let capturedPointerId: number | null = null
+    let marquee: Rect | undefined
+    let removeChrome: (() => void) | undefined
 
     const reset = (): void => {
       active = false
@@ -59,7 +61,22 @@ export class MarqueeSelectInteraction implements Interaction {
     }
 
     const clearMarquee = (): void => {
-      network.setMarqueeRect(undefined)
+      marquee = undefined
+      removeChrome?.()
+      removeChrome = undefined
+    }
+
+    const showMarquee = (rect: Rect): void => {
+      marquee = rect
+      if (removeChrome === undefined) {
+        removeChrome = network.addOverlayChrome({
+          paint(renderer) {
+            if (marquee !== undefined) renderer.drawMarquee(marquee)
+          },
+        })
+      } else {
+        network.requestPaint()
+      }
     }
 
     const abort = (): void => {
@@ -101,7 +118,7 @@ export class MarqueeSelectInteraction implements Interaction {
         event.clientX - rect.left,
         event.clientY - rect.top,
       )
-      network.setMarqueeRect(rectFromPoints(startWorld, current))
+      showMarquee(rectFromPoints(startWorld, current))
     }
 
     const onPointerUp = (event: PointerEvent): void => {
@@ -112,10 +129,10 @@ export class MarqueeSelectInteraction implements Interaction {
           event.clientX - rect.left,
           event.clientY - rect.top,
         )
-        const marquee = rectFromPoints(startWorld, current)
+        const band = rectFromPoints(startWorld, current)
         const ids: string[] = []
         for (const node of network.getNodes()) {
-          if (intersectsRect(marquee, nodeBounds(node))) ids.push(node.id)
+          if (intersectsRect(band, nodeBounds(node))) ids.push(node.id)
         }
         network.setSelection(ids)
         releaseCapture()

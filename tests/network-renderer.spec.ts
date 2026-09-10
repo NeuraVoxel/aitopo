@@ -25,6 +25,8 @@ describe('resolveRenderer', () => {
       drawSelectionOverlay: vi.fn(),
       drawMarquee: vi.fn(),
       drawEdgeRubberBand: vi.fn(),
+      drawLazyMoveGhost: vi.fn(),
+      drawDropTargetHighlight: vi.fn(),
     }
     const createRenderer = vi.fn((_canvases: {
       root: HTMLCanvasElement

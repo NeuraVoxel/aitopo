@@ -78,7 +78,7 @@ function createHost(options: {
   hitId?: string
 }): InteractionHost & {
   setSelection: ReturnType<typeof vi.fn>
-  setMarqueeRect: ReturnType<typeof vi.fn>
+  addOverlayChrome: ReturnType<typeof vi.fn>
   markGestureDragged: ReturnType<typeof vi.fn>
   marqueeRects: Array<Rect | undefined>
 } {
@@ -86,13 +86,44 @@ function createHost(options: {
   const hitId = options.hitId
   let gestureDragged = false
   const marqueeRects: Array<Rect | undefined> = []
+  const chromeList: Array<import('../src/interaction/types.ts').OverlayChrome> = []
 
   const setSelection = vi.fn()
-  const setMarqueeRect = vi.fn((rect: Rect | undefined) => {
-    marqueeRects.push(rect)
-  })
   const markGestureDragged = vi.fn(() => {
     gestureDragged = true
+  })
+
+  const paintChrome = (): void => {
+    const drawMarquee = (rect: Rect): void => {
+      marqueeRects.push(rect)
+    }
+    const renderer = {
+      beginFrame: vi.fn(),
+      drawGroup: vi.fn(),
+      drawEdge: vi.fn(),
+      drawNode: vi.fn(),
+      endFrame: vi.fn(),
+      drawSelectionOverlay: vi.fn(),
+      drawMarquee,
+      drawEdgeRubberBand: vi.fn(),
+      drawLazyMoveGhost: vi.fn(),
+      drawDropTargetHighlight: vi.fn(),
+    }
+    if (chromeList.length === 0) {
+      marqueeRects.push(undefined)
+      return
+    }
+    for (const chrome of chromeList) chrome.paint(renderer)
+  }
+
+  const addOverlayChrome = vi.fn((chrome: import('../src/interaction/types.ts').OverlayChrome) => {
+    chromeList.push(chrome)
+    paintChrome()
+    return () => {
+      const index = chromeList.indexOf(chrome)
+      if (index >= 0) chromeList.splice(index, 1)
+      paintChrome()
+    }
   })
 
   return {
@@ -122,8 +153,10 @@ function createHost(options: {
     clearGestureDragged: () => {
       gestureDragged = false
     },
-    setMarqueeRect,
-    setEdgeRubberBand: vi.fn(),
+    addOverlayChrome,
+    requestPaint: vi.fn(() => {
+      paintChrome()
+    }),
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),
     apply: vi.fn(),
@@ -186,7 +219,7 @@ describe('MarqueeSelectInteraction', () => {
     canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 80 })
 
     expect(host.setSelection).not.toHaveBeenCalled()
-    expect(host.setMarqueeRect).not.toHaveBeenCalled()
+    expect(host.addOverlayChrome).not.toHaveBeenCalled()
     expect(host.markGestureDragged).not.toHaveBeenCalled()
     dispose()
   })
@@ -203,7 +236,7 @@ describe('MarqueeSelectInteraction', () => {
     shiftMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 })
 
     expect(host.setSelection).not.toHaveBeenCalled()
-    expect(host.setMarqueeRect).not.toHaveBeenCalled()
+    expect(host.addOverlayChrome).not.toHaveBeenCalled()
     dispose()
   })
 
@@ -217,12 +250,13 @@ describe('MarqueeSelectInteraction', () => {
 
     canvas.dispatch('pointerdown', { button: 0, clientX: 0, clientY: 0, shiftKey: true })
     canvas.dispatch('pointermove', { button: 0, clientX: 2, clientY: 0, shiftKey: true })
-    expect(host.setMarqueeRect).not.toHaveBeenCalled()
+    expect(host.addOverlayChrome).not.toHaveBeenCalled()
     expect(host.markGestureDragged).not.toHaveBeenCalled()
 
     canvas.dispatch('pointermove', { button: 0, clientX: 50, clientY: 40, shiftKey: true })
     expect(host.markGestureDragged).toHaveBeenCalledTimes(1)
-    expect(host.setMarqueeRect).toHaveBeenCalledWith({
+    expect(host.addOverlayChrome).toHaveBeenCalledTimes(1)
+    expect(host.marqueeRects).toContainEqual({
       x: 0,
       y: 0,
       width: 50,

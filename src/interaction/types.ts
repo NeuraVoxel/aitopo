@@ -2,15 +2,28 @@
  * Interaction plugin contract (avoids importing Network class).
  */
 
-import type { Point, Rect } from '../geom.ts'
+import type { Point } from '../geom.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
 import type { GraphEdge, GraphGroup, GraphNode } from '../protocol/types.ts'
+import type { Renderer } from '../render/canvas2d.ts'
 
 /** Live rubber-band while creating an edge. */
 export interface EdgeRubberBand {
   readonly from: Point
   readonly to: Point
+}
+
+/**
+ * Transient overlay paint contributed by an interaction (marquee, rubber-band, ghosts).
+ * Invoked after scene + selection paint each frame while registered.
+ */
+export interface OverlayChrome {
+  /**
+   * Paint overlay chrome for the current frame.
+   * @param renderer - paint backend (overlay methods).
+   */
+  paint(renderer: Renderer): void
 }
 
 /** Minimal host surface interactions bind to. */
@@ -86,15 +99,13 @@ export interface InteractionHost {
   /** Reset the drag-consumed flag (call at pointerdown). */
   clearGestureDragged(): void
   /**
-   * Live marquee rect on the overlay (world space), or clear.
-   * @param rect - world rect during Shift-marquee drag, or undefined to clear.
+   * Register transient overlay paint; disposer removes it and requests a repaint.
+   * @param chrome - painter invoked each validate after scene paint.
+   * @returns disposer.
    */
-  setMarqueeRect(rect: Rect | undefined): void
-  /**
-   * Live edge-create rubber-band on the overlay, or clear.
-   * @param band - world-space segment, or undefined to clear.
-   */
-  setEdgeRubberBand(band: EdgeRubberBand | undefined): void
+  addOverlayChrome(chrome: OverlayChrome): () => void
+  /** Schedule a full-frame repaint (chrome state changed without a scene mutation). */
+  requestPaint(): void
   /**
    * Restrict paint to the given node ids (plus incident edges) during drag.
    * Pass `undefined` to paint the full scene (default).
