@@ -13,7 +13,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - twaver.vector gap backlog: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md)
 - Wave A (View / Renderer / alarmChanged): [.agents/notes/implemented/architecture/2026-09-10-wave-a-view-renderer-alarms.md](.agents/notes/implemented/architecture/2026-09-10-wave-a-view-renderer-alarms.md)
 - Wave A execution checklist: [docs/2026-09-10-aitopo-wave-a-view-renderer-alarms.md](docs/2026-09-10-aitopo-wave-a-view-renderer-alarms.md)
-- Wave B proposal: [.agents/notes/proposed/architecture/2026-09-10-wave-b-overlay-lazy-move.md](.agents/notes/proposed/architecture/2026-09-10-wave-b-overlay-lazy-move.md)
+- Wave B (overlay chrome / lazy move / drop-target): [.agents/notes/implemented/architecture/2026-09-10-wave-b-overlay-lazy-move.md](.agents/notes/implemented/architecture/2026-09-10-wave-b-overlay-lazy-move.md)
 - Wave B execution checklist: [docs/2026-09-10-aitopo-wave-b-overlay-lazy-move.md](docs/2026-09-10-aitopo-wave-b-overlay-lazy-move.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.

@@ -1,8 +1,8 @@
 # AITopo Wave B — Overlay chrome, lazy move, drop-target highlight
 
-> **Owning proposal:** [.agents/notes/proposed/architecture/2026-09-10-wave-b-overlay-lazy-move.md](../.agents/notes/proposed/architecture/2026-09-10-wave-b-overlay-lazy-move.md). This file is the **execution checklist** only.
+> **Owning decision:** [.agents/notes/implemented/architecture/2026-09-10-wave-b-overlay-lazy-move.md](../.agents/notes/implemented/architecture/2026-09-10-wave-b-overlay-lazy-move.md). This file is the **execution checklist** only.
 
-> **For agentic workers:** Implement task-by-task. When shipping, promote the Agent Note `proposed/` → `implemented/`. Clean-room: no SDK2D imports, no twaver public names.
+> **For agentic workers:** Wave B has shipped on `refactor`. Historical task steps remain below for audit. Clean-room: no SDK2D imports, no twaver public names.
 
 **Goal:** Replace Network-hardcoded marquee/rubber-band fields with an overlay chrome registry; add optional lazy-move ghosts; highlight the drop-target group during move.
 

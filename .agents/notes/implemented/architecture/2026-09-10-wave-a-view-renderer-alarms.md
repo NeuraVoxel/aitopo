@@ -32,7 +32,7 @@ Overlay marker protocol, lazy-move ghost, drop-target group highlight, resize/ro
 - Paint and dirty-rect unions go through `ViewSet` after validate; hosts can inject a fake `Renderer` in tests without Canvas2D.
 - Out-of-tree `Renderer` implementers must provide the new overlay methods (none in-repo besides `Canvas2DRenderer`).
 - Selection/hover chrome is not cached on Views, so chrome-only updates do not force geometry revalidation.
-- Wave B items (markers, lazy move, drop-target highlight) remain open in the gap backlog.
+- Wave B items remain open only where marked `later` / unchecked in the gap backlog (Shift-append marquee, resize/rotate, move-link).
 
 ## Testing
 

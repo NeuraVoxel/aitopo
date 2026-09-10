@@ -69,10 +69,10 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 |---|---|---|---|
 | `interaction/BaseInteraction.js` | Attach / tearDown, overlay paint, point conversion | `done` | `Interaction.attach → disposer` + `InteractionHost` |
 | `interaction/DefaultInteraction.js` | Live move of selected movable set | `done` | `MoveNodeInteraction` |
-| same | Lazy move ghost outline | `later` | Live-only today |
-| same | Rect select overlay | `done` | `MarqueeSelectInteraction` (replace-only on up) |
+| same | Lazy move ghost outline | `done` | `MoveNodeInteraction({ lazyMove: true })` + `drawLazyMoveGhost` |
+| same | Rect select overlay | `done` | `MarqueeSelectInteraction` via overlay chrome (replace-only on up) |
 | same | Empty-space pan | `done` | `PanZoomInteraction` |
-| same | Reparent while **P** held | `done` (behavior change) | Drop hit-test group on pointer-up; no chord key |
+| same | Reparent while **P** held | `done` (behavior change) | Drop hit-test group on pointer-up; drop-target highlight during drag; no chord key |
 | `interaction/CreateLinkInteraction.js` | From/to rubber-band | `done` | `CreateEdgeInteraction` |
 | `interaction/CreateElementInteraction.js` | Click-to-create element | `later` | Host adds via `externalDrop` + `addNode` |
 | `interaction/CreateShapeNodeInteraction.js` | Draw shape node | `wont` unless product asks | |
@@ -107,11 +107,11 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 - [x] Emit `alarmChanged` on alarm mutations
 - [ ] Marquee Shift-append if shell needs multi-select add
-- [ ] Temporary highlight for drop-target group during move (DefaultInteraction `parentRect` idea)
+- [x] Temporary highlight for drop-target group during move (DefaultInteraction `parentRect` idea)
 
 ### P2 — deeper edit
 
-- [ ] Lazy move ghost on overlay
+- [x] Lazy move ghost on overlay
 - [ ] Resize (and optional rotate) edit handles
 - [ ] Move-link / link-handler equivalents
 
