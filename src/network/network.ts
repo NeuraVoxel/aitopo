@@ -125,6 +125,14 @@ export class Network {
       this.scene.setSelection(selection.selectedIds)
       this.emit({ type: 'selectionChanged', selectedIds: selection.selectedIds })
     }
+    for (const op of parsed.data.ops) {
+      if (op.op !== 'setAlarms') continue
+      this.emit({
+        type: 'alarmChanged',
+        elementId: op.elementId,
+        alarms: this.scene.alarmsOf(op.elementId),
+      })
+    }
     this.emit({ type: 'documentChanged', reason: 'apply' })
   }
 
