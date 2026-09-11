@@ -144,6 +144,11 @@ function invertEdgePatch(edge: GraphEdge, patch: UpdateEdgePatch): UpdateEdgePat
   if (patch.from !== undefined) inv.from = edge.from
   if (patch.to !== undefined) inv.to = edge.to
   if (patch.kind !== undefined && edge.kind !== undefined) inv.kind = edge.kind
+  if (patch.waypoints !== undefined) {
+    inv.waypoints = edge.waypoints !== undefined
+      ? edge.waypoints.map(p => ({ x: p.x, y: p.y }))
+      : []
+  }
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(edge.alarms)
   if (patch.data !== undefined && edge.data !== undefined) inv.data = { ...edge.data }
   return inv
@@ -204,6 +209,9 @@ function cloneEdge(edge: GraphEdge): PatchEdge {
     from: edge.from,
     to: edge.to,
     ...(edge.kind !== undefined ? { kind: edge.kind } : {}),
+    ...(edge.waypoints !== undefined
+      ? { waypoints: edge.waypoints.map(p => ({ x: p.x, y: p.y })) }
+      : {}),
     ...(edge.alarms !== undefined ? { alarms: cloneAlarms(edge.alarms) } : {}),
     ...(edge.data !== undefined ? { data: { ...edge.data } } : {}),
   }

@@ -562,6 +562,30 @@ export class Network {
     this.gestures.commitEdgeRemove(edgeIds)
   }
 
+  /**
+   * Live preview of edge bend waypoints.
+   * @param edgeId - edge id.
+   * @param waypoints - intermediate points.
+   */
+  previewEdgeWaypoints(
+    edgeId: string,
+    waypoints: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    this.gestures.previewEdgeWaypoints(edgeId, waypoints)
+  }
+
+  /**
+   * Commit edge bend waypoints; emits `edgeWaypointsChanged`.
+   * @param args - edge id and from/to waypoint lists.
+   */
+  commitEdgeWaypoints(args: {
+    edgeId: string
+    from: readonly { readonly x: number; readonly y: number }[]
+    to: readonly { readonly x: number; readonly y: number }[]
+  }): void {
+    this.gestures.commitEdgeWaypoints(args)
+  }
+
   /** Mark that a drag consumed this pointer gesture. */
   markGestureDragged(): void {
     this.gestures.markGestureDragged()

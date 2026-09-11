@@ -102,6 +102,7 @@ function createHost(options: {
       drawLazyMoveGhost: vi.fn(),
       drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
+      drawEdgeBendHandle: vi.fn(),
     }
     for (const chrome of chromeList) chrome.paint(renderer)
   }
@@ -142,6 +143,8 @@ function createHost(options: {
     commitNodeResize: vi.fn(),
     commitEdgeCreate,
     commitEdgeRemove: vi.fn(),
+    previewEdgeWaypoints: vi.fn(),
+    commitEdgeWaypoints: vi.fn(),
     markGestureDragged: () => {
       gestureDragged = true
     },

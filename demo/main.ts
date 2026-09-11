@@ -6,6 +6,7 @@ import {
   CreateEdgeInteraction,
   DeleteEdgeInteraction,
   ExternalDropInteraction,
+  MoveEdgeBendInteraction,
   MoveNodeInteraction,
   ResizeNodeInteraction,
   MarqueeSelectInteraction,
@@ -51,6 +52,8 @@ function summarizeEvent(event: GraphEvent): string {
       return `edgeCreated · ${event.edgeId} ${event.from}→${event.to}${event.kind !== undefined ? ` · ${event.kind}` : ''}`
     case 'edgeRemoved':
       return `edgeRemoved · ${event.edgeId}`
+    case 'edgeWaypointsChanged':
+      return `edgeWaypointsChanged · ${event.edgeId} (${event.from.length}→${event.to.length} pts)`
     default:
       return `${event.type} · network=${network?.scene.currentNetworkId ?? 'root'} · sel=${[...(network?.scene.selectedIds ?? [])].join(',') || '—'}`
   }
@@ -103,6 +106,7 @@ function bindEvents(n: Network): void {
         || event.type === 'groupMembershipChanged'
         || event.type === 'edgeCreated'
         || event.type === 'edgeRemoved'
+        || event.type === 'edgeWaypointsChanged'
       )
     ) {
       setStatus(summarizeEvent(event))
@@ -123,6 +127,7 @@ function editorInteractions(): ConstructorParameters<typeof Network>[0] {
       ...(linkMode
         ? []
         : [
+          new MoveEdgeBendInteraction(),
           new ResizeNodeInteraction(),
           new MoveNodeInteraction({ hideOthersWhileDragging }),
         ]),

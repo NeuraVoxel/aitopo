@@ -53,6 +53,11 @@ export interface GraphEdge {
   readonly from: string
   readonly to: string
   readonly kind?: string
+  /**
+   * Intermediate bend points between auto endpoint anchors.
+   * Absent or empty → orthogonal auto-route from node boxes.
+   */
+  readonly waypoints?: readonly { readonly x: number; readonly y: number }[]
   readonly alarms?: readonly Alarm[]
   readonly data?: Readonly<Record<string, unknown>>
 }

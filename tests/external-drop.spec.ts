@@ -96,6 +96,8 @@ function createHost(options: {
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
+    previewEdgeWaypoints: vi.fn(),
+    commitEdgeWaypoints: vi.fn(),
     markGestureDragged: vi.fn(),
     wasGestureDragged: () => false,
     clearGestureDragged: vi.fn(),

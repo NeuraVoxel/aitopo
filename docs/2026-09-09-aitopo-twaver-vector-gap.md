@@ -51,8 +51,8 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `LabelAttachment.js` | Primary label | `done` (simplified) | Drawn inside `drawNode` |
 | `Label2Attachment.js` | Secondary label | `later` | |
 | `IconsAttachment.js` | Icon strip | `later` | Host/`data` extension if needed |
-| `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction` |
 | `EditAttachment.js` | Resize/rotate handles | `done` (resize) | Overlay handles via `ResizeNodeInteraction`; rotate still `later` |
+| `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction`; bend handles via Wave I |
 | `HTMLNodeUI.js` | HTML overlay node | `wont` | |
 | `HTMLLinkUI.js` | HTML overlay link | `wont` | |
 | `HTMLLabelAttachment.js` | HTML label | `wont` | |
@@ -77,8 +77,8 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `interaction/CreateElementInteraction.js` | Click-to-create element | `later` | Host adds via `externalDrop` + `addNode` |
 | `interaction/CreateShapeNodeInteraction.js` | Draw shape node | `wont` unless product asks | |
 | `interaction/CreateShapeLinkInteraction.js` | Draw shape link | `wont` unless product asks | |
-| `interaction/EditInteraction.js` | Resize / rotate / link points | `done` (resize) | `ResizeNodeInteraction` corners; rotate / link points still `later` |
-| `interaction/MoveLinkInteraction.js` | Drag link control points | `later` | Needs edge bend protocol |
+| `interaction/EditInteraction.js` | Resize / rotate / link points | `done` (resize + bends) | `ResizeNodeInteraction` + `MoveEdgeBendInteraction`; rotate still `later` |
+| `interaction/MoveLinkInteraction.js` | Drag link control points | `done` | `MoveEdgeBendInteraction` + `GraphEdge.waypoints` |
 | `interaction/MagnifyInteraction.js` | Magnifier | `wont` | |
 | `interaction/TouchInteraction.js` | Touch gestures | `later` | Desktop-first |
 | `interaction/MSTouchInteraction.js` | MS pointer touch | `later` | |
@@ -117,7 +117,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 - [x] Lazy move ghost on overlay
 - [x] Resize edit handles (rotate still open)
-- [ ] Move-link / link-handler equivalents
+- [x] Move-link / link-handler equivalents — [Wave I](./2026-09-11-aitopo-wave-i-move-edge-bend.md)
 - [ ] Rotate handles (needs protocol field)
 
 ### Architecture waves
@@ -128,6 +128,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | F | Apply / preview dirty granularity | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md) |
 | G | View label/alarm/hit facets | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md) |
 | H | Split InteractionHost / gesture controller | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md) |
+| I | Edge bend waypoints (Move-link) | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md) |
 
 ### Explicit non-goals
 

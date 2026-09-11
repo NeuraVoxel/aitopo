@@ -38,6 +38,7 @@ export {
   DeleteEdgeInteraction,
   ExternalDropInteraction,
   MarqueeSelectInteraction,
+  MoveEdgeBendInteraction,
   MoveNodeInteraction,
   ResizeNodeInteraction,
   PanZoomInteraction,

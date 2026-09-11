@@ -38,15 +38,53 @@ export function groupBounds(group: GraphGroup): Rect {
  * Edge endpoint anchors and route points (twaver Link orthogonal/flexional ideas).
  * Prefer left↔right when boxes sit side-by-side (Model → Tools fan-out), then
  * top↔bottom for stacked bands (Join → next Step).
+ * When `waypoints` is non-empty, polyline is `[fromAnchor, ...waypoints, toAnchor]`.
  * @param from - source node.
  * @param to - target node.
+ * @param waypoints - optional intermediate bend points.
  */
-export function edgeAnchors(from: GraphNode, to: GraphNode): {
+export function edgeAnchors(
+  from: GraphNode,
+  to: GraphNode,
+  waypoints?: readonly { readonly x: number; readonly y: number }[],
+): {
   from: Point
   to: Point
   bounds: Rect
   orientation: 'horizontal' | 'vertical'
   /** Polyline points including endpoints (orthogonal.H.V / V.H style). */
+  points: readonly Point[]
+} {
+  const auto = edgeAnchorsAuto(from, to)
+  if (waypoints === undefined || waypoints.length === 0) return auto
+  const points: Point[] = [
+    auto.from,
+    ...waypoints.map(p => ({ x: p.x, y: p.y })),
+    auto.to,
+  ]
+  let bounds: Rect | undefined
+  for (const point of points) {
+    bounds = unionPoint(bounds, point)
+  }
+  return {
+    from: auto.from,
+    to: auto.to,
+    bounds: bounds ?? { x: auto.from.x, y: auto.from.y, width: 1, height: 1 },
+    orientation: auto.orientation,
+    points,
+  }
+}
+
+/**
+ * Auto orthogonal route from node boxes (no custom waypoints).
+ * @param from - source node.
+ * @param to - target node.
+ */
+export function edgeAnchorsAuto(from: GraphNode, to: GraphNode): {
+  from: Point
+  to: Point
+  bounds: Rect
+  orientation: 'horizontal' | 'vertical'
   points: readonly Point[]
 } {
   const a = nodeBounds(from)

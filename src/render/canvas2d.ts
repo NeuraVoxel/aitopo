@@ -80,6 +80,8 @@ export interface Renderer {
   drawDropTargetHighlight(bounds: Rect): void
   /** Overlay: resize handle square at a corner. */
   drawResizeHandle(center: Point, size: number): void
+  /** Overlay: edge bend waypoint handle. */
+  drawEdgeBendHandle(center: Point, size: number): void
   /** Optional debug stroke of dirty unions. */
   setDebugPaintRects?(value: boolean): void
 }
@@ -427,6 +429,30 @@ export class Canvas2DRenderer implements Renderer {
     ctx.setLineDash([])
     ctx.fillRect(center.x - half, center.y - half, size, size)
     ctx.strokeRect(center.x - half, center.y - half, size, size)
+    ctx.restore()
+  }
+
+  /**
+   * Draw an edge bend handle (diamond) centered on a world point.
+   * @param center - handle center in world space.
+   * @param size - diamond diagonal in world space.
+   */
+  drawEdgeBendHandle(center: Point, size: number): void {
+    const ctx = this.overlayCtx
+    const half = size / 2
+    ctx.save()
+    ctx.fillStyle = '#ffffff'
+    ctx.strokeStyle = '#22c55e'
+    ctx.lineWidth = 1 / this.viewport.zoom
+    ctx.setLineDash([])
+    ctx.beginPath()
+    ctx.moveTo(center.x, center.y - half)
+    ctx.lineTo(center.x + half, center.y)
+    ctx.lineTo(center.x, center.y + half)
+    ctx.lineTo(center.x - half, center.y)
+    ctx.closePath()
+    ctx.fill()
+    ctx.stroke()
     ctx.restore()
   }
 }

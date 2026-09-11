@@ -20,6 +20,7 @@ describe('overlay chrome registry', () => {
           drawLazyMoveGhost: vi.fn(),
           drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
+      drawEdgeBendHandle: vi.fn(),
         }
         return new Proxy(renderer, {
           get(target, prop, receiver) {
@@ -59,6 +60,7 @@ describe('overlay chrome registry', () => {
       drawLazyMoveGhost: vi.fn(),
       drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
+      drawEdgeBendHandle: vi.fn(),
     })
     expect(paints).toContain('direct')
 

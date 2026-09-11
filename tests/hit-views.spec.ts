@@ -18,6 +18,7 @@ function stubRenderer(): Renderer {
     drawLazyMoveGhost: vi.fn(),
     drawDropTargetHighlight: vi.fn(),
     drawResizeHandle: vi.fn(),
+      drawEdgeBendHandle: vi.fn(),
   }
 }
 

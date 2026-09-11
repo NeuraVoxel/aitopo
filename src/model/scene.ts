@@ -215,6 +215,37 @@ export class GraphScene {
     }
   }
 
+  /**
+   * Replace edge bend waypoints (live bend preview path).
+   * Empty array clears custom routing (auto orthogonal).
+   * @param edgeId - edge id.
+   * @param waypoints - intermediate points.
+   */
+  writeEdgeWaypoints(
+    edgeId: string,
+    waypoints: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    const edge = this.edgeMap.get(edgeId)
+    if (edge === undefined) return
+    const next = waypoints.length === 0
+      ? (() => {
+          const { waypoints: _drop, ...rest } = edge
+          void _drop
+          return rest
+        })()
+      : { ...edge, waypoints: waypoints.map(p => ({ x: p.x, y: p.y })) }
+    this.edgeMap.set(edgeId, next)
+    this.markDirty(edgeId)
+    this.sceneVersion += 1
+    this.active = {
+      version: 1,
+      nodes: [...this.nodeMap.values()],
+      edges: [...this.edgeMap.values()],
+      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
+      viewport: this.viewport,
+    }
+  }
+
   setSelection(ids: readonly string[]): void {
     this.selection = new Set(ids)
   }

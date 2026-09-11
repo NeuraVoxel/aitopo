@@ -6,6 +6,7 @@ export {
   DEFAULT_H,
   DEFAULT_W,
   edgeAnchors,
+  edgeAnchorsAuto,
   groupBounds,
   hitTestEdges,
   hitTestGroups,

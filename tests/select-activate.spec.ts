@@ -73,6 +73,8 @@ function createHost(canvas: FakeHitCanvas): InteractionHost & {
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
+    previewEdgeWaypoints: vi.fn(),
+    commitEdgeWaypoints: vi.fn(),
     markGestureDragged: () => {
       gestureDragged = true
     },

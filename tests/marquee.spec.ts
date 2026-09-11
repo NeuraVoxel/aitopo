@@ -117,6 +117,7 @@ function createHost(options: {
       drawLazyMoveGhost: vi.fn(),
       drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
+      drawEdgeBendHandle: vi.fn(),
     }
     if (chromeList.length === 0) {
       marqueeRects.push(undefined)
@@ -159,6 +160,8 @@ function createHost(options: {
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
+    previewEdgeWaypoints: vi.fn(),
+    commitEdgeWaypoints: vi.fn(),
     markGestureDragged,
     wasGestureDragged: () => gestureDragged,
     clearGestureDragged: () => {

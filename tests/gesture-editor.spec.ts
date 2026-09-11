@@ -76,6 +76,46 @@ describe('GestureEditor', () => {
     expect(editor.commitEdgeCreate({ from: 'a', to: 'b' })).toBeUndefined()
   })
 
+  it('commits edge waypoints and emits edgeWaypointsChanged', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 0, y: 0 },
+        { id: 'b', type: 'unit', label: 'B', x: 100, y: 0 },
+      ],
+      edges: [{ id: 'e1', from: 'a', to: 'b' }],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const events: GraphEvent[] = []
+    const apply = vi.fn((patch: GraphPatch) => {
+      scene.apply(patch)
+    })
+    const editor = new GestureEditor({
+      scene,
+      views,
+      dirty: new DirtyAccumulator(),
+      scheduleScenePaint: vi.fn(),
+      apply,
+      emit: event => {
+        events.push(event)
+      },
+    })
+    const to = [{ x: 40, y: 30 }, { x: 60, y: 30 }]
+    editor.commitEdgeWaypoints({ edgeId: 'e1', from: [], to })
+    expect(apply).toHaveBeenCalled()
+    expect(scene.edges.get('e1')?.waypoints).toEqual(to)
+    expect(scene.toJSON().edges[0]?.waypoints).toEqual(to)
+    expect(events).toContainEqual({
+      type: 'edgeWaypointsChanged',
+      edgeId: 'e1',
+      from: [],
+      to,
+    })
+  })
+
   it('tracks gesture drag flag', () => {
     const scene = new GraphScene()
     scene.load({ version: 1, nodes: [], edges: [] })

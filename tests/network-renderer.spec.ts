@@ -29,6 +29,7 @@ describe('resolveRenderer', () => {
       drawLazyMoveGhost: vi.fn(),
       drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
+      drawEdgeBendHandle: vi.fn(),
     }
     const createRenderer = vi.fn((_canvases: {
       root: HTMLCanvasElement

@@ -266,6 +266,53 @@ export class GestureEditor {
     }
   }
 
+  /**
+   * Live preview of edge bend waypoints.
+   * @param edgeId - edge id.
+   * @param waypoints - intermediate points (empty clears to auto).
+   */
+  previewEdgeWaypoints(
+    edgeId: string,
+    waypoints: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    if (this.deps.scene.edges.get(edgeId) === undefined) return
+    const oldRects = this.captureEdgeGeometryRects(edgeId)
+    this.deps.scene.writeEdgeWaypoints(edgeId, waypoints)
+    this.deps.views.markDirty(edgeId)
+    this.deps.views.validateDirty(this.deps.scene)
+    for (const rect of oldRects) this.deps.dirty.add(rect)
+    for (const rect of this.captureEdgeGeometryRects(edgeId)) this.deps.dirty.add(rect)
+    this.deps.scene.takeDirty()
+    this.deps.scheduleScenePaint()
+  }
+
+  /**
+   * Commit edge bend waypoints; emits `edgeWaypointsChanged`.
+   * @param args - edge id and from/to waypoint lists.
+   */
+  commitEdgeWaypoints(args: {
+    edgeId: string
+    from: readonly { readonly x: number; readonly y: number }[]
+    to: readonly { readonly x: number; readonly y: number }[]
+  }): void {
+    if (this.deps.scene.edges.get(args.edgeId) === undefined) {
+      throw new Error(`commitEdgeWaypoints: missing edge ${args.edgeId}`)
+    }
+    this.deps.apply({
+      ops: [{
+        op: 'updateEdge',
+        id: args.edgeId,
+        patch: { waypoints: args.to.map(p => ({ x: p.x, y: p.y })) },
+      }],
+    })
+    this.deps.emit({
+      type: 'edgeWaypointsChanged',
+      edgeId: args.edgeId,
+      from: args.from.map(p => ({ x: p.x, y: p.y })),
+      to: args.to.map(p => ({ x: p.x, y: p.y })),
+    })
+  }
+
   private previewNodeGeometry(id: string, mutate: () => void): void {
     const oldRects = this.captureNodeGeometryRects(id)
     mutate()
@@ -290,5 +337,11 @@ export class GestureEditor {
       if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
     }
     return rects
+  }
+
+  private captureEdgeGeometryRects(edgeId: string): Rect[] {
+    const edgeView = this.deps.views.getEdge(edgeId)
+    if (edgeView?.isActive !== true) return []
+    return [growRect(edgeView.bounds, 8)]
   }
 }

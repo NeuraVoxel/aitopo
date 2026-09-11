@@ -21,7 +21,7 @@ Execution checklist: [Wave H plan](../../../../docs/2026-09-11-aitopo-wave-h-ges
 
 ### Deferred (not Wave H)
 
-Further splitting hit-test into a HitController; rotate / move-link; making `GestureEditor` a public export (stays `@internal` via network module unless needed).
+Further splitting hit-test into a HitController; rotate; making `GestureEditor` a public export (stays `@internal` via network module unless needed). Move-link shipped in [Wave I](./2026-09-11-wave-i-move-edge-bend.md).
 
 ## Alternatives considered
 

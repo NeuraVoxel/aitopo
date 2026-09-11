@@ -104,6 +104,14 @@ export interface EdgeRemovedEvent {
   readonly edgeId: string
 }
 
+/** Edge bend waypoints committed after a move-bend gesture. */
+export interface EdgeWaypointsChangedEvent {
+  readonly type: 'edgeWaypointsChanged'
+  readonly edgeId: string
+  readonly from: readonly { readonly x: number; readonly y: number }[]
+  readonly to: readonly { readonly x: number; readonly y: number }[]
+}
+
 /** Discriminated event union for `Network.on`. */
 export type GraphEvent =
   | SelectionChangedEvent
@@ -120,3 +128,4 @@ export type GraphEvent =
   | ExternalDropEvent
   | EdgeCreatedEvent
   | EdgeRemovedEvent
+  | EdgeWaypointsChangedEvent

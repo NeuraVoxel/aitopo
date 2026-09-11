@@ -33,6 +33,7 @@ const graphEdgeSchema = z.object({
   from: z.string().min(1),
   to: z.string().min(1),
   kind: z.string().optional(),
+  waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
   alarms: z.array(alarmSchema).optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })

@@ -19,6 +19,26 @@ describe('editor protocol', () => {
     expect(doc.groups?.[0]?.style?.strokeDash).toEqual([8, 4])
   })
 
+  it('parses edge waypoints and round-trips through scene', () => {
+    const doc = parseDocument({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 0, y: 0 },
+        { id: 'b', type: 'unit', label: 'B', x: 100, y: 0 },
+      ],
+      edges: [{
+        id: 'e1',
+        from: 'a',
+        to: 'b',
+        waypoints: [{ x: 40, y: 20 }, { x: 60, y: 20 }],
+      }],
+    })
+    expect(doc.edges[0]?.waypoints).toEqual([{ x: 40, y: 20 }, { x: 60, y: 20 }])
+    const scene = new GraphScene()
+    scene.load(doc)
+    expect(scene.toJSON().edges[0]?.waypoints).toEqual([{ x: 40, y: 20 }, { x: 60, y: 20 }])
+  })
+
   it('preserves group style through scene toJSON round-trip', () => {
     const doc = parseDocument({
       version: 1,

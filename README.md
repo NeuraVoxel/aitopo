@@ -27,6 +27,8 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave G execution checklist: [docs/2026-09-11-aitopo-wave-g-view-facets.md](docs/2026-09-11-aitopo-wave-g-view-facets.md)
 - Wave H (GestureEditor / OverlayChromeRegistry): [.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md](.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md)
 - Wave H execution checklist: [docs/2026-09-11-aitopo-wave-h-gesture-editor.md](docs/2026-09-11-aitopo-wave-h-gesture-editor.md)
+- Wave I (edge bend waypoints): [.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md](.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md)
+- Wave I execution checklist: [docs/2026-09-11-aitopo-wave-i-move-edge-bend.md](docs/2026-09-11-aitopo-wave-i-move-edge-bend.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
@@ -54,6 +56,7 @@ import {
   parseDocument,
   applyPatch,
   PatchHistory,
+  MoveEdgeBendInteraction,
   MoveNodeInteraction,
   ResizeNodeInteraction,
   ExternalDropInteraction,
@@ -64,6 +67,7 @@ const network = new Network({
   // Extra interactions are appended to defaults (PanZoom + SelectActivate).
   interactions: [
     new ExternalDropInteraction(),
+    new MoveEdgeBendInteraction(),
     new ResizeNodeInteraction(),
     new MoveNodeInteraction(),
     new MarqueeSelectInteraction(),
@@ -83,6 +87,7 @@ Pass `defaultInteractions: false` to attach only the listed modules (tests / cus
 | Class | Role |
 |---|---|
 | `MoveNodeInteraction` | Drag unlocked selected nodes; commit `updateNode` (+ membership); emit `nodeMoved` / `groupMembershipChanged`. Options: `hideOthersWhileDragging`, `lazyMove` |
+| `MoveEdgeBendInteraction` | Bend handles on selected edges; axis-constrained drag; commit `updateEdge` `waypoints`; emit `edgeWaypointsChanged`. Pack **before** `MoveNodeInteraction` |
 | `ResizeNodeInteraction` | Corner handles on selected unlocked nodes; commit `updateNode` x/y/w/h; emit `nodeResized`. Pack **before** `MoveNodeInteraction` |
 | `CreateEdgeInteraction` | **Alt+drag** node→node (or `requireAlt: false` exclusive link mode); rubber-band; `commitEdgeCreate` → `edgeCreated` |
 | `DeleteEdgeInteraction` | Delete/Backspace removes selected edges → `edgeRemoved` |
@@ -97,10 +102,12 @@ Pass `defaultInteractions: false` to attach only the listed modules (tests / cus
 - `externalDrop` — `{ x, y, data, groupId? }` scene coords + opaque string
 - `edgeCreated` — `{ edgeId, from, to, kind? }` after Alt-link (or link mode) commit
 - `edgeRemoved` — `{ edgeId }` after Delete/Backspace or `commitEdgeRemove`
+- `edgeWaypointsChanged` — `{ edgeId, from, to }` waypoint lists after bend commit
 
 ### Protocol fields
 
 - `GraphNode.locked?: boolean` — move and membership edits skip locked nodes (selection still allowed)
+- `GraphEdge.waypoints?: { x, y }[]` — intermediate bend points; absent or `[]` = auto orthogonal route
 - `GraphGroup.style?: { stroke?, strokeWidth?, strokeDash?, fill? }` — Canvas2D band outline (e.g. dashed green composition vs solid gray catalog)
 
 ### Drop MIME types
@@ -114,7 +121,7 @@ Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply
 ### Demo
 
 - **Fleet / Flow / Teams** — observation mode (defaults only); unchanged behavior.
-- **Editor** — remounts with editor interactions, loads `fixtures/editor.json` (sample **data/control** edges), Alt+drag to link, Delete edge / Delete key, **Link mode**, **Kind** toggle, **Hide others** (default off — full scene paint), drop catalog chip, Undo/Redo via `PatchHistory`.
+- **Editor** — remounts with editor interactions, loads `fixtures/editor.json` (sample **data/control** edges), select edge → drag bend handles, Alt+drag to link, Delete edge / Delete key, **Link mode**, **Kind** toggle, **Hide others** (default off — full scene paint), drop catalog chip, Undo/Redo via `PatchHistory`.
 
 ## Non-goals (current)
 
@@ -122,7 +129,7 @@ Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply
 - WebGL renderer (interface reserved)
 - Overview / HTML node UI
 - Copying or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D`
-- Resize / rotate handles
+- Rotate handles; freeform (non-orthogonal) edge polylines
 
 Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-editor-requirements.md), [Editor plan](docs/2026-09-09-aitopo-editor-implementation-plan.md). Implementation borrows **ideas** from `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` under the same clean-room rules as the observation engine.
 

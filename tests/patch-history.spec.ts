@@ -43,6 +43,46 @@ describe('invertOp', () => {
       { op: 'updateNode', id: 'a', patch: { x: 1 } },
     ])
   })
+
+  it('inverts edge waypoint updates including clear-to-auto', () => {
+    const doc = parseDocument({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'agent', label: 'A' },
+        { id: 'b', type: 'agent', label: 'B' },
+      ],
+      edges: [{
+        id: 'e1',
+        from: 'a',
+        to: 'b',
+        waypoints: [{ x: 1, y: 2 }],
+      }],
+    })
+    const inv = invertOp(doc, {
+      op: 'updateEdge',
+      id: 'e1',
+      patch: { waypoints: [{ x: 9, y: 9 }] },
+    })
+    expect(inv).toEqual({
+      op: 'updateEdge',
+      id: 'e1',
+      patch: { waypoints: [{ x: 1, y: 2 }] },
+    })
+    const cleared = applyPatch(doc, {
+      ops: [{ op: 'updateEdge', id: 'e1', patch: { waypoints: [] } }],
+    })
+    expect(cleared.edges[0]?.waypoints).toBeUndefined()
+    const restore = invertOp(cleared, {
+      op: 'updateEdge',
+      id: 'e1',
+      patch: { waypoints: [{ x: 1, y: 2 }] },
+    })
+    expect(restore).toEqual({
+      op: 'updateEdge',
+      id: 'e1',
+      patch: { waypoints: [] },
+    })
+  })
 })
 
 describe('PatchHistory', () => {

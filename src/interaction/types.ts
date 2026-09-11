@@ -161,6 +161,20 @@ export interface InteractionEditHost {
    * @param nodeIds - mover ids to keep visible, or undefined to clear.
    */
   setDragPaintFilter(nodeIds: readonly string[] | undefined): void
+  /** Live preview of edge bend waypoints (does not emit edgeWaypointsChanged). */
+  previewEdgeWaypoints(
+    edgeId: string,
+    waypoints: readonly { readonly x: number; readonly y: number }[],
+  ): void
+  /**
+   * Commit edge bend waypoints via updateEdge; emit edgeWaypointsChanged.
+   * @param args - edge id and from/to waypoint lists.
+   */
+  commitEdgeWaypoints(args: {
+    edgeId: string
+    from: readonly { readonly x: number; readonly y: number }[]
+    to: readonly { readonly x: number; readonly y: number }[]
+  }): void
 }
 
 /** Event bus + patch apply. */

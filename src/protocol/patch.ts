@@ -251,6 +251,7 @@ function asEdge(raw: {
   from: string
   to: string
   kind?: string | undefined
+  waypoints?: Array<{ x: number; y: number }> | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -264,6 +265,9 @@ function asEdge(raw: {
     from: raw.from,
     to: raw.to,
     ...(raw.kind !== undefined ? { kind: raw.kind } : {}),
+    ...(raw.waypoints !== undefined
+      ? { waypoints: raw.waypoints.map(p => ({ x: p.x, y: p.y })) }
+      : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
@@ -275,6 +279,7 @@ function mergeEdge(
     from?: string | undefined
     to?: string | undefined
     kind?: string | undefined
+    waypoints?: Array<{ x: number; y: number }> | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -284,14 +289,27 @@ function mergeEdge(
     data?: Record<string, unknown> | undefined
   },
 ): GraphEdge {
-  return asEdge({
+  const waypoints = patch.waypoints !== undefined
+    ? patch.waypoints
+    : current.waypoints !== undefined
+      ? current.waypoints.map(p => ({ x: p.x, y: p.y }))
+      : undefined
+  const edge = asEdge({
     id: current.id,
     from: patch.from ?? current.from,
     to: patch.to ?? current.to,
     kind: patch.kind ?? current.kind,
+    ...(waypoints !== undefined ? { waypoints } : {}),
     alarms: patch.alarms ?? current.alarms?.map(a => ({ ...a })),
     data: patch.data ?? (current.data !== undefined ? { ...current.data } : undefined),
   })
+  // Empty waypoints clear custom routing back to auto.
+  if (patch.waypoints !== undefined && patch.waypoints.length === 0) {
+    const { waypoints: _cleared, ...rest } = edge
+    void _cleared
+    return rest
+  }
+  return edge
 }
 
 function asGroup(raw: {

@@ -58,7 +58,7 @@ export class EdgeView {
       this.dirty = false
       return
     }
-    const anchors = edgeAnchors(from, to)
+    const anchors = edgeAnchors(from, to, edge.waypoints)
     this.active = true
     this.fromPt = anchors.from
     this.toPt = anchors.to
