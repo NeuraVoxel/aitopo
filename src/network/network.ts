@@ -711,10 +711,14 @@ export class Network {
       if (view === undefined || !view.isActive) continue
       const selected = this.scene.selectedIds.has(node.id)
       const hovered = hoverId === node.id
+      const paint = view.toPaintView(selected, hovered)
       if (selected) {
-        renderer.drawSelectionOverlay(view.bounds)
+        renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle)
       } else if (hovered) {
-        renderer.drawHoverOverlay(view.bounds)
+        renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle)
+      }
+      if (paint.overlayAttachments.length > 0) {
+        renderer.drawOverlayAttachments?.(paint.overlayAttachments)
       }
     }
     this.chrome.paintAll(renderer)

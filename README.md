@@ -20,6 +20,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave G (View label / alarm / hit facets): [.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md](.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md)
 - Wave H (GestureEditor / OverlayChromeRegistry): [.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md](.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md)
 - Wave I (edge bend waypoints): [.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md](.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md)
+- GraphNode attachments (label/label2/icon/tooltip): [.agents/notes/implemented/architecture/2026-09-11-graph-node-attachments.md](.agents/notes/implemented/architecture/2026-09-11-graph-node-attachments.md)
 - Performance roadmap (Waves J–N, proposed): [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.

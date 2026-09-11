@@ -18,7 +18,7 @@ Document / Patch / Events unchanged. No `measureText` (truncation stays characte
 
 ### Deferred (not Wave G)
 
-InteractionHost / GestureController split (Wave H); rotate / move-link; pixel hit-test; secondary labels / icon strips.
+InteractionHost / GestureController split (Wave H); rotate / move-link; pixel hit-test. Secondary labels / icon attachments later shipped in [GraphNode attachments](./2026-09-11-graph-node-attachments.md) (supersedes the Attachment-tree rejection below for those kinds).
 
 ## Alternatives considered
 

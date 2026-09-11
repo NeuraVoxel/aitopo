@@ -3,7 +3,15 @@
  */
 
 import { graphPatchSchema, type GraphPatch, type GraphPatchOp } from './schema.ts'
-import type { Alarm, GraphDocument, GraphEdge, GraphGroup, GraphGroupStyle, GraphNode } from './types.ts'
+import type {
+  Alarm,
+  GraphDocument,
+  GraphEdge,
+  GraphGroup,
+  GraphGroupStyle,
+  GraphNode,
+  GraphNodeStyle,
+} from './types.ts'
 
 export type { GraphPatch, GraphPatchOp }
 
@@ -142,6 +150,9 @@ function asNode(raw: {
   id: string
   type: string
   label: string
+  label2?: string | undefined
+  icon?: string | undefined
+  tooltip?: string | undefined
   status?: string | undefined
   x?: number | undefined
   y?: number | undefined
@@ -157,10 +168,27 @@ function asNode(raw: {
     message: string
     ts?: string | undefined
   }> | undefined
+  style?: object | undefined
   data?: Record<string, unknown> | undefined
 }): GraphNode {
   const node: GraphNode = { id: raw.id, type: raw.type, label: raw.label }
-  return applyOptionalNode(node, raw)
+  return applyOptionalNode(node, {
+    label2: raw.label2,
+    icon: raw.icon,
+    tooltip: raw.tooltip,
+    status: raw.status,
+    x: raw.x,
+    y: raw.y,
+    w: raw.w,
+    h: raw.h,
+    parentId: raw.parentId,
+    groupId: raw.groupId,
+    networkId: raw.networkId,
+    locked: raw.locked,
+    alarms: raw.alarms,
+    style: raw.style !== undefined ? asNodeStyle(raw.style) : undefined,
+    data: raw.data,
+  })
 }
 
 function mergeNode(
@@ -168,6 +196,9 @@ function mergeNode(
   patch: {
     type?: string | undefined
     label?: string | undefined
+    label2?: string | undefined
+    icon?: string | undefined
+    tooltip?: string | undefined
     status?: string | undefined
     x?: number | undefined
     y?: number | undefined
@@ -183,6 +214,7 @@ function mergeNode(
       message: string
       ts?: string | undefined
     }> | undefined
+    style?: object | undefined
     data?: Record<string, unknown> | undefined
   },
 ): GraphNode {
@@ -195,6 +227,9 @@ function mergeNode(
     ? undefined
     : (patch.groupId ?? current.groupId)
   return applyOptionalNode(base, {
+    label2: patch.label2 ?? current.label2,
+    icon: patch.icon ?? current.icon,
+    tooltip: patch.tooltip ?? current.tooltip,
     status: patch.status ?? current.status,
     x: patch.x ?? current.x,
     y: patch.y ?? current.y,
@@ -205,13 +240,32 @@ function mergeNode(
     networkId: patch.networkId ?? current.networkId,
     locked: patch.locked ?? current.locked,
     alarms: patch.alarms ?? current.alarms?.map(a => ({ ...a })),
+    style: patch.style !== undefined
+      ? mergeNodeStyle(current.style, asNodeStyle(patch.style))
+      : current.style,
     data: patch.data ?? (current.data !== undefined ? { ...current.data } : undefined),
   })
+}
+
+/** One-level style merge: top keys overwrite; nested objects replace as units. */
+function mergeNodeStyle(
+  current: GraphNodeStyle | undefined,
+  patch: GraphNodeStyle,
+): GraphNodeStyle {
+  return { ...(current ?? {}), ...patch }
+}
+
+/** Normalize zod style bags under exactOptionalPropertyTypes. */
+function asNodeStyle(raw: object): GraphNodeStyle {
+  return raw as GraphNodeStyle
 }
 
 function applyOptionalNode(
   node: GraphNode,
   raw: {
+    label2?: string | undefined
+    icon?: string | undefined
+    tooltip?: string | undefined
     status?: string | undefined
     x?: number | undefined
     y?: number | undefined
@@ -227,11 +281,15 @@ function applyOptionalNode(
       message: string
       ts?: string | undefined
     }> | readonly Alarm[] | undefined
+    style?: GraphNodeStyle | undefined
     data?: Record<string, unknown> | undefined
   },
 ): GraphNode {
   return {
     ...node,
+    ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
+    ...(raw.icon !== undefined ? { icon: raw.icon } : {}),
+    ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
     ...(raw.status !== undefined ? { status: raw.status } : {}),
     ...(raw.x !== undefined ? { x: raw.x } : {}),
     ...(raw.y !== undefined ? { y: raw.y } : {}),
@@ -242,6 +300,7 @@ function applyOptionalNode(
     ...(raw.networkId !== undefined ? { networkId: raw.networkId } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
     ...(raw.alarms !== undefined ? { alarms: [...raw.alarms].map(asAlarm) } : {}),
+    ...(raw.style !== undefined ? { style: raw.style } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
 }

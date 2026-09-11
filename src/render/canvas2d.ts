@@ -4,6 +4,8 @@
 
 import type { Point, Rect } from '../geom.ts'
 import type { GraphEdge, GraphGroup, GraphNode } from '../protocol/types.ts'
+import { getIcon } from '../ui/attachment/icon-registry.ts'
+import type { AttachmentPaintOp } from '../ui/attachment/types.ts'
 
 /** Camera state passed into a frame. */
 export interface ViewportState {
@@ -16,22 +18,34 @@ export interface ViewportState {
 
 /** Cached geometry for a node paint. */
 export interface NodePaintView {
+  /** Union bounds (compat / dirty). */
   readonly bounds: Rect
+  readonly bodyBounds: Rect
+  readonly unionBounds: Rect
   readonly selected: boolean
   readonly hovered: boolean
-  /** Truncated primary label for paint. */
-  readonly label: string
-  /** Truncated secondary/meta line when present. */
-  readonly meta?: string
   /** Circle body (tool / data.shape). */
   readonly circular: boolean
-  /** Alarm badge in world space when the node has alarms. */
-  readonly alarm?: {
-    readonly level: 'info' | 'warn' | 'error'
-    readonly x: number
-    readonly y: number
-    readonly radius: number
+  readonly shadow?: {
+    readonly color?: string
+    readonly blur?: number
+    readonly offsetX?: number
+    readonly offsetY?: number
   }
+  readonly selectStyle?: {
+    readonly color?: string
+    readonly width?: number
+    readonly padding?: number
+  }
+  readonly hoverStyle?: {
+    readonly color?: string
+    readonly width?: number
+    readonly padding?: number
+  }
+  /** Scene-layer attachment paint ops. */
+  readonly attachments: readonly AttachmentPaintOp[]
+  /** Overlay-layer attachment paint ops (e.g. hover tooltip). */
+  readonly overlayAttachments: readonly AttachmentPaintOp[]
 }
 
 /** Cached geometry for an edge paint. */
@@ -67,9 +81,11 @@ export interface Renderer {
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
   /** Overlay: selection ring (no-op OK for headless fakes). */
-  drawSelectionOverlay(bounds: Rect): void
+  drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle']): void
   /** Overlay: hover ring (lighter than selection; no-op OK for fakes). */
-  drawHoverOverlay(bounds: Rect): void
+  drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle']): void
+  /** Overlay attachment ops (hover tooltip). */
+  drawOverlayAttachments?(ops: readonly AttachmentPaintOp[]): void
   /** Overlay: marquee rubber band. */
   drawMarquee(rect: Rect): void
   /** Overlay: edge-create rubber band. */
@@ -223,7 +239,14 @@ export class Canvas2DRenderer implements Renderer {
     ctx.lineWidth = (highlight ? Math.max(baseWidth, 2.5) : baseWidth) / this.viewport.zoom
     ctx.lineJoin = 'round'
     ctx.lineCap = 'round'
+    const dash = Array.isArray(data.strokeDash)
+      ? data.strokeDash.filter((value): value is number => typeof value === 'number')
+      : undefined
+    if (dash !== undefined && dash.length > 0) {
+      ctx.setLineDash([...dash])
+    }
     ctx.stroke()
+    ctx.setLineDash([])
     const label = typeof data.label === 'string' ? data.label : undefined
     if (label !== undefined && label.length > 0) {
       let mx: number
@@ -248,15 +271,21 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   drawNode(node: GraphNode, view: NodePaintView): void {
-    const { bounds } = view
+    const bounds = view.bodyBounds
     const ctx = this.rootCtx
     const data = node.data ?? {}
     const fill = typeof data.fill === 'string' ? data.fill : statusFill(node.status)
-    // Select/hover emphasis lives on the overlay (rings); root stroke is status/data only.
     const stroke = typeof data.stroke === 'string' ? data.stroke : statusStroke(node.status)
-    const labelColor = typeof data.labelColor === 'string' ? data.labelColor : '#e8eaed'
-    const metaColor = typeof data.metaColor === 'string' ? data.metaColor : '#a8b0c0'
     const lineWidth = (node.status === 'active' ? 2.5 : 1.25) / this.viewport.zoom
+
+    ctx.save()
+    if (view.shadow !== undefined) {
+      ctx.shadowColor = view.shadow.color ?? 'rgba(0, 0, 0, 0.35)'
+      ctx.shadowBlur = view.shadow.blur ?? 6
+      ctx.shadowOffsetX = view.shadow.offsetX ?? 0
+      ctx.shadowOffsetY = view.shadow.offsetY ?? 2
+    }
+
     if (view.circular) {
       const cx = bounds.x + bounds.width / 2
       const cy = bounds.y + bounds.height / 2
@@ -265,43 +294,23 @@ export class Canvas2DRenderer implements Renderer {
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       ctx.fillStyle = fill
       ctx.fill()
+      ctx.shadowColor = 'transparent'
       ctx.strokeStyle = stroke
       ctx.lineWidth = lineWidth
       ctx.stroke()
-      ctx.fillStyle = labelColor
-      const fontSize = typeof data.fontSize === 'number' && data.fontSize > 0
-        ? data.fontSize
-        : 10
-      ctx.font = `${fontSize}px sans-serif`
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(view.label, cx, cy)
-      ctx.textAlign = 'start'
     } else {
       const radius = 8
       roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, radius)
       ctx.fillStyle = fill
       ctx.fill()
+      ctx.shadowColor = 'transparent'
       ctx.strokeStyle = stroke
       ctx.lineWidth = lineWidth
       ctx.stroke()
-      ctx.fillStyle = labelColor
-      ctx.font = '12px sans-serif'
-      ctx.textBaseline = 'middle'
-      ctx.fillText(view.label, bounds.x + 12, bounds.y + bounds.height / 2 - 6)
-      if (view.meta !== undefined) {
-        ctx.fillStyle = metaColor
-        ctx.font = '10px sans-serif'
-        ctx.fillText(view.meta, bounds.x + 12, bounds.y + bounds.height / 2 + 10)
-      }
     }
-    const alarm = view.alarm
-    if (alarm !== undefined) {
-      ctx.beginPath()
-      ctx.arc(alarm.x, alarm.y, alarm.radius, 0, Math.PI * 2)
-      ctx.fillStyle = alarm.level === 'error' ? '#ef4444' : alarm.level === 'warn' ? '#f59e0b' : '#3b82f6'
-      ctx.fill()
-    }
+    ctx.restore()
+
+    paintAttachmentOps(ctx, view.attachments)
   }
 
   endFrame(): void {
@@ -328,27 +337,51 @@ export class Canvas2DRenderer implements Renderer {
 
   /**
    * Draw selection strokes on the overlay canvas (call after beginFrame).
-   * @param bounds - selected node bounds.
+   * @param bounds - selected node body bounds.
+   * @param style - optional chrome overrides.
    */
-  drawSelectionOverlay(bounds: Rect): void {
+  drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle']): void {
     const ctx = this.overlayCtx
-    ctx.strokeStyle = '#3b82f6'
-    ctx.lineWidth = 2 / this.viewport.zoom
-    ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4)
+    const pad = style?.padding ?? 2
+    const width = (style?.width ?? 2) / this.viewport.zoom
+    ctx.strokeStyle = style?.color ?? '#3b82f6'
+    ctx.lineWidth = width
+    ctx.setLineDash([])
+    ctx.strokeRect(
+      bounds.x - pad,
+      bounds.y - pad,
+      bounds.width + pad * 2,
+      bounds.height + pad * 2,
+    )
   }
 
   /**
    * Draw a hover ring on the overlay (lighter than selection).
-   * @param bounds - hovered node bounds.
+   * @param bounds - hovered node body bounds.
+   * @param style - optional chrome overrides.
    */
-  drawHoverOverlay(bounds: Rect): void {
+  drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle']): void {
     const ctx = this.overlayCtx
+    const pad = style?.padding ?? 2
     ctx.save()
-    ctx.strokeStyle = 'rgba(59, 130, 246, 0.65)'
-    ctx.lineWidth = 1.5 / this.viewport.zoom
+    ctx.strokeStyle = style?.color ?? 'rgba(59, 130, 246, 0.65)'
+    ctx.lineWidth = (style?.width ?? 1.5) / this.viewport.zoom
     ctx.setLineDash([4 / this.viewport.zoom, 3 / this.viewport.zoom])
-    ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4)
+    ctx.strokeRect(
+      bounds.x - pad,
+      bounds.y - pad,
+      bounds.width + pad * 2,
+      bounds.height + pad * 2,
+    )
     ctx.restore()
+  }
+
+  /**
+   * Paint overlay-layer attachment ops (hover tooltip).
+   * @param ops - overlay paint ops.
+   */
+  drawOverlayAttachments(ops: readonly AttachmentPaintOp[]): void {
+    paintAttachmentOps(this.overlayCtx, ops)
   }
 
   /**
@@ -467,6 +500,74 @@ function resizeCanvas(canvas: HTMLCanvasElement, cssW: number, cssH: number, dpr
   if (canvas.height !== h) canvas.height = h
   canvas.style.width = `${cssW}px`
   canvas.style.height = `${cssH}px`
+}
+
+function paintAttachmentOps(
+  ctx: CanvasRenderingContext2D,
+  ops: readonly AttachmentPaintOp[],
+): void {
+  for (const op of ops) {
+    switch (op.kind) {
+      case 'label':
+      case 'label2': {
+        ctx.fillStyle = op.color
+        ctx.font = `${op.fontSize}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(
+          op.text,
+          op.bounds.x + op.bounds.width / 2,
+          op.bounds.y + op.bounds.height / 2,
+        )
+        ctx.textAlign = 'start'
+        break
+      }
+      case 'icons': {
+        const icon = getIcon(op.iconKey)
+        const size = Math.min(op.bounds.width, op.bounds.height)
+        ctx.save()
+        ctx.translate(op.bounds.x, op.bounds.y)
+        icon.draw(ctx, size, '#e8eaed')
+        ctx.restore()
+        break
+      }
+      case 'alarm': {
+        const cx = op.bounds.x + op.bounds.width / 2
+        const cy = op.bounds.y + op.bounds.height / 2
+        ctx.beginPath()
+        ctx.arc(cx, cy, op.radius, 0, Math.PI * 2)
+        ctx.fillStyle = op.level === 'error'
+          ? '#ef4444'
+          : op.level === 'warn'
+            ? '#f59e0b'
+            : '#3b82f6'
+        ctx.fill()
+        break
+      }
+      case 'tooltip': {
+        const { bounds } = op
+        const r = 4
+        roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, r)
+        ctx.fillStyle = op.background
+        ctx.fill()
+        ctx.fillStyle = op.color
+        ctx.font = `${op.fontSize}px sans-serif`
+        ctx.textAlign = 'center'
+        ctx.textBaseline = 'middle'
+        ctx.fillText(
+          op.text,
+          bounds.x + bounds.width / 2,
+          bounds.y + bounds.height / 2,
+        )
+        ctx.textAlign = 'start'
+        break
+      }
+      default: {
+        const _exhaustive: never = op
+        throw new Error(`unhandled attachment paint: ${JSON.stringify(_exhaustive)}`)
+      }
+    }
+  }
 }
 
 function statusFill(status: string | undefined): string {

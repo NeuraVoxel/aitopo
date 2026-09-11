@@ -5,12 +5,17 @@
 export type {
   Alarm,
   AlarmLevel,
+  AttachmentPosition,
+  GraphChromeStyle,
   GraphDocument,
   GraphEdge,
   GraphGroup,
   GraphGroupStyle,
   GraphMeta,
   GraphNode,
+  GraphNodeStyle,
+  GraphShadowStyle,
+  GraphTextStyle,
   GraphViewport,
 } from './types.ts'
 

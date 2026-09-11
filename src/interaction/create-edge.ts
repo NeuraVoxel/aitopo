@@ -3,6 +3,7 @@
  */
 
 import type { Interaction, InteractionHost } from './types.ts'
+import { DEFAULT_H, DEFAULT_W } from '../ui/bounds.ts'
 
 const DRAG_THRESHOLD_PX = 4
 
@@ -53,8 +54,8 @@ export class CreateEdgeInteraction implements Interaction {
     const nodeCenter = (id: string): { x: number; y: number } | undefined => {
       const node = network.getNode(id)
       if (node === undefined) return undefined
-      const w = node.w ?? 100
-      const h = node.h ?? 40
+      const w = node.w ?? DEFAULT_W
+      const h = node.h ?? DEFAULT_H
       return { x: (node.x ?? 0) + w / 2, y: (node.y ?? 0) + h / 2 }
     }
 

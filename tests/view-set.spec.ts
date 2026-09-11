@@ -57,7 +57,7 @@ describe('ViewSet', () => {
     expect(node.bounds).not.toBe(first)
   })
 
-  it('caches label and alarm facets on validate', () => {
+  it('caches attachment paint ops on validate', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,
@@ -78,16 +78,12 @@ describe('ViewSet', () => {
     views.rebuild(scene)
     views.validateDirty(scene)
     const paint = views.getNode('a')!.toPaintView(false, false)
-    expect(paint.label.endsWith('…')).toBe(true)
-    expect(paint.label.length).toBeLessThanOrEqual(18)
-    expect(paint.meta).toBe('idle')
+    const label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'text' in label && label.text.endsWith('…')).toBe(true)
+    expect(paint.attachments.some(op => op.kind === 'alarm')).toBe(true)
     expect(paint.circular).toBe(false)
-    expect(paint.alarm).toEqual({
-      level: 'error',
-      x: 90,
-      y: 10,
-      radius: 6,
-    })
+    // status is not auto-mapped to label2
+    expect(paint.attachments.some(op => op.kind === 'label2')).toBe(false)
   })
 
   it('sync after remove disposes missing ids', () => {

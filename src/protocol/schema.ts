@@ -11,10 +11,56 @@ const alarmSchema = z.object({
   ts: z.string().optional(),
 })
 
+const attachmentPositionSchema = z.enum([
+  'top',
+  'bottom',
+  'left',
+  'right',
+  'topLeft',
+  'topRight',
+  'bottomLeft',
+  'bottomRight',
+  'center',
+])
+
+const graphTextStyleSchema = z.object({
+  color: z.string().optional(),
+  fontSize: z.number().positive().optional(),
+})
+
+const graphChromeStyleSchema = z.object({
+  color: z.string().optional(),
+  width: z.number().positive().optional(),
+  padding: z.number().nonnegative().optional(),
+})
+
+const graphShadowStyleSchema = z.object({
+  color: z.string().optional(),
+  blur: z.number().nonnegative().optional(),
+  offsetX: z.number().optional(),
+  offsetY: z.number().optional(),
+})
+
+const graphNodeStyleSchema = z.object({
+  labelPosition: attachmentPositionSchema.optional(),
+  label2Position: attachmentPositionSchema.optional(),
+  tooltipPosition: attachmentPositionSchema.optional(),
+  tooltipMode: z.enum(['hover', 'always']).optional(),
+  label: graphTextStyleSchema.optional(),
+  label2: graphTextStyleSchema.optional(),
+  tooltip: graphTextStyleSchema.optional(),
+  select: graphChromeStyleSchema.optional(),
+  hover: graphChromeStyleSchema.optional(),
+  shadow: graphShadowStyleSchema.optional(),
+})
+
 const graphNodeSchema = z.object({
   id: z.string().min(1),
   type: z.string().min(1),
   label: z.string(),
+  label2: z.string().optional(),
+  icon: z.string().min(1).optional(),
+  tooltip: z.string().optional(),
   status: z.string().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
@@ -25,6 +71,7 @@ const graphNodeSchema = z.object({
   networkId: z.string().optional(),
   locked: z.boolean().optional(),
   alarms: z.array(alarmSchema).optional(),
+  style: graphNodeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })
 

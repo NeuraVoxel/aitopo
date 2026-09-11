@@ -5,8 +5,10 @@
 import { distanceToPolyline, hitRect, type Point, type Rect } from '../geom.ts'
 import type { GraphEdge, GraphGroup, GraphNode } from '../protocol/types.ts'
 
-const DEFAULT_W = 160
-const DEFAULT_H = 48
+/** Default node body size — matches twaver `Defaults.NODE_WIDTH` / `NODE_HEIGHT`. */
+const DEFAULT_W = 50
+/** Default node body size — matches twaver `Defaults.NODE_HEIGHT`. */
+const DEFAULT_H = 50
 
 /**
  * World bounds for a node (defaults when x/y/w/h missing).

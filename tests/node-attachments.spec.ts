@@ -1,0 +1,204 @@
+/**
+ * Attachment / dual-bounds NodeView behavior.
+ */
+
+import { describe, expect, it } from 'vitest'
+import { GraphScene } from '../src/model/scene.ts'
+import { getIcon } from '../src/ui/attachment/icon-registry.ts'
+import { ViewSet } from '../src/ui/view-set.ts'
+
+describe('Node attachments', () => {
+  it('exposes bodyBounds and larger unionBounds when label2 is set', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'Primary',
+        label2: 'Secondary',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const view = views.getNode('a')!
+    expect(view.bodyBounds).toEqual({ x: 0, y: 0, width: 100, height: 40 })
+    expect(view.unionBounds.y).toBeLessThan(view.bodyBounds.y)
+    expect(view.unionBounds.height).toBeGreaterThan(view.bodyBounds.height)
+    expect(view.bounds).toEqual(view.unionBounds)
+  })
+
+  it('emits label/label2/icons attachment ops and no in-body text fields', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'VeryLongAgentLabelXYZ',
+        label2: 'up',
+        icon: 'server',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const paint = views.getNode('a')!.toPaintView(false, false)
+    expect('label' in paint).toBe(false)
+    expect('meta' in paint).toBe(false)
+    const kinds = paint.attachments.map(op => op.kind)
+    expect(kinds).toContain('icons')
+    expect(kinds).toContain('label')
+    expect(kinds).toContain('label2')
+    const label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'text' in label && label.text.endsWith('…')).toBe(true)
+    const icons = paint.attachments.find(op => op.kind === 'icons')
+    expect(icons && 'iconKey' in icons && icons.iconKey).toBe('server')
+  })
+
+  it('falls back unknown icon keys to node', () => {
+    expect(getIcon('no-such-icon').key).toBe('node')
+  })
+
+  it('alarm attachment appears in scene ops', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+        alarms: [{ id: 'al1', level: 'error', message: 'boom' }],
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const paint = views.getNode('a')!.toPaintView(false, false)
+    expect(paint.attachments.some(op => op.kind === 'alarm')).toBe(true)
+  })
+
+  it('hover tooltip stays off union and only paints on overlay when hovered', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'A',
+        tooltip: 'hello tip',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const view = views.getNode('a')!
+    // label below + icons center — union taller than body but tooltip (right, hover) excluded
+    const withoutHover = view.toPaintView(false, false)
+    expect(withoutHover.overlayAttachments).toHaveLength(0)
+    expect(withoutHover.attachments.some(op => op.kind === 'tooltip')).toBe(false)
+
+    const withHover = view.toPaintView(false, true)
+    expect(withHover.overlayAttachments.some(op => op.kind === 'tooltip')).toBe(true)
+    expect(withHover.attachments.some(op => op.kind === 'tooltip')).toBe(false)
+  })
+
+  it('always tooltip joins union and scene attachments', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'A',
+        tooltip: 'pinned',
+        style: { tooltipMode: 'always' },
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const view = views.getNode('a')!
+    expect(view.unionBounds.width).toBeGreaterThan(view.bodyBounds.width)
+    const paint = view.toPaintView(false, false)
+    expect(paint.attachments.some(op => op.kind === 'tooltip')).toBe(true)
+    expect(paint.overlayAttachments).toHaveLength(0)
+  })
+
+  it('defaults missing w/h to twaver 50x50 and applies updateNode size', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'agent', label: 'A', x: 10, y: 20 }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.bodyBounds).toEqual({ x: 10, y: 20, width: 50, height: 50 })
+    scene.apply({ ops: [{ op: 'updateNode', id: 'a', patch: { w: 80, h: 60 } }] })
+    views.markDirty('a')
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.bodyBounds).toEqual({ x: 10, y: 20, width: 80, height: 60 })
+  })
+
+  it('updateNode merges style one level and retargets icon', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'A',
+        icon: 'node',
+        style: { labelPosition: 'bottom', label: { color: '#fff' } },
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    scene.apply({
+      ops: [{
+        op: 'updateNode',
+        id: 'a',
+        patch: {
+          icon: 'router',
+          style: { labelPosition: 'top', select: { color: '#f00' } },
+        },
+      }],
+    })
+    const node = scene.nodes.get('a')!
+    expect(node.icon).toBe('router')
+    expect(node.style?.labelPosition).toBe('top')
+    expect(node.style?.select?.color).toBe('#f00')
+    expect(node.style?.label?.color).toBe('#fff')
+  })
+})

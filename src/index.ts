@@ -5,12 +5,17 @@
 export type {
   Alarm,
   AlarmLevel,
+  AttachmentPosition,
+  GraphChromeStyle,
   GraphDocument,
   GraphEdge,
   GraphGroup,
   GraphGroupStyle,
   GraphMeta,
   GraphNode,
+  GraphNodeStyle,
+  GraphShadowStyle,
+  GraphTextStyle,
   GraphViewport,
   GraphEvent,
   GraphPatch,
@@ -31,6 +36,8 @@ export { GraphScene } from './model/index.ts'
 export { Network, Viewport, contentBounds, MIN_ZOOM, MAX_ZOOM } from './network/index.ts'
 export { Canvas2DRenderer } from './render/index.ts'
 export type { Renderer, ViewportState } from './render/index.ts'
+export { getIcon, registerIcon } from './ui/attachment/icon-registry.ts'
+export type { IconDefinition } from './ui/attachment/icon-registry.ts'
 export {
   EXTERNAL_DROP_MIME_AITOPO,
   EXTERNAL_DROP_MIME_PLAIN,

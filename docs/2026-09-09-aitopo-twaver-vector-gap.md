@@ -45,12 +45,12 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `NodeUI.js` | Node body paint | `done` | `NodeView` + `Canvas2DRenderer.drawNode` |
 | `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + orthogonal polylines in renderer |
 | `GroupUI.js` | Group band + outline styles | `done` | `GroupView` + `GraphGroup.style` |
-| `Attachment.js` | Attachment base | `wont` | No attachment hierarchy |
-| `BasicAttachment.js` | Shared attachment paint | `wont` | |
-| `AlarmAttachment.js` | Alarm badge | `done` (display) | Inline badge paint; `alarmChanged` emitted on `setAlarms` |
-| `LabelAttachment.js` | Primary label | `done` (simplified) | Drawn inside `drawNode` |
-| `Label2Attachment.js` | Secondary label | `later` | |
-| `IconsAttachment.js` | Icon strip | `later` | Host/`data` extension if needed |
+| `Attachment.js` | Attachment base | `done` | `src/ui/attachment/Attachment` under NodeView |
+| `BasicAttachment.js` | Shared attachment paint | `done` (lean) | Fixed positions + paint ops; no pointer/glow stack |
+| `AlarmAttachment.js` | Alarm badge | `done` | `AlarmAttachment` + union bounds |
+| `LabelAttachment.js` | Primary label | `done` | `LabelAttachment` (default bottom, outside body) |
+| `Label2Attachment.js` | Secondary label | `done` | `Label2Attachment` (default top); field `label2` |
+| `IconsAttachment.js` | Icon strip | `done` (single) | `IconsAttachment` + `IconRegistry` (`icon` key, center) |
 | `EditAttachment.js` | Resize/rotate handles | `done` (resize) | Overlay handles via `ResizeNodeInteraction`; rotate still `later` |
 | `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction`; bend handles via Wave I |
 | `HTMLNodeUI.js` | HTML overlay node | `wont` | |
@@ -126,9 +126,10 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 |---|---|---|
 | E | Scene vs overlay paint channels | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md) |
 | F | Apply / preview dirty granularity | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md) |
-| G | View label/alarm/hit facets | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md) |
+| G | View label/alarm/hit facets | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md); Attachment tree superseded by N |
 | H | Split InteractionHost / gesture controller | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md) |
 | I | Edge bend waypoints (Move-link) | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md) |
+| — | GraphNode attachments (label/label2/icon/tooltip) | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-graph-node-attachments.md) |
 
 ### Performance waves
 

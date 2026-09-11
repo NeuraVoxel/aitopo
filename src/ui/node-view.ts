@@ -1,32 +1,61 @@
 /**
- * Cached node geometry and paint facets for dirty-rect / hit / paint.
+ * Cached node geometry, attachments, and paint DTOs.
  */
 
-import type { Rect } from '../geom.ts'
+import { unionRect, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
+import type { GraphChromeStyle, GraphShadowStyle } from '../protocol/types.ts'
 import type { NodePaintView } from '../render/canvas2d.ts'
+import {
+  AlarmAttachment,
+  Attachment,
+  IconsAttachment,
+  Label2Attachment,
+  LabelAttachment,
+  TooltipAttachment,
+  type AttachmentPaintOp,
+} from './attachment/index.ts'
 import { nodeBounds } from './bounds.ts'
 
-const ALARM_RADIUS = 6
+const DEFAULT_SHADOW: GraphShadowStyle = {
+  color: 'rgba(0, 0, 0, 0.35)',
+  blur: 6,
+  offsetX: 0,
+  offsetY: 2,
+}
 
-/** Per-node View: invalidate → validate → paint DTO. */
+/** Per-node View: invalidate → validate attachments → paint DTO. */
 export class NodeView {
   readonly id: string
   private dirty = true
-  private cachedBounds: Rect = { x: 0, y: 0, width: 0, height: 0 }
-  private label = ''
-  private meta: string | undefined
+  private body: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  private union: Rect = { x: 0, y: 0, width: 0, height: 0 }
   private circular = false
-  private alarm: NodePaintView['alarm']
   private active = false
+  private shadow: GraphShadowStyle | undefined
+  private selectStyle: GraphChromeStyle | undefined
+  private hoverStyle: GraphChromeStyle | undefined
+  private attachments: Attachment[] = []
+  private sceneOps: AttachmentPaintOp[] = []
+  private overlayOps: AttachmentPaintOp[] = []
 
   constructor(id: string) {
     this.id = id
   }
 
-  /** World bounds after the last successful validate (also the node hit box). */
+  /** Union bounds (dirty + hit); excludes hover-only tooltip. */
   get bounds(): Rect {
-    return this.cachedBounds
+    return this.union
+  }
+
+  /** Body box for anchors / move / resize / select chrome. */
+  get bodyBounds(): Rect {
+    return this.body
+  }
+
+  /** Alias for {@link bounds}. */
+  get unionBounds(): Rect {
+    return this.union
   }
 
   /** Whether the node exists in the scene after validate. */
@@ -39,7 +68,7 @@ export class NodeView {
   }
 
   /**
-   * Recompute bounds and label/alarm facets from the live scene when dirty.
+   * Recompute body, attachments, and union when dirty.
    * @param scene - active graph scene.
    */
   validate(scene: GraphScene): void {
@@ -47,58 +76,93 @@ export class NodeView {
     const node = scene.nodes.get(this.id)
     if (node === undefined) {
       this.active = false
-      this.cachedBounds = { x: 0, y: 0, width: 0, height: 0 }
-      this.label = ''
-      this.meta = undefined
+      this.body = { x: 0, y: 0, width: 0, height: 0 }
+      this.union = this.body
       this.circular = false
-      this.alarm = undefined
+      this.shadow = undefined
+      this.selectStyle = undefined
+      this.hoverStyle = undefined
+      this.attachments = []
+      this.sceneOps = []
+      this.overlayOps = []
       this.dirty = false
       return
     }
     this.active = true
-    const bounds = nodeBounds(node)
-    this.cachedBounds = bounds
-    const data = node.data ?? {}
-    this.circular = node.type === 'tool' || data.shape === 'circle'
-    this.label = truncate(node.label, this.circular ? 8 : 18)
-    if (this.circular) {
-      this.meta = undefined
-    } else if (node.status !== undefined || typeof data.meta === 'string') {
-      const raw = typeof data.meta === 'string' ? data.meta : node.status!
-      this.meta = truncate(raw, 18)
-    } else {
-      this.meta = undefined
+    this.body = nodeBounds(node)
+    this.circular = node.type === 'tool' || node.data?.shape === 'circle'
+    this.shadow = node.style?.shadow ?? DEFAULT_SHADOW
+    this.selectStyle = node.style?.select
+    this.hoverStyle = node.style?.hover
+    this.attachments = syncAttachments(node, this.attachments)
+    const ctx = { node, body: this.body }
+    let union: Rect | undefined = this.body
+    for (const attachment of this.attachments) {
+      attachment.validate(ctx)
+      if (attachment.contributesToUnion()) {
+        union = unionRect(union, attachment.bounds)
+      }
     }
-    const alarm = node.alarms?.find(a => a.level === 'error') ?? node.alarms?.[0]
-    this.alarm = alarm === undefined
-      ? undefined
-      : {
-          level: alarm.level,
-          x: bounds.x + bounds.width - 10,
-          y: bounds.y + 10,
-          radius: ALARM_RADIUS,
-        }
+    this.union = union ?? this.body
     this.dirty = false
   }
 
   /**
-   * Build a paint DTO; chrome flags come from the scene at paint time.
+   * Build a paint DTO; chrome flags and hover tooltip depend on selection/hover.
    * @param selected - selection chrome.
-   * @param hovered - hover chrome.
+   * @param hovered - hover chrome / tooltip.
    */
   toPaintView(selected: boolean, hovered: boolean): NodePaintView {
+    this.sceneOps = []
+    this.overlayOps = []
+    for (const attachment of this.attachments) {
+      const op = attachment.toPaintOp(hovered)
+      if (op === undefined) continue
+      if (op.layer === 'overlay') this.overlayOps.push(op)
+      else this.sceneOps.push(op)
+    }
     return {
-      bounds: this.cachedBounds,
+      bounds: this.union,
+      bodyBounds: this.body,
+      unionBounds: this.union,
       selected,
       hovered,
-      label: this.label,
       circular: this.circular,
-      ...(this.meta !== undefined ? { meta: this.meta } : {}),
-      ...(this.alarm !== undefined ? { alarm: this.alarm } : {}),
+      ...(this.shadow !== undefined ? { shadow: this.shadow } : {}),
+      ...(this.selectStyle !== undefined ? { selectStyle: this.selectStyle } : {}),
+      ...(this.hoverStyle !== undefined ? { hoverStyle: this.hoverStyle } : {}),
+      attachments: this.sceneOps,
+      overlayAttachments: this.overlayOps,
     }
   }
 }
 
-function truncate(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
+function syncAttachments(
+  node: import('../protocol/types.ts').GraphNode,
+  previous: Attachment[],
+): Attachment[] {
+  const next: Attachment[] = []
+  next.push(takeOrCreate(previous, IconsAttachment, () => new IconsAttachment()))
+  if (node.label.length > 0) {
+    next.push(takeOrCreate(previous, LabelAttachment, () => new LabelAttachment()))
+  }
+  if (node.label2 !== undefined && node.label2.length > 0) {
+    next.push(takeOrCreate(previous, Label2Attachment, () => new Label2Attachment()))
+  }
+  if (node.alarms !== undefined && node.alarms.length > 0) {
+    next.push(takeOrCreate(previous, AlarmAttachment, () => new AlarmAttachment()))
+  }
+  if (node.tooltip !== undefined && node.tooltip.length > 0) {
+    next.push(takeOrCreate(previous, TooltipAttachment, () => new TooltipAttachment()))
+  }
+  return next
+}
+
+function takeOrCreate<T extends Attachment>(
+  previous: Attachment[],
+  ctor: abstract new (...args: never[]) => T,
+  create: () => T,
+): T {
+  const found = previous.find((a): a is T => a instanceof ctor)
+  return found ?? create()
 }
