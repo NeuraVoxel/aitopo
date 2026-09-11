@@ -17,8 +17,6 @@ Wave E ships **scene vs overlay paint channels** without changing Document / Pat
 3. **Renderer** — `FrameDirty` includes `'overlay'`. `Canvas2DRenderer.beginFrame` skips root clear/clip/save for that mode; `endFrame` restores root only when a root frame was opened. `drawHoverOverlay` paints a dashed hover ring.
 4. **Select / hover visual** — Root `drawNode` stroke ignores `view.selected` / `view.hovered` (status/data/active only). `paintOverlayPass` draws selection rings, hover rings, and highlighted edges after scene bodies (or alone on overlay-only frames).
 
-Execution checklist: [Wave E plan](../../../../docs/2026-09-11-aitopo-wave-e-paint-channels.md).
-
 ### Deferred (not Wave E)
 
 Apply op→id dirty and preview dirty-rect narrowing (Wave F); View label/alarm/hit facets (Wave G); InteractionHost split (Wave H); Logical zoom, pixel hit-test, Attachment tree, rotate / move-link.

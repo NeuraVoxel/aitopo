@@ -15,8 +15,6 @@ Wave I adds optional edge bend waypoints end-to-end:
 3. **GestureEditor** — `previewEdgeWaypoints` / `commitEdgeWaypoints` write via `GraphScene.writeEdgeWaypoints` (preview) and `updateEdge` + emit (commit). Dirty rects follow Wave F old∪new edge geometry.
 4. **Interaction** — `MoveEdgeBendInteraction` paints bend handles on selected edges (`Renderer.drawEdgeBendHandle`), seeds waypoints from the auto polyline’s interior vertices on first drag, and moves handles with axis constraints. Pack before `MoveNodeInteraction`. Clean-room name (not twaver `MoveLinkInteraction`).
 
-Execution checklist: [Wave I plan](../../../../docs/2026-09-11-aitopo-wave-i-move-edge-bend.md).
-
 ### Deferred (not Wave I)
 
 Freeform (non-orthogonal) polylines; ShapeLink; rotate; CommitSink; multi-edge bundle editing; AITopoHost packing of bend interaction (demo packs it; host can follow when product needs).

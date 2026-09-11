@@ -27,7 +27,7 @@ In repositories that use this Agent Note tree, **`docs/` is for human- or packag
 | Implementation checklist | PR body, a planning-skill artifact, or a temporary section inside the **proposed** note — not a standing `docs/` file |
 | Shipped decision | `implemented/`; keep verify facts under `## Testing`; delete standalone checklists |
 
-Do **not** default to `docs/superpowers/specs/` (common brainstorming-skill default) or maintain a duplicate pair of “owning Agent Note + full checklist under `docs/`”. Brainstorming and similar skills must follow this table; repository `AGENTS.md` overrides those skills’ default paths. Historical `docs/2026-*-wave-*.md` checklists predate this rule; do not add new ones.
+Do **not** default to `docs/superpowers/specs/` (common brainstorming-skill default) or maintain a duplicate pair of “owning Agent Note + full checklist under `docs/`”. Brainstorming and similar skills must follow this table; repository `AGENTS.md` overrides those skills’ default paths.
 
 ## Classification
 

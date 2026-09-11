@@ -14,8 +14,6 @@ Wave F narrows scene dirty tracking without changing Document / Patch / Events:
 2. **Old∪new bounds in `syncDirtyFromScene`** — Capture active View bounds for dirty ids **before** `views.sync` (so removals keep a rect), then after validate union old and new grown bounds into `DirtyAccumulator`.
 3. **Preview without `markAll`** — `previewNodePosition` / `previewNodeBounds` capture node + incident-edge old rects, write scene geometry, validate, union old∪new, and `scheduleScenePaint`. Drag paint filter still forces scene `'all'`.
 
-Execution checklist: [Wave F plan](../../../../docs/2026-09-11-aitopo-wave-f-dirty-granularity.md).
-
 ### Deferred (not Wave F)
 
 View label/alarm/hit facets (Wave G); InteractionHost split (Wave H); lazy-move default; rotate / move-link.

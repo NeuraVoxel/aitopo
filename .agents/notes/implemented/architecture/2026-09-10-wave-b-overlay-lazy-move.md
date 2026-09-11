@@ -14,8 +14,6 @@ Wave B ships three interaction/paint changes on top of Wave A Views / injectable
 2. **Lazy move (optional)** — `MoveNodeInteractionOptions.lazyMove` (default `false`). When true: no `previewNodePosition` during drag; ghost node bounds via `Renderer.drawLazyMoveGhost`; commit still uses `commitNodeMove`. When `lazyMove` is true, `hideOthersWhileDragging` does not apply a paint filter.
 3. **Drop-target group highlight** — While a move gesture is active, hit-test groups under the pointer and paint via `Renderer.drawDropTargetHighlight`. Membership commit semantics are unchanged.
 
-Execution checklist: [Wave B plan](../../../docs/2026-09-10-aitopo-wave-b-overlay-lazy-move.md).
-
 ### Deferred (not Wave B)
 
 Resize/rotate handles, Attachment tree, pixel hit-test, Marquee Shift-append, Logical/Mixed zoom, Overview, HTML UI.

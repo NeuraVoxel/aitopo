@@ -109,15 +109,15 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 - [x] Emit `alarmChanged` on alarm mutations
 - [x] Marquee Shift-append if shell needs multi-select add
 - [x] Temporary highlight for drop-target group during move (DefaultInteraction `parentRect` idea)
-- [x] Overlay-only paint channel (`requestOverlayPaint` / `beginFrame(..., 'overlay')`) — [Wave E](./2026-09-11-aitopo-wave-e-paint-channels.md)
-- [x] Apply op→id scene dirty (Wave F) — [Wave F](./2026-09-11-aitopo-wave-f-dirty-granularity.md)
+- [x] Overlay-only paint channel (`requestOverlayPaint` / `beginFrame(..., 'overlay')`) — [Wave E](../.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md)
+- [x] Apply op→id scene dirty (Wave F) — [Wave F](../.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md)
 - [x] Preview move/resize dirty-rect instead of `markAll` (Wave F)
 
 ### P2 — deeper edit
 
 - [x] Lazy move ghost on overlay
 - [x] Resize edit handles (rotate still open)
-- [x] Move-link / link-handler equivalents — [Wave I](./2026-09-11-aitopo-wave-i-move-edge-bend.md)
+- [x] Move-link / link-handler equivalents — [Wave I](../.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md)
 - [ ] Rotate handles (needs protocol field)
 
 ### Architecture waves

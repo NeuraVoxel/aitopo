@@ -14,8 +14,6 @@ Wave A ships three engine changes without altering the Document / Patch / Events
 2. **Renderer injection** — `Renderer` includes overlay methods (`drawSelectionOverlay`, `drawMarquee`, `drawEdgeRubberBand`). `NetworkOptions.createRenderer` (resolved by `resolveRenderer`) supplies the backend; default is `Canvas2DRenderer`. `Network.validate` does not use `instanceof Canvas2DRenderer`.
 3. **alarmChanged** — After a successful `scene.apply`, Network emits one `alarmChanged` per `setAlarms` op with `scene.alarmsOf(elementId)`, then `documentChanged`. Bare `load` does not emit `alarmChanged`.
 
-Execution checklist (historical task steps): [Wave A implementation plan](../../../docs/2026-09-10-aitopo-wave-a-view-renderer-alarms.md).
-
 ### Deferred (not Wave A)
 
 Overlay marker protocol, lazy-move ghost, drop-target group highlight, resize/rotate handles, Attachment tree, pixel hit-test, Logical/Mixed zoom, Overview, HTML UI. Hit-test still uses `ui/bounds` helpers rather than View bounds exclusively.

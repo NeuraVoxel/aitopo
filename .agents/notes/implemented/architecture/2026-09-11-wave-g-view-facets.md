@@ -16,8 +16,6 @@ Wave G thickens Views **without** an Attachment tree or twaver names:
 
 Document / Patch / Events unchanged. No `measureText` (truncation stays character-budget based).
 
-Execution checklist: [Wave G plan](../../../../docs/2026-09-11-aitopo-wave-g-view-facets.md).
-
 ### Deferred (not Wave G)
 
 InteractionHost / GestureController split (Wave H); rotate / move-link; pixel hit-test; secondary labels / icon strips.

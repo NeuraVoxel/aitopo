@@ -15,8 +15,6 @@ Wave C ships two editor interaction upgrades on Wave A/B chrome and Views:
 
 Deferred: rotate handles, `MoveLinkInteraction` / edge bend points.
 
-Execution checklist: [Wave C plan](../../../docs/2026-09-10-aitopo-wave-c-marquee-resize.md).
-
 ## Alternatives considered
 
 - **Shift alone toggles append:** rejected — Shift already distinguishes marquee from pan.

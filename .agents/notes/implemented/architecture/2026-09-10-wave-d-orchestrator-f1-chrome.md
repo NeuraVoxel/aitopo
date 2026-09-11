@@ -16,8 +16,6 @@ Wave D ships **orchestrator F1 canvas edit chrome** (gap P0). Code lives in `plu
 4. **Copy** — hint states layout is session-local until CommitSink.
 5. **Gap** — `agent-observe` adapter marked `done`; F1 chrome done; CommitSink / rotate / MoveLink remain later.
 
-Execution checklist: [Wave D plan](../../../docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md).
-
 ## Alternatives considered
 
 - **Wave D = rotate + MoveLink in the engine:** rejected for this wave — gap P0 is product hosts; both need new protocol fields.
