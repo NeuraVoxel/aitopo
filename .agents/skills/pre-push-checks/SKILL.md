@@ -24,6 +24,7 @@ There is no universal local baseline beyond hooks the repository already defines
 
 - **Package or script behavior:** run the owning Vitest (or equivalent) file or focused test name. Add adjacent package tests when a shared contract changes; leave repository-wide coverage to CI unless the change is genuinely cross-cutting or the user requests it.
 - **Agent Notes under `.agents/notes/`:** run `ai-eng verify-notes .agents/notes` (or the package's `verify-notes` script).
+- **This kit repository:** also run `pnpm run test:coverage` when `src/` changes, `pnpm run test:smoke` when CLI emit or `init` scaffolding changes, and `pnpm run test:pack-smoke` when `files` / `bin` / `exports` or pack layout changes.
 - **Documentation or comments:** run the repository's documentation checks when it has them; otherwise review links and `git diff --check`.
 - **Expected output:** owner-local expected fixtures live next to the owning test. A top-level snapshot tree is only for full product round-trips the consumer defines; this kit does not ship recorded-session replay.
 - **Package manifests, public exports, build configuration, or built runtime paths:** run `pnpm run build` / `typecheck` and the owning built-artifact smoke when those scripts exist.
