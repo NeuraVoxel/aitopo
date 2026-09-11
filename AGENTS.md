@@ -1,3 +1,4 @@
+<!-- ai-eng:begin -->
 # AGENTS.md
 
 Standing orders for AI-assisted work in this repository.
@@ -10,6 +11,9 @@ Standing orders for AI-assisted work in this repository.
 - Tests describe behavior, not "correctness."
 - Run the smallest relevant checks before push (`ai-eng verify-notes` when notes change; package tests for code). Add a `verify-notes` script that runs `ai-eng verify-notes .agents/notes` when helpful.
 
+Product-specific runtime rules belong in this file only when this repository owns that runtime.
+
+<!-- ai-eng:end -->
 ## Design reference
 
 - **Original reference project:** `twaver.vector` (ideas only; clean-room rewrite — no SDK2D imports, no twaver public API names).
