@@ -83,7 +83,8 @@ export class Network {
   private rootCanvas: HTMLCanvasElement | null = null
   private renderer: Renderer | null = null
   private rafId = 0
-  private needsPaint = true
+  private needsScenePaint = true
+  private needsOverlayPaint = true
   private disposed = false
   private resizeObserver: ResizeObserver | null = null
   private readonly disposers: Array<() => void> = []
@@ -122,7 +123,7 @@ export class Network {
     const cam = this.scene.camera
     this.viewport.setCamera(cam)
     this.dirty.markAll()
-    this.needsPaint = true
+    this.scheduleScenePaint()
     this.emit({ type: 'documentChanged', reason: 'load' })
   }
 
@@ -153,7 +154,7 @@ export class Network {
     const selection = parsed.data.ops.find(op => op.op === 'setSelection')
     this.scene.apply(parsed.data)
     this.syncDirtyFromScene()
-    this.needsPaint = true
+    this.scheduleScenePaint()
     if (selection?.op === 'setSelection') {
       this.scene.setSelection(selection.selectedIds)
       this.emit({ type: 'selectionChanged', selectedIds: selection.selectedIds })
@@ -190,7 +191,7 @@ export class Network {
       const view = this.views.getNode(id)
       if (view?.isActive === true) this.dirty.add(growRect(view.bounds, 4))
     }
-    this.needsPaint = true
+    this.scheduleScenePaint()
     this.emit({ type: 'layoutCompleted', name, positions })
   }
 
@@ -202,7 +203,7 @@ export class Network {
     this.views.rebuild(this.scene)
     this.views.validateDirty(this.scene)
     this.dirty.markAll()
-    this.needsPaint = true
+    this.scheduleScenePaint()
     this.emit({
       type: 'subNetworkChanged',
       activeNetworkId: this.scene.currentNetworkId,
@@ -215,7 +216,7 @@ export class Network {
     this.views.rebuild(this.scene)
     this.views.validateDirty(this.scene)
     this.dirty.markAll()
-    this.needsPaint = true
+    this.scheduleScenePaint()
     this.emit({
       type: 'subNetworkChanged',
       activeNetworkId: null,
@@ -259,7 +260,7 @@ export class Network {
     this.resizeObserver = new ResizeObserver(() => {
       this.syncSize()
       this.dirty.markAll()
-      this.needsPaint = true
+      this.scheduleScenePaint()
     })
     this.resizeObserver.observe(view)
     this.attachInteractions()
@@ -267,7 +268,7 @@ export class Network {
       void time
       if (this.disposed) return
       this.rafId = requestAnimationFrame(loop)
-      if (this.needsPaint) this.validate()
+      if (this.needsScenePaint || this.needsOverlayPaint) this.validate()
     }
     this.rafId = requestAnimationFrame(loop)
   }
@@ -298,8 +299,8 @@ export class Network {
 
   setDebugPaintRects(value: boolean): void {
     this.renderer?.setDebugPaintRects?.(value)
-    this.needsPaint = true
     this.dirty.markAll()
+    this.scheduleScenePaint()
   }
 
   /**
@@ -308,8 +309,7 @@ export class Network {
    */
   setSelection(ids: readonly string[]): void {
     this.scene.setSelection(ids)
-    this.needsPaint = true
-    this.dirty.markAll()
+    this.requestOverlayPaint()
     this.emit({ type: 'selectionChanged', selectedIds: ids })
   }
 
@@ -318,7 +318,7 @@ export class Network {
    */
   setHover(id: string | undefined): void {
     this.scene.setHover(id)
-    this.needsPaint = true
+    this.requestOverlayPaint()
     this.emit({ type: 'hoverChanged', ...(id === undefined ? {} : { hoverId: id }) })
   }
 
@@ -340,7 +340,7 @@ export class Network {
     const cam = this.viewport.state
     this.scene.setCamera({ x: cam.x, y: cam.y, zoom: cam.zoom })
     this.dirty.markAll()
-    this.needsPaint = true
+    this.scheduleScenePaint()
     this.emit({
       type: 'viewportChanged',
       viewport: { x: cam.x, y: cam.y, zoom: cam.zoom } satisfies GraphViewport,
@@ -388,18 +388,28 @@ export class Network {
    */
   addOverlayChrome(chrome: OverlayChrome): () => void {
     this.overlayChrome.push(chrome)
-    this.requestPaint()
+    this.requestOverlayPaint()
     return () => {
       const index = this.overlayChrome.indexOf(chrome)
       if (index >= 0) this.overlayChrome.splice(index, 1)
-      this.requestPaint()
+      this.requestOverlayPaint()
     }
   }
 
-  /** Schedule a full-frame repaint (chrome state changed without a scene mutation). */
+  /**
+   * Schedule overlay clear + selection/hover/chrome paint.
+   * Does not clear or redraw the root canvas.
+   */
+  requestOverlayPaint(): void {
+    this.needsOverlayPaint = true
+  }
+
+  /**
+   * Alias of {@link Network.requestOverlayPaint}.
+   * Prefer `requestOverlayPaint` in new code.
+   */
   requestPaint(): void {
-    this.dirty.markAll()
-    this.needsPaint = true
+    this.requestOverlayPaint()
   }
 
   /**
@@ -408,7 +418,8 @@ export class Network {
    */
   setDragPaintFilter(nodeIds: readonly string[] | undefined): void {
     this.dragPaintFilter = nodeIds === undefined ? undefined : new Set(nodeIds)
-    this.requestPaint()
+    this.dirty.markAll()
+    this.scheduleScenePaint()
   }
 
   /** @returns selected element ids. */
@@ -451,7 +462,7 @@ export class Network {
     this.scene.writePositions({ [id]: { x, y } })
     this.views.markNodeGeometryDirty(this.scene, id)
     this.dirty.markAll()
-    this.needsPaint = true
+    this.scheduleScenePaint()
   }
 
   /**
@@ -467,7 +478,7 @@ export class Network {
     this.scene.writeBounds({ [id]: bounds })
     this.views.markNodeGeometryDirty(this.scene, id)
     this.dirty.markAll()
-    this.needsPaint = true
+    this.scheduleScenePaint()
   }
 
   /**
@@ -723,65 +734,107 @@ export class Network {
     }
   }
 
+  /** Schedule root + overlay paint (camera, content, drag filter). */
+  private scheduleScenePaint(): void {
+    this.needsScenePaint = true
+    this.needsOverlayPaint = true
+  }
+
+  private edgeHighlightFlags(edge: GraphEdge): { selected: boolean; hovered: boolean } {
+    const hoverId = this.scene.hover
+    const hoverIsNode = hoverId !== undefined && this.scene.nodes.has(hoverId)
+    const relatedData = hoverIsNode
+      && edge.kind === 'data'
+      && (edge.from === hoverId || edge.to === hoverId)
+    return {
+      selected: this.scene.selectedIds.has(edge.id),
+      hovered: hoverId === edge.id || relatedData,
+    }
+  }
+
+  private paintOverlayPass(renderer: Renderer): void {
+    const hoverId = this.scene.hover
+    for (const edge of this.scene.edges.values()) {
+      const flags = this.edgeHighlightFlags(edge)
+      if (!flags.selected && !flags.hovered) continue
+      const view = this.views.getEdge(edge.id)
+      if (view === undefined || !view.isActive) continue
+      renderer.drawEdge(edge, view.toPaintView(flags.selected, flags.hovered))
+    }
+    for (const node of this.scene.nodes.values()) {
+      const view = this.views.getNode(node.id)
+      if (view === undefined || !view.isActive) continue
+      const selected = this.scene.selectedIds.has(node.id)
+      const hovered = hoverId === node.id
+      if (selected) {
+        renderer.drawSelectionOverlay(view.bounds)
+      } else if (hovered) {
+        renderer.drawHoverOverlay(view.bounds)
+      }
+    }
+    for (const chrome of this.overlayChrome) {
+      chrome.paint(renderer)
+    }
+  }
+
   private validate(): void {
     const renderer: Renderer | null = this.renderer
     if (renderer === null) return
-    this.needsPaint = false
+    const paintScene = this.needsScenePaint
+    const paintOverlay = this.needsOverlayPaint || paintScene
+    this.needsScenePaint = false
+    this.needsOverlayPaint = false
     this.views.validateDirty(this.scene)
     const cam = this.viewport.state
-    const snapshot = this.dirty.take()
-    // Filtered drag paint must wipe the whole root layer; partial dirty would leave
-    // stale pixels for skipped nodes/groups.
-    const dirtyRects: Rect[] | 'all' = this.dragPaintFilter !== undefined || snapshot.invalidateAll
-      ? 'all'
-      : snapshot.rect === undefined ? 'all' : [snapshot.rect]
 
     try {
-      renderer.beginFrame(cam, dirtyRects)
-      const filter = this.dragPaintFilter
-      if (filter === undefined) {
-        for (const group of this.scene.groups.values()) {
-          const view = this.views.getGroup(group.id)
+      if (paintScene) {
+        const snapshot = this.dirty.take()
+        // Filtered drag paint must wipe the whole root layer; partial dirty would leave
+        // stale pixels for skipped nodes/groups.
+        const dirtyRects: Rect[] | 'all' = this.dragPaintFilter !== undefined || snapshot.invalidateAll
+          ? 'all'
+          : snapshot.rect === undefined ? 'all' : [snapshot.rect]
+        renderer.beginFrame(cam, dirtyRects)
+        const filter = this.dragPaintFilter
+        if (filter === undefined) {
+          for (const group of this.scene.groups.values()) {
+            const view = this.views.getGroup(group.id)
+            if (view === undefined || !view.isActive) continue
+            renderer.drawGroup(group, view.toPaintView())
+          }
+        }
+        for (const edge of this.scene.edges.values()) {
+          if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
+          const flags = this.edgeHighlightFlags(edge)
+          // Highlighted edges paint only in the overlay pass so root stays free of select/hover.
+          if (flags.selected || flags.hovered) continue
+          const view = this.views.getEdge(edge.id)
           if (view === undefined || !view.isActive) continue
-          renderer.drawGroup(group, view.toPaintView())
+          renderer.drawEdge(edge, view.toPaintView(false, false))
         }
-      }
-      for (const edge of this.scene.edges.values()) {
-        if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
-        const view = this.views.getEdge(edge.id)
-        if (view === undefined || !view.isActive) continue
-        const hoverId = this.scene.hover
-        const hoverIsNode = hoverId !== undefined && this.scene.nodes.has(hoverId)
-        // Node hover lights incident data edges so payload routes stand out without bright idle strokes.
-        const relatedData = hoverIsNode
-          && edge.kind === 'data'
-          && (edge.from === hoverId || edge.to === hoverId)
-        renderer.drawEdge(edge, view.toPaintView(
-          this.scene.selectedIds.has(edge.id),
-          hoverId === edge.id || relatedData,
-        ))
-      }
-      for (const node of this.scene.nodes.values()) {
-        if (filter !== undefined && !filter.has(node.id)) continue
-        const view = this.views.getNode(node.id)
-        if (view === undefined || !view.isActive) continue
-        const paint = view.toPaintView(
-          this.scene.selectedIds.has(node.id),
-          this.scene.hover === node.id,
-        )
-        renderer.drawNode(node, paint)
-        if (paint.selected) {
-          renderer.drawSelectionOverlay(paint.bounds)
+        for (const node of this.scene.nodes.values()) {
+          if (filter !== undefined && !filter.has(node.id)) continue
+          const view = this.views.getNode(node.id)
+          if (view === undefined || !view.isActive) continue
+          renderer.drawNode(node, view.toPaintView(
+            this.scene.selectedIds.has(node.id),
+            this.scene.hover === node.id,
+          ))
         }
+      } else if (paintOverlay) {
+        // Discard stale scene dirty without painting root (overlay-only frame).
+        this.dirty.take()
+        renderer.beginFrame(cam, 'overlay')
+      } else {
+        return
       }
-      for (const chrome of this.overlayChrome) {
-        chrome.paint(renderer)
-      }
+      this.paintOverlayPass(renderer)
       renderer.endFrame()
     } catch {
       // Paint failed: schedule a full-frame retry next tick.
       this.dirty.markAll()
-      this.needsPaint = true
+      this.scheduleScenePaint()
     }
   }
 

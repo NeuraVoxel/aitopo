@@ -19,6 +19,8 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave C execution checklist: [docs/2026-09-10-aitopo-wave-c-marquee-resize.md](docs/2026-09-10-aitopo-wave-c-marquee-resize.md)
 - Wave D (orchestrator F1 chrome): [.agents/notes/implemented/architecture/2026-09-10-wave-d-orchestrator-f1-chrome.md](.agents/notes/implemented/architecture/2026-09-10-wave-d-orchestrator-f1-chrome.md)
 - Wave D execution checklist: [docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md](docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md)
+- Wave E (scene vs overlay paint channels): [.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md](.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md)
+- Wave E execution checklist: [docs/2026-09-11-aitopo-wave-e-paint-channels.md](docs/2026-09-11-aitopo-wave-e-paint-channels.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
@@ -123,6 +125,7 @@ Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-
 - SubNetwork drill-down is single-level (root ↔ one child).
 - Alarm badges cover display only; no propagation tree; `setAlarms` emits `alarmChanged`.
 - Pan/zoom triggers full-frame invalidate; element edits use dirty-rect.
-- Marquee is replace-only on pointer-up (no Shift-append).
+- Selection / hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); live move/resize preview and `apply` may still full-frame until Wave F.
+- Selected/hovered nodes use overlay rings; root body stroke no longer turns blue for select/hover.
 
 Full per-module status vs `twaver.vector`: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md).

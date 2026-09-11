@@ -73,7 +73,7 @@ export class CreateEdgeInteraction implements Interaction {
           },
         })
       } else {
-        network.requestPaint()
+        network.requestOverlayPaint()
       }
     }
 

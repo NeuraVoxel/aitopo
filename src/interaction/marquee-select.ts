@@ -75,7 +75,7 @@ export class MarqueeSelectInteraction implements Interaction {
           },
         })
       } else {
-        network.requestPaint()
+        network.requestOverlayPaint()
       }
     }
 

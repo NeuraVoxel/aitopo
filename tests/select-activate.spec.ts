@@ -81,6 +81,7 @@ function createHost(canvas: FakeHitCanvas): InteractionHost & {
       gestureDragged = false
     },
     addOverlayChrome: vi.fn(() => () => {}),
+    requestOverlayPaint: vi.fn(),
     requestPaint: vi.fn(),
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),

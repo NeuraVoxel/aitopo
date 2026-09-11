@@ -122,7 +122,15 @@ export interface InteractionHost {
    * @returns disposer.
    */
   addOverlayChrome(chrome: OverlayChrome): () => void
-  /** Schedule a full-frame repaint (chrome state changed without a scene mutation). */
+  /**
+   * Schedule overlay clear + selection/hover/chrome paint.
+   * Does not clear or redraw the root canvas.
+   */
+  requestOverlayPaint(): void
+  /**
+   * Alias of {@link InteractionHost.requestOverlayPaint} for chrome-era call sites.
+   * Prefer `requestOverlayPaint` in new code.
+   */
   requestPaint(): void
   /**
    * Restrict paint to the given node ids (plus incident edges) during drag.

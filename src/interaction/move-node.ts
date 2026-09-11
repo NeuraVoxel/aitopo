@@ -91,7 +91,7 @@ export class MoveNodeInteraction implements Interaction {
 
     const ensureChrome = (): void => {
       if (removeChrome !== undefined) {
-        network.requestPaint()
+        network.requestOverlayPaint()
         return
       }
       removeChrome = network.addOverlayChrome({

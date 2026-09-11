@@ -39,16 +39,24 @@ export interface GroupPaintView {
 }
 
 /**
+ * Dirty region for {@link Renderer.beginFrame}.
+ * `'overlay'` clears/transforms the overlay only; root pixels stay untouched.
+ */
+export type FrameDirty = readonly Rect[] | 'all' | 'overlay'
+
+/**
  * Pluggable paint backend (Canvas2D now; WebGL later).
  */
 export interface Renderer {
-  beginFrame(viewport: ViewportState, dirty: readonly Rect[] | 'all'): void
+  beginFrame(viewport: ViewportState, dirty: FrameDirty): void
   drawGroup(group: GraphGroup, view: GroupPaintView): void
   drawEdge(edge: GraphEdge, view: EdgePaintView): void
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
   /** Overlay: selection ring (no-op OK for headless fakes). */
   drawSelectionOverlay(bounds: Rect): void
+  /** Overlay: hover ring (lighter than selection; no-op OK for fakes). */
+  drawHoverOverlay(bounds: Rect): void
   /** Overlay: marquee rubber band. */
   drawMarquee(rect: Rect): void
   /** Overlay: edge-create rubber band. */
@@ -80,7 +88,9 @@ export class Canvas2DRenderer implements Renderer {
   private readonly overlayCtx: CanvasRenderingContext2D
   private debugPaintRects: boolean
   private viewport: ViewportState = { x: 0, y: 0, zoom: 1, width: 1, height: 1 }
-  private dirtyMode: readonly Rect[] | 'all' = 'all'
+  private dirtyMode: FrameDirty = 'all'
+  /** True when beginFrame opened a root ctx.save() that endFrame must restore. */
+  private rootFrameOpen = false
 
   constructor(options: Canvas2DRendererOptions) {
     this.root = options.root
@@ -99,12 +109,17 @@ export class Canvas2DRenderer implements Renderer {
     this.debugPaintRects = value
   }
 
-  beginFrame(viewport: ViewportState, dirty: readonly Rect[] | 'all'): void {
+  beginFrame(viewport: ViewportState, dirty: FrameDirty): void {
     this.viewport = viewport
     this.dirtyMode = dirty
     const dpr = typeof devicePixelRatio === 'number' ? devicePixelRatio : 1
-    resizeCanvas(this.root, viewport.width, viewport.height, dpr)
     resizeCanvas(this.overlay, viewport.width, viewport.height, dpr)
+    this.beginOverlayTransform(viewport, dpr)
+    if (dirty === 'overlay') {
+      this.rootFrameOpen = false
+      return
+    }
+    resizeCanvas(this.root, viewport.width, viewport.height, dpr)
     const ctx = this.rootCtx
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
     // Partial dirty must clear only those screen rects. Clearing the full canvas then
@@ -121,6 +136,7 @@ export class Canvas2DRenderer implements Renderer {
       }
     }
     ctx.save()
+    this.rootFrameOpen = true
     ctx.translate(-viewport.x * viewport.zoom, -viewport.y * viewport.zoom)
     ctx.scale(viewport.zoom, viewport.zoom)
     if (dirty !== 'all' && dirty.length > 0) {
@@ -130,6 +146,9 @@ export class Canvas2DRenderer implements Renderer {
       }
       ctx.clip()
     }
+  }
+
+  private beginOverlayTransform(viewport: ViewportState, dpr: number): void {
     this.overlayCtx.setTransform(dpr, 0, 0, dpr, 0, 0)
     this.overlayCtx.clearRect(0, 0, viewport.width, viewport.height)
     this.overlayCtx.save()
@@ -218,12 +237,12 @@ export class Canvas2DRenderer implements Renderer {
     const ctx = this.rootCtx
     const data = node.data ?? {}
     const fill = typeof data.fill === 'string' ? data.fill : statusFill(node.status)
-    const stroke = typeof data.stroke === 'string'
-      ? data.stroke
-      : view.selected || view.hovered ? '#3b82f6' : statusStroke(node.status)
+    // Select/hover emphasis lives on the overlay (rings); root stroke is status/data only.
+    const stroke = typeof data.stroke === 'string' ? data.stroke : statusStroke(node.status)
     const labelColor = typeof data.labelColor === 'string' ? data.labelColor : '#e8eaed'
     const metaColor = typeof data.metaColor === 'string' ? data.metaColor : '#a8b0c0'
     const circular = node.type === 'tool' || data.shape === 'circle'
+    const lineWidth = (node.status === 'active' ? 2.5 : 1.25) / this.viewport.zoom
     if (circular) {
       const cx = bounds.x + bounds.width / 2
       const cy = bounds.y + bounds.height / 2
@@ -233,7 +252,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.fillStyle = fill
       ctx.fill()
       ctx.strokeStyle = stroke
-      ctx.lineWidth = (view.selected || node.status === 'active' ? 2.5 : 1.25) / this.viewport.zoom
+      ctx.lineWidth = lineWidth
       ctx.stroke()
       ctx.fillStyle = labelColor
       ctx.font = '10px sans-serif'
@@ -247,7 +266,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.fillStyle = fill
       ctx.fill()
       ctx.strokeStyle = stroke
-      ctx.lineWidth = (view.selected || node.status === 'active' ? 2.5 : 1.25) / this.viewport.zoom
+      ctx.lineWidth = lineWidth
       ctx.stroke()
       ctx.fillStyle = labelColor
       ctx.font = '12px sans-serif'
@@ -272,7 +291,11 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   endFrame(): void {
-    if (this.debugPaintRects && this.dirtyMode !== 'all') {
+    if (
+      this.debugPaintRects
+      && this.dirtyMode !== 'all'
+      && this.dirtyMode !== 'overlay'
+    ) {
       const ctx = this.overlayCtx
       ctx.save()
       ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'
@@ -282,7 +305,10 @@ export class Canvas2DRenderer implements Renderer {
       }
       ctx.restore()
     }
-    this.rootCtx.restore()
+    if (this.rootFrameOpen) {
+      this.rootCtx.restore()
+      this.rootFrameOpen = false
+    }
     this.overlayCtx.restore()
   }
 
@@ -295,6 +321,20 @@ export class Canvas2DRenderer implements Renderer {
     ctx.strokeStyle = '#3b82f6'
     ctx.lineWidth = 2 / this.viewport.zoom
     ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4)
+  }
+
+  /**
+   * Draw a hover ring on the overlay (lighter than selection).
+   * @param bounds - hovered node bounds.
+   */
+  drawHoverOverlay(bounds: Rect): void {
+    const ctx = this.overlayCtx
+    ctx.save()
+    ctx.strokeStyle = 'rgba(59, 130, 246, 0.65)'
+    ctx.lineWidth = 1.5 / this.viewport.zoom
+    ctx.setLineDash([4 / this.viewport.zoom, 3 / this.viewport.zoom])
+    ctx.strokeRect(bounds.x - 2, bounds.y - 2, bounds.width + 4, bounds.height + 4)
+    ctx.restore()
   }
 
   /**

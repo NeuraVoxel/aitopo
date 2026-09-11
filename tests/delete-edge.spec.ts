@@ -70,6 +70,7 @@ function createHost(options: {
     wasGestureDragged: () => false,
     clearGestureDragged: vi.fn(),
     addOverlayChrome: vi.fn(() => () => {}),
+    requestOverlayPaint: vi.fn(),
     requestPaint: vi.fn(),
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),

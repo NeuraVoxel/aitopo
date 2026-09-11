@@ -116,6 +116,7 @@ function createHost(options: {
       drawNode: vi.fn(),
       endFrame: vi.fn(),
       drawSelectionOverlay: vi.fn(),
+      drawHoverOverlay: vi.fn(),
       drawMarquee: vi.fn(),
       drawEdgeRubberBand: vi.fn(),
       drawLazyMoveGhost: vi.fn(() => {
@@ -174,6 +175,9 @@ function createHost(options: {
       gestureDragged = false
     },
     addOverlayChrome,
+    requestOverlayPaint: vi.fn(() => {
+      paintChrome()
+    }),
     requestPaint: vi.fn(() => {
       paintChrome()
     }),

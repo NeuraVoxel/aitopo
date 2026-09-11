@@ -14,6 +14,7 @@ describe('overlay chrome registry', () => {
           drawNode: vi.fn(),
           endFrame: vi.fn(),
           drawSelectionOverlay: vi.fn(),
+      drawHoverOverlay: vi.fn(),
           drawMarquee: vi.fn(),
           drawEdgeRubberBand: vi.fn(),
           drawLazyMoveGhost: vi.fn(),
@@ -50,6 +51,7 @@ describe('overlay chrome registry', () => {
       drawNode: vi.fn(),
       endFrame: vi.fn(),
       drawSelectionOverlay: vi.fn(),
+      drawHoverOverlay: vi.fn(),
       drawMarquee: () => {
         paints.push('direct')
       },
