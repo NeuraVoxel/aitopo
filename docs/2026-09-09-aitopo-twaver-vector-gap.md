@@ -130,6 +130,16 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | H | Split InteractionHost / gesture controller | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md) |
 | I | Edge bend waypoints (Move-link) | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md) |
 
+### Performance waves
+
+| Wave | Focus | Status |
+|---|---|---|
+| J | Demand-driven rAF, hover coalesce, paint stats | `proposed` — [roadmap](./2026-09-11-aitopo-performance-roadmap.md) |
+| K | Draw culling, multi-rect dirty, filter/lazy defaults | `proposed` |
+| L | Pan/zoom quality ladder | `proposed` |
+| M | Spatial hit index | `proposed` |
+| N | WebGL/hybrid after measured threshold | `proposed` (gated) |
+
 ### Explicit non-goals
 
 Overview, HTML node/link UI, Magnify, MixedZoom, GridUI, PropertyBox, GIS, DXF, copying or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D`.
