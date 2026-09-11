@@ -167,4 +167,36 @@ describe('paint channels', () => {
     expect(renderer.beginDirties).toEqual(['all'])
     expect(renderer.sceneDraws).toBeGreaterThan(0)
   })
+
+  it('previewNodePosition schedules a partial scene dirty rect', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 40, h: 24 },
+        { id: 'b', type: 'unit', label: 'B', x: 200, y: 0, w: 40, h: 24 },
+      ],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+
+    network.previewNodePosition('a', 80, 40)
+    await flushFrames(2)
+    expect(renderer.beginDirties).toHaveLength(1)
+    const dirty = renderer.beginDirties[0]
+    expect(dirty).not.toBe('all')
+    expect(dirty).not.toBe('overlay')
+    expect(Array.isArray(dirty)).toBe(true)
+    expect(renderer.sceneDraws).toBeGreaterThan(0)
+  })
 })

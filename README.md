@@ -21,6 +21,8 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave D execution checklist: [docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md](docs/2026-09-10-aitopo-wave-d-orchestrator-f1-chrome.md)
 - Wave E (scene vs overlay paint channels): [.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md](.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md)
 - Wave E execution checklist: [docs/2026-09-11-aitopo-wave-e-paint-channels.md](docs/2026-09-11-aitopo-wave-e-paint-channels.md)
+- Wave F (apply / preview dirty granularity): [.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md](.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md)
+- Wave F execution checklist: [docs/2026-09-11-aitopo-wave-f-dirty-granularity.md](docs/2026-09-11-aitopo-wave-f-dirty-granularity.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
@@ -125,7 +127,8 @@ Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-
 - SubNetwork drill-down is single-level (root ↔ one child).
 - Alarm badges cover display only; no propagation tree; `setAlarms` emits `alarmChanged`.
 - Pan/zoom triggers full-frame invalidate; element edits use dirty-rect.
-- Selection / hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); live move/resize preview and `apply` may still full-frame until Wave F.
+- Selection / hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); `apply` and live move/resize preview use dirty-rect when possible (Wave F).
 - Selected/hovered nodes use overlay rings; root body stroke no longer turns blue for select/hover.
+- Open **Debug dirty** while dragging a node in Editor: red rects should track the mover (not full-frame) when Hide others is off.
 
 Full per-module status vs `twaver.vector`: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md).

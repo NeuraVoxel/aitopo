@@ -100,8 +100,9 @@ export class GraphScene {
   apply(patch: GraphPatch): void {
     const parsed = graphPatchSchema.parse(patch)
     const before = this.sceneVersion
+    const dirty = collectPatchDirty(this.active, parsed.ops)
     const next = applyDocumentPatch(this.active, parsed)
-    this.commitActive(next, false)
+    this.commitActive(next, dirty.invalidateAll, dirty.ids)
     if (this.activeNetworkId === null) {
       this.rootDocument = {
         ...structuredClone(next),
@@ -259,7 +260,11 @@ export class GraphScene {
     return this.nodeMap.get(id)?.alarms ?? this.edgeMap.get(id)?.alarms ?? []
   }
 
-  private commitActive(doc: GraphDocument, full: boolean): void {
+  private commitActive(
+    doc: GraphDocument,
+    full: boolean,
+    partialDirtyIds: ReadonlySet<string> = new Set(),
+  ): void {
     this.active = doc
     this.nodeMap.clear()
     this.edgeMap.clear()
@@ -268,24 +273,84 @@ export class GraphScene {
     this.inEdges.clear()
     for (const node of doc.nodes) {
       this.nodeMap.set(node.id, node)
-      if (!full) this.dirtyIds.add(node.id)
     }
     for (const edge of doc.edges) {
       this.edgeMap.set(edge.id, edge)
       pushIndex(this.outEdges, edge.from, edge.id)
       pushIndex(this.inEdges, edge.to, edge.id)
-      if (!full) this.dirtyIds.add(edge.id)
     }
     for (const group of doc.groups ?? []) {
       this.groupMap.set(group.id, group)
-      if (!full) this.dirtyIds.add(group.id)
     }
     this.sceneVersion += 1
     if (full) {
       this.invalidateAll = true
       this.dirtyIds.clear()
+      return
+    }
+    for (const id of partialDirtyIds) this.dirtyIds.add(id)
+  }
+}
+
+/**
+ * Collect scene dirty ids from patch ops against the pre-apply document.
+ * @param before - active document before apply.
+ * @param ops - validated patch ops.
+ */
+export function collectPatchDirty(
+  before: GraphDocument,
+  ops: readonly GraphPatch['ops'][number][],
+): { invalidateAll: boolean; ids: ReadonlySet<string> } {
+  const ids = new Set<string>()
+  let invalidateAll = false
+  for (const op of ops) {
+    switch (op.op) {
+      case 'addNode':
+        ids.add(op.node.id)
+        break
+      case 'updateNode':
+        ids.add(op.id)
+        for (const edge of before.edges) {
+          if (edge.from === op.id || edge.to === op.id) ids.add(edge.id)
+        }
+        break
+      case 'removeNode':
+        ids.add(op.id)
+        for (const edge of before.edges) {
+          if (edge.from === op.id || edge.to === op.id) ids.add(edge.id)
+        }
+        break
+      case 'addEdge':
+        ids.add(op.edge.id)
+        break
+      case 'updateEdge':
+      case 'removeEdge':
+        ids.add(op.id)
+        break
+      case 'addGroup':
+        ids.add(op.group.id)
+        break
+      case 'updateGroup':
+      case 'removeGroup':
+        ids.add(op.id)
+        break
+      case 'setAlarms':
+        ids.add(op.elementId)
+        break
+      case 'setViewport':
+        invalidateAll = true
+        break
+      case 'setSelection':
+      case 'enterSubNetwork':
+      case 'exitSubNetwork':
+        break
+      default: {
+        const _exhaustive: never = op
+        throw new Error(`collectPatchDirty: unhandled op ${JSON.stringify(_exhaustive)}`)
+      }
     }
   }
+  return { invalidateAll, ids }
 }
 
 function pushIndex(map: Map<string, string[]>, key: string, value: string): void {

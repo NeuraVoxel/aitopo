@@ -110,8 +110,8 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 - [x] Marquee Shift-append if shell needs multi-select add
 - [x] Temporary highlight for drop-target group during move (DefaultInteraction `parentRect` idea)
 - [x] Overlay-only paint channel (`requestOverlayPaint` / `beginFrame(..., 'overlay')`) — [Wave E](./2026-09-11-aitopo-wave-e-paint-channels.md)
-- [ ] Apply op→id scene dirty (Wave F; after E)
-- [ ] Preview move/resize dirty-rect instead of `markAll` (Wave F)
+- [x] Apply op→id scene dirty (Wave F) — [Wave F](./2026-09-11-aitopo-wave-f-dirty-granularity.md)
+- [x] Preview move/resize dirty-rect instead of `markAll` (Wave F)
 
 ### P2 — deeper edit
 
@@ -125,7 +125,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | Wave | Focus | Status |
 |---|---|---|
 | E | Scene vs overlay paint channels | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md) |
-| F | Apply / preview dirty granularity | later |
+| F | Apply / preview dirty granularity | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md) |
 | G | View label/alarm/hit facets | later |
 | H | Split InteractionHost / gesture controller | later |
 

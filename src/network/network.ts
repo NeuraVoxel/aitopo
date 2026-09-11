@@ -154,7 +154,11 @@ export class Network {
     const selection = parsed.data.ops.find(op => op.op === 'setSelection')
     this.scene.apply(parsed.data)
     this.syncDirtyFromScene()
-    this.scheduleScenePaint()
+    if (this.dirty.dirty) {
+      this.scheduleScenePaint()
+    } else {
+      this.requestOverlayPaint()
+    }
     if (selection?.op === 'setSelection') {
       this.scene.setSelection(selection.selectedIds)
       this.emit({ type: 'selectionChanged', selectedIds: selection.selectedIds })
@@ -450,8 +454,8 @@ export class Network {
 
   /**
    * Live preview position during drag (no nodeMoved / documentChanged).
-   * Full-frame invalidate so incident edges and siblings stay painted when
-   * `hideOthersWhileDragging` is false (default).
+   * Unions old and new node/edge bounds into the dirty accumulator (not full-frame)
+   * unless a drag paint filter is active.
    * @param id - node id.
    * @param x - world x.
    * @param y - world y.
@@ -459,10 +463,9 @@ export class Network {
   previewNodePosition(id: string, x: number, y: number): void {
     const node = this.scene.nodes.get(id)
     if (node === undefined) return
-    this.scene.writePositions({ [id]: { x, y } })
-    this.views.markNodeGeometryDirty(this.scene, id)
-    this.dirty.markAll()
-    this.scheduleScenePaint()
+    this.previewNodeGeometry(id, () => {
+      this.scene.writePositions({ [id]: { x, y } })
+    })
   }
 
   /**
@@ -475,10 +478,45 @@ export class Network {
     bounds: { x: number; y: number; w: number; h: number },
   ): void {
     if (this.scene.nodes.get(id) === undefined) return
-    this.scene.writeBounds({ [id]: bounds })
+    this.previewNodeGeometry(id, () => {
+      this.scene.writeBounds({ [id]: bounds })
+    })
+  }
+
+  /**
+   * Capture old geometry, mutate, union old∪new dirty rects, schedule scene paint.
+   * @param id - node id.
+   * @param mutate - writes scene geometry for `id`.
+   */
+  private previewNodeGeometry(id: string, mutate: () => void): void {
+    const oldRects = this.captureNodeGeometryRects(id)
+    mutate()
     this.views.markNodeGeometryDirty(this.scene, id)
-    this.dirty.markAll()
+    this.views.validateDirty(this.scene)
+    for (const rect of oldRects) this.dirty.add(rect)
+    for (const rect of this.captureNodeGeometryRects(id)) this.dirty.add(rect)
+    // writePositions/writeBounds mark scene dirty ids; Network owns preview rects.
+    this.scene.takeDirty()
+    if (this.dragPaintFilter !== undefined) {
+      this.dirty.markAll()
+    }
     this.scheduleScenePaint()
+  }
+
+  /**
+   * World-space grown bounds for a node and its incident edges (active Views only).
+   * @param nodeId - node id.
+   */
+  private captureNodeGeometryRects(nodeId: string): Rect[] {
+    const rects: Rect[] = []
+    const nodeView = this.views.getNode(nodeId)
+    if (nodeView?.isActive === true) rects.push(growRect(nodeView.bounds, 8))
+    for (const edge of this.scene.edges.values()) {
+      if (edge.from !== nodeId && edge.to !== nodeId) continue
+      const edgeView = this.views.getEdge(edge.id)
+      if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
+    }
+    return rects
   }
 
   /**
@@ -696,15 +734,26 @@ export class Network {
   }
 
   private syncDirtyFromScene(): void {
-    this.views.sync(this.scene)
     const peek = this.scene.takeDirty()
     if (peek.invalidateAll) {
+      this.views.sync(this.scene)
       for (const view of this.views.nodeViews()) view.markDirty()
       for (const view of this.views.edgeViews()) view.markDirty()
       for (const view of this.views.groupViews()) view.markDirty()
       this.dirty.markAll()
       return
     }
+    // Capture old geometry before membership sync drops removed Views.
+    const oldRects: Rect[] = []
+    for (const id of peek.ids) {
+      const nodeView = this.views.getNode(id)
+      if (nodeView?.isActive === true) oldRects.push(growRect(nodeView.bounds, 8))
+      const edgeView = this.views.getEdge(id)
+      if (edgeView?.isActive === true) oldRects.push(growRect(edgeView.bounds, 8))
+      const groupView = this.views.getGroup(id)
+      if (groupView?.isActive === true) oldRects.push(growRect(groupView.bounds, 8))
+    }
+    this.views.sync(this.scene)
     for (const id of peek.ids) {
       if (this.scene.nodes.has(id)) {
         this.views.markNodeGeometryDirty(this.scene, id)
@@ -713,6 +762,7 @@ export class Network {
       }
     }
     this.views.validateDirty(this.scene)
+    for (const rect of oldRects) this.dirty.add(rect)
     for (const id of peek.ids) {
       const nodeView = this.views.getNode(id)
       if (nodeView?.isActive === true) {

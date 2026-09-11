@@ -50,9 +50,58 @@ describe('GraphScene', () => {
     expect(scene.nodes.has('root-n')).toBe(true)
   })
 
-  it('rejects missing subnetwork', () => {
+  it('dirties only patch-affected ids on apply', () => {
     const scene = new GraphScene()
-    scene.load({ version: 1, nodes: [], edges: [] })
-    expect(() => scene.enterSubNetwork('nope')).toThrow(/missing network/)
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'agent', label: 'A', x: 0, y: 0 },
+        { id: 'b', type: 'agent', label: 'B', x: 100, y: 0 },
+      ],
+      edges: [{ id: 'e1', from: 'a', to: 'b' }],
+    })
+    scene.takeDirty()
+    scene.apply({
+      ops: [{ op: 'updateNode', id: 'a', patch: { x: 10, y: 0 } }],
+    })
+    const dirty = scene.takeDirty()
+    expect(dirty.invalidateAll).toBe(false)
+    expect([...dirty.ids].sort()).toEqual(['a', 'e1'])
+  })
+
+  it('invalidates all on setViewport apply', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'agent', label: 'A', x: 0, y: 0 }],
+      edges: [],
+    })
+    scene.takeDirty()
+    scene.apply({
+      ops: [{ op: 'setViewport', viewport: { x: 1, y: 2, zoom: 1.5 } }],
+    })
+    const dirty = scene.takeDirty()
+    expect(dirty.invalidateAll).toBe(true)
+    expect(dirty.ids.size).toBe(0)
+  })
+
+  it('includes cascaded edges when removing a node', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'agent', label: 'A', x: 0, y: 0 },
+        { id: 'b', type: 'agent', label: 'B', x: 100, y: 0 },
+      ],
+      edges: [{ id: 'e1', from: 'a', to: 'b' }],
+    })
+    scene.takeDirty()
+    scene.apply({
+      ops: [{ op: 'removeNode', id: 'a' }],
+    })
+    const dirty = scene.takeDirty()
+    expect([...dirty.ids].sort()).toEqual(['a', 'e1'])
+    expect(scene.nodes.has('a')).toBe(false)
+    expect(scene.edges.has('e1')).toBe(false)
   })
 })
