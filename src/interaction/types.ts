@@ -1,5 +1,8 @@
 /**
  * Interaction plugin contract (avoids importing Network class).
+ *
+ * Wave H: `InteractionHost` is the intersection of hit / camera / query / chrome /
+ * edit / bus facets. Runtime still binds one Network object; facets document ownership.
  */
 
 import type { Point } from '../geom.ts'
@@ -26,26 +29,11 @@ export interface OverlayChrome {
   paint(renderer: Renderer): void
 }
 
-/** Minimal host surface interactions bind to. */
-export interface InteractionHost {
+/** DOM + hit-test surface. */
+export interface InteractionHitHost {
   getViewElement(): HTMLDivElement | null
   getHitElement(): HTMLCanvasElement | null
   hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' } | undefined
-  setSelection(ids: readonly string[]): void
-  setHover(id: string | undefined): void
-  activateNode(nodeId: string, detail: 'click' | 'dblclick'): void
-  updateCamera(mutate: (viewport: import('../network/viewport.ts').Viewport) => void): void
-  readonly viewport: import('../network/viewport.ts').Viewport
-  /** @param id - node id. @returns node or undefined. */
-  getNode(id: string): GraphNode | undefined
-  /** @returns nodes in the active network. */
-  getNodes(): readonly GraphNode[]
-  /** @returns edges in the active network. */
-  getEdges(): readonly GraphEdge[]
-  /** @returns groups in the active network. */
-  getGroups(): readonly GraphGroup[]
-  /** @returns selected element ids. */
-  getSelectedIds(): readonly string[]
   /**
    * Hit-test groups at a screen point.
    * @param screenX - CSS x relative to the hit canvas.
@@ -59,6 +47,57 @@ export interface InteractionHost {
    * @returns world point.
    */
   screenToWorld(screenX: number, screenY: number): { x: number; y: number }
+}
+
+/** Selection / hover / activate. */
+export interface InteractionSelectionHost {
+  setSelection(ids: readonly string[]): void
+  setHover(id: string | undefined): void
+  activateNode(nodeId: string, detail: 'click' | 'dblclick'): void
+  /** @returns selected element ids. */
+  getSelectedIds(): readonly string[]
+}
+
+/** Camera. */
+export interface InteractionCameraHost {
+  updateCamera(mutate: (viewport: import('../network/viewport.ts').Viewport) => void): void
+  readonly viewport: import('../network/viewport.ts').Viewport
+}
+
+/** Read-only graph queries. */
+export interface InteractionQueryHost {
+  /** @param id - node id. @returns node or undefined. */
+  getNode(id: string): GraphNode | undefined
+  /** @returns nodes in the active network. */
+  getNodes(): readonly GraphNode[]
+  /** @returns edges in the active network. */
+  getEdges(): readonly GraphEdge[]
+  /** @returns groups in the active network. */
+  getGroups(): readonly GraphGroup[]
+}
+
+/** Overlay chrome schedule (Wave E / H registry). */
+export interface InteractionChromeHost {
+  /**
+   * Register transient overlay paint; disposer removes it and requests a repaint.
+   * @param chrome - painter invoked each validate after scene paint.
+   * @returns disposer.
+   */
+  addOverlayChrome(chrome: OverlayChrome): () => void
+  /**
+   * Schedule overlay clear + selection/hover/chrome paint.
+   * Does not clear or redraw the root canvas.
+   */
+  requestOverlayPaint(): void
+  /**
+   * Alias of {@link InteractionChromeHost.requestOverlayPaint} for chrome-era call sites.
+   * Prefer `requestOverlayPaint` in new code.
+   */
+  requestPaint(): void
+}
+
+/** Preview / commit / drag filter (Wave H GestureEditor). */
+export interface InteractionEditHost {
   /** Live preview during drag (does not emit nodeMoved). */
   previewNodePosition(id: string, x: number, y: number): void
   /**
@@ -117,27 +156,15 @@ export interface InteractionHost {
   /** Reset the drag-consumed flag (call at pointerdown). */
   clearGestureDragged(): void
   /**
-   * Register transient overlay paint; disposer removes it and requests a repaint.
-   * @param chrome - painter invoked each validate after scene paint.
-   * @returns disposer.
-   */
-  addOverlayChrome(chrome: OverlayChrome): () => void
-  /**
-   * Schedule overlay clear + selection/hover/chrome paint.
-   * Does not clear or redraw the root canvas.
-   */
-  requestOverlayPaint(): void
-  /**
-   * Alias of {@link InteractionHost.requestOverlayPaint} for chrome-era call sites.
-   * Prefer `requestOverlayPaint` in new code.
-   */
-  requestPaint(): void
-  /**
    * Restrict paint to the given node ids (plus incident edges) during drag.
    * Pass `undefined` to paint the full scene (default).
    * @param nodeIds - mover ids to keep visible, or undefined to clear.
    */
   setDragPaintFilter(nodeIds: readonly string[] | undefined): void
+}
+
+/** Event bus + patch apply. */
+export interface InteractionBusHost {
   /**
    * Fan out a GraphEvent to subscribers.
    * @param event - event payload.
@@ -149,6 +176,18 @@ export interface InteractionHost {
    */
   apply(patch: GraphPatch): void
 }
+
+/**
+ * Full host surface interactions bind to (Network implements all facets).
+ */
+export type InteractionHost =
+  & InteractionHitHost
+  & InteractionSelectionHost
+  & InteractionCameraHost
+  & InteractionQueryHost
+  & InteractionChromeHost
+  & InteractionEditHost
+  & InteractionBusHost
 
 /** Pluggable pointer / wheel behavior. */
 export interface Interaction {

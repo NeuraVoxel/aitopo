@@ -127,7 +127,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | E | Scene vs overlay paint channels | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md) |
 | F | Apply / preview dirty granularity | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md) |
 | G | View label/alarm/hit facets | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md) |
-| H | Split InteractionHost / gesture controller | later |
+| H | Split InteractionHost / gesture controller | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md) |
 
 ### Explicit non-goals
 

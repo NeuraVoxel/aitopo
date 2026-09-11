@@ -23,6 +23,8 @@ import {
 } from '../interaction/index.ts'
 import { layoutFlowColumns, layoutGrid } from '../layout/index.ts'
 import { DirtyAccumulator } from './dirty.ts'
+import { GestureEditor } from './gesture-editor.ts'
+import { OverlayChromeRegistry } from './overlay-chrome-registry.ts'
 import { Viewport } from './viewport.ts'
 
 export type GraphEventHandler = (event: GraphEvent) => void
@@ -76,6 +78,9 @@ export class Network {
   private readonly dirty = new DirtyAccumulator()
   private readonly views = new ViewSet()
   private readonly listeners = new Set<GraphEventHandler>()
+  private readonly options: NetworkOptions
+  private readonly chrome: OverlayChromeRegistry
+  private readonly gestures: GestureEditor
   private view: HTMLDivElement | null = null
   private rootCanvas: HTMLCanvasElement | null = null
   private renderer: Renderer | null = null
@@ -85,19 +90,27 @@ export class Network {
   private disposed = false
   private resizeObserver: ResizeObserver | null = null
   private readonly disposers: Array<() => void> = []
-  private readonly options: NetworkOptions
   private interactionModules: Interaction[] = []
-  private gestureDragged = false
-  /** Transient overlay painters registered by interactions. */
-  private readonly overlayChrome: OverlayChrome[] = []
-  /**
-   * When set, validate paints only these node ids, incident edges, and skips groups.
-   * `undefined` paints the full scene.
-   */
-  private dragPaintFilter: ReadonlySet<string> | undefined
 
   constructor(options: NetworkOptions = {}) {
     this.options = options
+    this.chrome = new OverlayChromeRegistry(() => {
+      this.requestOverlayPaint()
+    })
+    this.gestures = new GestureEditor({
+      scene: this.scene,
+      views: this.views,
+      dirty: this.dirty,
+      scheduleScenePaint: () => {
+        this.scheduleScenePaint()
+      },
+      apply: patch => {
+        this.apply(patch)
+      },
+      emit: event => {
+        this.emit(event)
+      },
+    })
   }
 
   /**
@@ -404,13 +417,7 @@ export class Network {
    * @returns disposer.
    */
   addOverlayChrome(chrome: OverlayChrome): () => void {
-    this.overlayChrome.push(chrome)
-    this.requestOverlayPaint()
-    return () => {
-      const index = this.overlayChrome.indexOf(chrome)
-      if (index >= 0) this.overlayChrome.splice(index, 1)
-      this.requestOverlayPaint()
-    }
+    return this.chrome.add(chrome)
   }
 
   /**
@@ -434,9 +441,7 @@ export class Network {
    * @param nodeIds - ids to keep visible during drag, or undefined to clear.
    */
   setDragPaintFilter(nodeIds: readonly string[] | undefined): void {
-    this.dragPaintFilter = nodeIds === undefined ? undefined : new Set(nodeIds)
-    this.dirty.markAll()
-    this.scheduleScenePaint()
+    this.gestures.setDragPaintFilter(nodeIds)
   }
 
   /** @returns selected element ids. */
@@ -488,11 +493,7 @@ export class Network {
    * @param y - world y.
    */
   previewNodePosition(id: string, x: number, y: number): void {
-    const node = this.scene.nodes.get(id)
-    if (node === undefined) return
-    this.previewNodeGeometry(id, () => {
-      this.scene.writePositions({ [id]: { x, y } })
-    })
+    this.gestures.previewNodePosition(id, x, y)
   }
 
   /**
@@ -504,46 +505,7 @@ export class Network {
     id: string,
     bounds: { x: number; y: number; w: number; h: number },
   ): void {
-    if (this.scene.nodes.get(id) === undefined) return
-    this.previewNodeGeometry(id, () => {
-      this.scene.writeBounds({ [id]: bounds })
-    })
-  }
-
-  /**
-   * Capture old geometry, mutate, union old∪new dirty rects, schedule scene paint.
-   * @param id - node id.
-   * @param mutate - writes scene geometry for `id`.
-   */
-  private previewNodeGeometry(id: string, mutate: () => void): void {
-    const oldRects = this.captureNodeGeometryRects(id)
-    mutate()
-    this.views.markNodeGeometryDirty(this.scene, id)
-    this.views.validateDirty(this.scene)
-    for (const rect of oldRects) this.dirty.add(rect)
-    for (const rect of this.captureNodeGeometryRects(id)) this.dirty.add(rect)
-    // writePositions/writeBounds mark scene dirty ids; Network owns preview rects.
-    this.scene.takeDirty()
-    if (this.dragPaintFilter !== undefined) {
-      this.dirty.markAll()
-    }
-    this.scheduleScenePaint()
-  }
-
-  /**
-   * World-space grown bounds for a node and its incident edges (active Views only).
-   * @param nodeId - node id.
-   */
-  private captureNodeGeometryRects(nodeId: string): Rect[] {
-    const rects: Rect[] = []
-    const nodeView = this.views.getNode(nodeId)
-    if (nodeView?.isActive === true) rects.push(growRect(nodeView.bounds, 8))
-    for (const edge of this.scene.edges.values()) {
-      if (edge.from !== nodeId && edge.to !== nodeId) continue
-      const edgeView = this.views.getEdge(edge.id)
-      if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
-    }
-    return rects
+    this.gestures.previewNodeBounds(id, bounds)
   }
 
   /**
@@ -563,68 +525,7 @@ export class Network {
     to: { x: number; y: number }
     toGroupId?: string | undefined
   }): void {
-    const node = this.scene.nodes.get(args.nodeId)
-    if (node === undefined) {
-      throw new Error(`commitNodeMove: missing node ${args.nodeId}`)
-    }
-    const fromGroupId = node.groupId
-    const membershipRequested = Object.hasOwn(args, 'toGroupId')
-    const toGroupId = args.toGroupId
-    const membershipChanged = membershipRequested && fromGroupId !== toGroupId
-
-    const ops: GraphPatch['ops'] = [
-      { op: 'updateNode', id: args.nodeId, patch: { x: args.to.x, y: args.to.y } },
-    ]
-
-    if (membershipChanged) {
-      if (fromGroupId !== undefined) {
-        const fromGroup = this.scene.groups.get(fromGroupId)
-        if (fromGroup !== undefined) {
-          ops.push({
-            op: 'updateGroup',
-            id: fromGroupId,
-            patch: { memberIds: fromGroup.memberIds.filter(id => id !== args.nodeId) },
-          })
-        }
-      }
-      if (toGroupId !== undefined) {
-        const toGroup = this.scene.groups.get(toGroupId)
-        if (toGroup === undefined) {
-          throw new Error(`commitNodeMove: missing group ${toGroupId}`)
-        }
-        const memberIds = toGroup.memberIds.includes(args.nodeId)
-          ? [...toGroup.memberIds]
-          : [...toGroup.memberIds, args.nodeId]
-        ops.push({ op: 'updateGroup', id: toGroupId, patch: { memberIds } })
-        ops[0] = {
-          op: 'updateNode',
-          id: args.nodeId,
-          patch: { x: args.to.x, y: args.to.y, groupId: toGroupId },
-        }
-      } else {
-        ops[0] = {
-          op: 'updateNode',
-          id: args.nodeId,
-          patch: { x: args.to.x, y: args.to.y, groupId: null },
-        }
-      }
-    }
-
-    this.apply({ ops })
-    this.emit({
-      type: 'nodeMoved',
-      nodeId: args.nodeId,
-      from: { x: args.from.x, y: args.from.y },
-      to: { x: args.to.x, y: args.to.y },
-    })
-    if (membershipChanged) {
-      this.emit({
-        type: 'groupMembershipChanged',
-        nodeId: args.nodeId,
-        fromGroupId,
-        toGroupId,
-      })
-    }
+    this.gestures.commitNodeMove(args)
   }
 
   /**
@@ -636,27 +537,7 @@ export class Network {
     from: { x: number; y: number; w: number; h: number }
     to: { x: number; y: number; w: number; h: number }
   }): void {
-    if (this.scene.nodes.get(args.nodeId) === undefined) {
-      throw new Error(`commitNodeResize: missing node ${args.nodeId}`)
-    }
-    this.apply({
-      ops: [{
-        op: 'updateNode',
-        id: args.nodeId,
-        patch: {
-          x: args.to.x,
-          y: args.to.y,
-          w: args.to.w,
-          h: args.to.h,
-        },
-      }],
-    })
-    this.emit({
-      type: 'nodeResized',
-      nodeId: args.nodeId,
-      from: { ...args.from },
-      to: { ...args.to },
-    })
+    this.gestures.commitNodeResize(args)
   }
 
   /**
@@ -670,33 +551,7 @@ export class Network {
     kind?: string
     id?: string
   }): string | undefined {
-    if (args.from === args.to) return undefined
-    if (this.scene.nodes.get(args.from) === undefined) return undefined
-    if (this.scene.nodes.get(args.to) === undefined) return undefined
-    for (const edge of this.scene.edges.values()) {
-      if (edge.from === args.from && edge.to === args.to) return undefined
-    }
-    const edgeId = args.id ?? `e-${args.from}-${args.to}-${Date.now()}`
-    if (this.scene.edges.has(edgeId)) return undefined
-    this.apply({
-      ops: [{
-        op: 'addEdge',
-        edge: {
-          id: edgeId,
-          from: args.from,
-          to: args.to,
-          ...(args.kind !== undefined ? { kind: args.kind } : {}),
-        },
-      }],
-    })
-    this.emit({
-      type: 'edgeCreated',
-      edgeId,
-      from: args.from,
-      to: args.to,
-      ...(args.kind !== undefined ? { kind: args.kind } : {}),
-    })
-    return edgeId
+    return this.gestures.commitEdgeCreate(args)
   }
 
   /**
@@ -704,33 +559,22 @@ export class Network {
    * @param edgeIds - edge ids to remove.
    */
   commitEdgeRemove(edgeIds: readonly string[]): void {
-    const ops: GraphPatch['ops'] = []
-    const removed: string[] = []
-    for (const id of edgeIds) {
-      if (!this.scene.edges.has(id)) continue
-      ops.push({ op: 'removeEdge', id })
-      removed.push(id)
-    }
-    if (ops.length === 0) return
-    this.apply({ ops })
-    for (const edgeId of removed) {
-      this.emit({ type: 'edgeRemoved', edgeId })
-    }
+    this.gestures.commitEdgeRemove(edgeIds)
   }
 
   /** Mark that a drag consumed this pointer gesture. */
   markGestureDragged(): void {
-    this.gestureDragged = true
+    this.gestures.markGestureDragged()
   }
 
   /** @returns true when markGestureDragged ran since the last clear. */
   wasGestureDragged(): boolean {
-    return this.gestureDragged
+    return this.gestures.wasGestureDragged()
   }
 
   /** Reset the drag-consumed flag. */
   clearGestureDragged(): void {
-    this.gestureDragged = false
+    this.gestures.clearGestureDragged()
   }
 
   /**
@@ -849,9 +693,7 @@ export class Network {
         renderer.drawHoverOverlay(view.bounds)
       }
     }
-    for (const chrome of this.overlayChrome) {
-      chrome.paint(renderer)
-    }
+    this.chrome.paintAll(renderer)
   }
 
   private validate(): void {
@@ -869,11 +711,11 @@ export class Network {
         const snapshot = this.dirty.take()
         // Filtered drag paint must wipe the whole root layer; partial dirty would leave
         // stale pixels for skipped nodes/groups.
-        const dirtyRects: Rect[] | 'all' = this.dragPaintFilter !== undefined || snapshot.invalidateAll
+        const filter = this.gestures.dragPaintFilter
+        const dirtyRects: Rect[] | 'all' = filter !== undefined || snapshot.invalidateAll
           ? 'all'
           : snapshot.rect === undefined ? 'all' : [snapshot.rect]
         renderer.beginFrame(cam, dirtyRects)
-        const filter = this.dragPaintFilter
         if (filter === undefined) {
           for (const group of this.scene.groups.values()) {
             const view = this.views.getGroup(group.id)
