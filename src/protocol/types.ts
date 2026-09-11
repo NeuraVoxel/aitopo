@@ -67,6 +67,16 @@ export interface GraphNodeStyle {
   readonly tooltipPosition?: AttachmentPosition
   /** Default `hover` — overlay only; `always` joins scene + union bounds. */
   readonly tooltipMode?: 'hover' | 'always'
+  /**
+   * Whole-node opacity in `[0, 1]` (twaver `whole.alpha`). Default `1`.
+   * Applies to body, scene attachments, and overlay chrome/tooltip for this node.
+   */
+  readonly alpha?: number
+  /**
+   * Whether to paint IconsAttachment. Default `true` when omitted
+   * (Network may supply a host default via `showNodeIcons`).
+   */
+  readonly showIcon?: boolean
   readonly label?: GraphTextStyle
   readonly label2?: GraphTextStyle
   readonly tooltip?: GraphTextStyle
@@ -82,7 +92,7 @@ export interface GraphNode {
   readonly label: string
   /** Secondary label (Label2Attachment); not derived from `status`. */
   readonly label2?: string
-  /** IconRegistry key for IconsAttachment; omit to hide the icon. Unknown keys fall back to `node`. */
+  /** IconRegistry key for IconsAttachment; omitted → default `node`. Unknown keys fall back to `node`. */
   readonly icon?: string
   /** TooltipAttachment text when set. */
   readonly tooltip?: string

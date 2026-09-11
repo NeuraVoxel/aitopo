@@ -26,6 +26,8 @@ export interface NodePaintView {
   readonly hovered: boolean
   /** Circle body (tool / data.shape). */
   readonly circular: boolean
+  /** Whole-node opacity `[0, 1]`; default `1`. */
+  readonly alpha: number
   readonly shadow?: {
     readonly color?: string
     readonly blur?: number
@@ -81,11 +83,11 @@ export interface Renderer {
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
   /** Overlay: selection ring (no-op OK for headless fakes). */
-  drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle']): void
+  drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle'], alpha?: number): void
   /** Overlay: hover ring (lighter than selection; no-op OK for fakes). */
-  drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle']): void
+  drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle'], alpha?: number): void
   /** Overlay attachment ops (hover tooltip). */
-  drawOverlayAttachments?(ops: readonly AttachmentPaintOp[]): void
+  drawOverlayAttachments?(ops: readonly AttachmentPaintOp[], alpha?: number): void
   /** Overlay: marquee rubber band. */
   drawMarquee(rect: Rect): void
   /** Overlay: edge-create rubber band. */
@@ -279,6 +281,7 @@ export class Canvas2DRenderer implements Renderer {
     const lineWidth = (node.status === 'active' ? 2.5 : 1.25) / this.viewport.zoom
 
     ctx.save()
+    ctx.globalAlpha = view.alpha
     if (view.shadow !== undefined) {
       ctx.shadowColor = view.shadow.color ?? 'rgba(0, 0, 0, 0.35)'
       ctx.shadowBlur = view.shadow.blur ?? 6
@@ -308,9 +311,8 @@ export class Canvas2DRenderer implements Renderer {
       ctx.lineWidth = lineWidth
       ctx.stroke()
     }
+    paintAttachmentOps(ctx, withContrastingIcons(view.attachments, fill))
     ctx.restore()
-
-    paintAttachmentOps(ctx, view.attachments)
   }
 
   endFrame(): void {
@@ -339,11 +341,18 @@ export class Canvas2DRenderer implements Renderer {
    * Draw selection strokes on the overlay canvas (call after beginFrame).
    * @param bounds - selected node body bounds.
    * @param style - optional chrome overrides.
+   * @param alpha - whole-node opacity.
    */
-  drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle']): void {
+  drawSelectionOverlay(
+    bounds: Rect,
+    style?: NodePaintView['selectStyle'],
+    alpha = 1,
+  ): void {
     const ctx = this.overlayCtx
     const pad = style?.padding ?? 2
     const width = (style?.width ?? 2) / this.viewport.zoom
+    ctx.save()
+    ctx.globalAlpha = alpha
     ctx.strokeStyle = style?.color ?? '#3b82f6'
     ctx.lineWidth = width
     ctx.setLineDash([])
@@ -353,17 +362,24 @@ export class Canvas2DRenderer implements Renderer {
       bounds.width + pad * 2,
       bounds.height + pad * 2,
     )
+    ctx.restore()
   }
 
   /**
    * Draw a hover ring on the overlay (lighter than selection).
    * @param bounds - hovered node body bounds.
    * @param style - optional chrome overrides.
+   * @param alpha - whole-node opacity.
    */
-  drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle']): void {
+  drawHoverOverlay(
+    bounds: Rect,
+    style?: NodePaintView['hoverStyle'],
+    alpha = 1,
+  ): void {
     const ctx = this.overlayCtx
     const pad = style?.padding ?? 2
     ctx.save()
+    ctx.globalAlpha = alpha
     ctx.strokeStyle = style?.color ?? 'rgba(59, 130, 246, 0.65)'
     ctx.lineWidth = (style?.width ?? 1.5) / this.viewport.zoom
     ctx.setLineDash([4 / this.viewport.zoom, 3 / this.viewport.zoom])
@@ -379,9 +395,14 @@ export class Canvas2DRenderer implements Renderer {
   /**
    * Paint overlay-layer attachment ops (hover tooltip).
    * @param ops - overlay paint ops.
+   * @param alpha - whole-node opacity.
    */
-  drawOverlayAttachments(ops: readonly AttachmentPaintOp[]): void {
-    paintAttachmentOps(this.overlayCtx, ops)
+  drawOverlayAttachments(ops: readonly AttachmentPaintOp[], alpha = 1): void {
+    const ctx = this.overlayCtx
+    ctx.save()
+    ctx.globalAlpha = alpha
+    paintAttachmentOps(ctx, ops)
+    ctx.restore()
   }
 
   /**
@@ -527,7 +548,7 @@ function paintAttachmentOps(
         const size = Math.min(op.bounds.width, op.bounds.height)
         ctx.save()
         ctx.translate(op.bounds.x, op.bounds.y)
-        icon.draw(ctx, size, '#e8eaed')
+        icon.draw(ctx, size, op.color ?? '#e8eaed')
         ctx.restore()
         break
       }
@@ -568,6 +589,63 @@ function paintAttachmentOps(
       }
     }
   }
+}
+
+/** Light glyph on dark fills, dark glyph on light fills. */
+function withContrastingIcons(
+  ops: readonly AttachmentPaintOp[],
+  fill: string,
+): readonly AttachmentPaintOp[] {
+  const color = contrastingInk(fill)
+  return ops.map(op => (op.kind === 'icons' ? { ...op, color } : op))
+}
+
+/**
+ * Pick readable ink for a CSS fill (hex / rgb / rgba). Unparsed → light ink.
+ * @param fill - body fill color.
+ */
+function contrastingInk(fill: string): string {
+  const rgb = parseCssRgb(fill)
+  if (rgb === undefined) return '#e8eaed'
+  // Relative luminance (sRGB).
+  const [r, g, b] = rgb.map(channel => {
+    const c = channel / 255
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }) as [number, number, number]
+  const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
+  return luminance > 0.45 ? '#111827' : '#e8eaed'
+}
+
+/**
+ * @param color - CSS color string.
+ * @returns RGB 0–255 or undefined.
+ */
+function parseCssRgb(color: string): [number, number, number] | undefined {
+  const hex = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(color.trim())
+  if (hex !== null) {
+    const h = hex[1]!
+    if (h.length === 3) {
+      return [
+        Number.parseInt(h[0]! + h[0]!, 16),
+        Number.parseInt(h[1]! + h[1]!, 16),
+        Number.parseInt(h[2]! + h[2]!, 16),
+      ]
+    }
+    return [
+      Number.parseInt(h.slice(0, 2), 16),
+      Number.parseInt(h.slice(2, 4), 16),
+      Number.parseInt(h.slice(4, 6), 16),
+    ]
+  }
+  const rgb = /^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i.exec(color.trim())
+  if (rgb !== null) {
+    return [
+      Number.parseFloat(rgb[1]!),
+      Number.parseFloat(rgb[2]!),
+      Number.parseFloat(rgb[3]!),
+    ]
+  }
+  return undefined
 }
 
 function statusFill(status: string | undefined): string {

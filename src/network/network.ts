@@ -36,6 +36,11 @@ export interface NetworkOptions {
   readonly defaultInteractions?: boolean
   debugPaintRects?: boolean
   /**
+   * Host default for node icon visibility when `style.showIcon` is omitted.
+   * Default `true`. Per-node `style.showIcon` always wins.
+   */
+  readonly showNodeIcons?: boolean
+  /**
    * Build the paint backend after canvases exist.
    * Default: Canvas2DRenderer with the mounted root/overlay canvases.
    */
@@ -94,6 +99,7 @@ export class Network {
 
   constructor(options: NetworkOptions = {}) {
     this.options = options
+    this.views.setShowNodeIconsDefault(options.showNodeIcons !== false)
     this.chrome = new OverlayChromeRegistry(() => {
       this.requestOverlayPaint()
     })
@@ -111,6 +117,16 @@ export class Network {
         this.emit(event)
       },
     })
+  }
+
+  /**
+   * Host default for node icons when `style.showIcon` is omitted.
+   * Dirties views and schedules a scene paint.
+   * @param value - whether icons are shown by default.
+   */
+  setShowNodeIcons(value: boolean): void {
+    this.views.setShowNodeIconsDefault(value)
+    this.scheduleScenePaint()
   }
 
   /**
@@ -713,12 +729,12 @@ export class Network {
       const hovered = hoverId === node.id
       const paint = view.toPaintView(selected, hovered)
       if (selected) {
-        renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle)
+        renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle, paint.alpha)
       } else if (hovered) {
-        renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle)
+        renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle, paint.alpha)
       }
       if (paint.overlayAttachments.length > 0) {
-        renderer.drawOverlayAttachments?.(paint.overlayAttachments)
+        renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
       }
     }
     this.chrome.paintAll(renderer)

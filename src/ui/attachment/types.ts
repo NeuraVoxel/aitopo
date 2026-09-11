@@ -23,6 +23,8 @@ export type AttachmentPaintOp =
     readonly layer: AttachmentPaintLayer
     readonly bounds: Rect
     readonly iconKey: string
+    /** Stroke/fill for the glyph; renderer may override for body contrast. */
+    readonly color?: string
   }
   | {
     readonly kind: 'alarm'

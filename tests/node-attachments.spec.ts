@@ -67,7 +67,7 @@ describe('Node attachments', () => {
     expect(icons && 'iconKey' in icons && icons.iconKey).toBe('server')
   })
 
-  it('omits icons attachment when icon is unset', () => {
+  it('honors style.showIcon false to hide the default icon', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,
@@ -75,19 +75,36 @@ describe('Node attachments', () => {
         id: 'a',
         type: 'agent',
         label: 'A',
+        style: { showIcon: false },
         x: 0,
         y: 0,
-        w: 100,
-        h: 40,
+        w: 50,
+        h: 50,
       }],
       edges: [],
     })
     const views = new ViewSet()
     views.rebuild(scene)
     views.validateDirty(scene)
-    const paint = views.getNode('a')!.toPaintView(false, false)
-    expect(paint.attachments.some(op => op.kind === 'icons')).toBe(false)
-    expect(paint.attachments.some(op => op.kind === 'label')).toBe(true)
+    expect(views.getNode('a')!.toPaintView(false, false).attachments.some(op => op.kind === 'icons')).toBe(false)
+    scene.apply({ ops: [{ op: 'updateNode', id: 'a', patch: { style: { showIcon: true } } }] })
+    views.markDirty('a')
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.toPaintView(false, false).attachments.some(op => op.kind === 'icons')).toBe(true)
+  })
+
+  it('honors ViewSet showNodeIconsDefault when style.showIcon omitted', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'agent', label: 'A', x: 0, y: 0, w: 50, h: 50 }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.setShowNodeIconsDefault(false)
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.toPaintView(false, false).attachments.some(op => op.kind === 'icons')).toBe(false)
   })
 
   it('falls back unknown icon keys to node', () => {
@@ -189,6 +206,25 @@ describe('Node attachments', () => {
     views.markDirty('a')
     views.validateDirty(scene)
     expect(views.getNode('a')!.bodyBounds).toEqual({ x: 10, y: 20, width: 80, height: 60 })
+  })
+
+  it('defaults paint alpha to 1 and applies style.alpha', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'agent', label: 'A', x: 0, y: 0, w: 50, h: 50 }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.toPaintView(false, false).alpha).toBe(1)
+    scene.apply({
+      ops: [{ op: 'updateNode', id: 'a', patch: { style: { alpha: 0.4 } } }],
+    })
+    views.markDirty('a')
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.toPaintView(false, false).alpha).toBe(0.4)
   })
 
   it('updateNode merges style one level and retargets icon', () => {

@@ -46,6 +46,8 @@ const graphNodeStyleSchema = z.object({
   label2Position: attachmentPositionSchema.optional(),
   tooltipPosition: attachmentPositionSchema.optional(),
   tooltipMode: z.enum(['hover', 'always']).optional(),
+  alpha: z.number().min(0).max(1).optional(),
+  showIcon: z.boolean().optional(),
   label: graphTextStyleSchema.optional(),
   label2: graphTextStyleSchema.optional(),
   tooltip: graphTextStyleSchema.optional(),

@@ -33,6 +33,7 @@ export class NodeView {
   private circular = false
   private active = false
   private shadow: GraphShadowStyle | undefined
+  private alpha = 1
   private selectStyle: GraphChromeStyle | undefined
   private hoverStyle: GraphChromeStyle | undefined
   private attachments: Attachment[] = []
@@ -70,8 +71,12 @@ export class NodeView {
   /**
    * Recompute body, attachments, and union when dirty.
    * @param scene - active graph scene.
+   * @param opts - host defaults (icon visibility).
    */
-  validate(scene: GraphScene): void {
+  validate(
+    scene: GraphScene,
+    opts: { readonly showNodeIconsDefault?: boolean } = {},
+  ): void {
     if (!this.dirty) return
     const node = scene.nodes.get(this.id)
     if (node === undefined) {
@@ -80,6 +85,7 @@ export class NodeView {
       this.union = this.body
       this.circular = false
       this.shadow = undefined
+      this.alpha = 1
       this.selectStyle = undefined
       this.hoverStyle = undefined
       this.attachments = []
@@ -92,9 +98,11 @@ export class NodeView {
     this.body = nodeBounds(node)
     this.circular = node.type === 'tool' || node.data?.shape === 'circle'
     this.shadow = node.style?.shadow ?? DEFAULT_SHADOW
+    this.alpha = clampAlpha(node.style?.alpha)
     this.selectStyle = node.style?.select
     this.hoverStyle = node.style?.hover
-    this.attachments = syncAttachments(node, this.attachments)
+    const showIcon = node.style?.showIcon ?? opts.showNodeIconsDefault !== false
+    this.attachments = syncAttachments(node, this.attachments, showIcon)
     const ctx = { node, body: this.body }
     let union: Rect | undefined = this.body
     for (const attachment of this.attachments) {
@@ -128,6 +136,7 @@ export class NodeView {
       selected,
       hovered,
       circular: this.circular,
+      alpha: this.alpha,
       ...(this.shadow !== undefined ? { shadow: this.shadow } : {}),
       ...(this.selectStyle !== undefined ? { selectStyle: this.selectStyle } : {}),
       ...(this.hoverStyle !== undefined ? { hoverStyle: this.hoverStyle } : {}),
@@ -137,13 +146,19 @@ export class NodeView {
   }
 }
 
+/** Clamp style.alpha into `[0, 1]`; omitted → opaque. */
+function clampAlpha(value: number | undefined): number {
+  if (value === undefined || Number.isNaN(value)) return 1
+  return Math.min(1, Math.max(0, value))
+}
+
 function syncAttachments(
   node: import('../protocol/types.ts').GraphNode,
   previous: Attachment[],
+  showIcon: boolean,
 ): Attachment[] {
   const next: Attachment[] = []
-  // Icons show only when the document sets `icon` (no default glyph).
-  if (node.icon !== undefined && node.icon.length > 0) {
+  if (showIcon) {
     next.push(takeOrCreate(previous, IconsAttachment, () => new IconsAttachment()))
   }
   if (node.label.length > 0) {

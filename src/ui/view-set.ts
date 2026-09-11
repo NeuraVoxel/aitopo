@@ -14,6 +14,18 @@ export class ViewSet {
   private readonly nodes = new Map<string, NodeView>()
   private readonly edges = new Map<string, EdgeView>()
   private readonly groups = new Map<string, GroupView>()
+  /** Host default when `style.showIcon` is omitted (default true). */
+  private showNodeIconsDefault = true
+
+  /**
+   * Set host default for icon visibility; dirties all node views.
+   * @param value - whether icons show when style.showIcon is omitted.
+   */
+  setShowNodeIconsDefault(value: boolean): void {
+    if (this.showNodeIconsDefault === value) return
+    this.showNodeIconsDefault = value
+    for (const view of this.nodes.values()) view.markDirty()
+  }
 
   /** Dispose all Views and recreate from the scene. */
   rebuild(scene: GraphScene): void {
@@ -64,7 +76,8 @@ export class ViewSet {
    * @param scene - active graph scene.
    */
   validateDirty(scene: GraphScene): void {
-    for (const view of this.nodes.values()) view.validate(scene)
+    const opts = { showNodeIconsDefault: this.showNodeIconsDefault }
+    for (const view of this.nodes.values()) view.validate(scene, opts)
     for (const view of this.edges.values()) view.validate(scene)
     for (const view of this.groups.values()) view.validate(scene)
   }
