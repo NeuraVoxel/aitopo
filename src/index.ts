@@ -45,8 +45,16 @@ export {
   type CreateEdgeInteractionOptions,
   type EdgeRubberBand,
   type Interaction,
+  type InteractionBusHost,
+  type InteractionCameraHost,
+  type InteractionChromeHost,
+  type InteractionEditHost,
+  type InteractionHitHost,
   type InteractionHost,
+  type InteractionQueryHost,
+  type InteractionSelectionHost,
   type MoveNodeInteractionOptions,
+  type OverlayChrome,
 } from './interaction/index.ts'
 export { layoutGrid, layoutFlowColumns } from './layout/index.ts'
 export type { Point, Rect } from './geom.ts'
