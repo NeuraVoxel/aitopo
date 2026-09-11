@@ -67,6 +67,29 @@ describe('Node attachments', () => {
     expect(icons && 'iconKey' in icons && icons.iconKey).toBe('server')
   })
 
+  it('omits icons attachment when icon is unset', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const paint = views.getNode('a')!.toPaintView(false, false)
+    expect(paint.attachments.some(op => op.kind === 'icons')).toBe(false)
+    expect(paint.attachments.some(op => op.kind === 'label')).toBe(true)
+  })
+
   it('falls back unknown icon keys to node', () => {
     expect(getIcon('no-such-icon').key).toBe('node')
   })
@@ -114,7 +137,7 @@ describe('Node attachments', () => {
     views.rebuild(scene)
     views.validateDirty(scene)
     const view = views.getNode('a')!
-    // label below + icons center — union taller than body but tooltip (right, hover) excluded
+    // label below — union taller than body; tooltip (right, hover) excluded
     const withoutHover = view.toPaintView(false, false)
     expect(withoutHover.overlayAttachments).toHaveLength(0)
     expect(withoutHover.attachments.some(op => op.kind === 'tooltip')).toBe(false)

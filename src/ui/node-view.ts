@@ -142,7 +142,10 @@ function syncAttachments(
   previous: Attachment[],
 ): Attachment[] {
   const next: Attachment[] = []
-  next.push(takeOrCreate(previous, IconsAttachment, () => new IconsAttachment()))
+  // Icons show only when the document sets `icon` (no default glyph).
+  if (node.icon !== undefined && node.icon.length > 0) {
+    next.push(takeOrCreate(previous, IconsAttachment, () => new IconsAttachment()))
+  }
   if (node.label.length > 0) {
     next.push(takeOrCreate(previous, LabelAttachment, () => new LabelAttachment()))
   }

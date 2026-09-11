@@ -20,7 +20,7 @@ Package-private `src/ui/attachment/`: abstract `Attachment`; `IconsAttachment`, 
 
 `NodeView` exposes `bodyBounds` (anchors / move / resize / select chrome) and `unionBounds` / `bounds` (dirty + node hit). Hover-mode tooltips do not contribute to union; they paint on the overlay when the node is hovered. Always-mode tooltips join scene paint and union.
 
-Defaults: Icons `center`, Label `bottom`, Label2 `top`, Alarm `topRight`, Tooltip `right` / `tooltipMode: 'hover'`. Body paint is fill/stroke (+ optional `style.shadow`) only — no in-body primary/secondary text. Omitted `w`/`h` use **50×50** (twaver `NODE_WIDTH` / `NODE_HEIGHT`); runtime changes via `updateNode` `{ w, h }` or resize.
+Defaults: Icons only when `icon` is set (`center`); Label `bottom`; Label2 `top`; Alarm `topRight`; Tooltip `right` / `tooltipMode: 'hover'`. Body paint is fill/stroke (+ optional `style.shadow`) only — no in-body primary/secondary text. Omitted `w`/`h` use **50×50** (twaver `NODE_WIDTH` / `NODE_HEIGHT`); runtime changes via `updateNode` `{ w, h }` or resize.
 
 ### Paint
 
