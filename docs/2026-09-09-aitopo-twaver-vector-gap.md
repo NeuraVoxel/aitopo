@@ -94,7 +94,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | WebGL `Renderer` | `later` | Interface reserved; `createRenderer` injects backends |
 | React / `agent-observe` adapter | `done` (plugin) | Fleet/flow via `AITopoHost`; SVG stage retired |
 | Orchestrator F1 host wiring | `done` (chrome) | Wave D: locked + editor interactions + session layout; CommitSink later |
-| Extract View classes from renderer | `done` | `ViewSet` + `src/ui/*-view.ts` |
+| Extract View classes from renderer | `done` | `ViewSet` + `src/ui/*-view.ts`; Wave G label/alarm/hit facets |
 
 ## Suggested next waves
 
@@ -126,7 +126,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 |---|---|---|
 | E | Scene vs overlay paint channels | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-e-paint-channels.md) |
 | F | Apply / preview dirty granularity | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md) |
-| G | View label/alarm/hit facets | later |
+| G | View label/alarm/hit facets | `done` — [note](../.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md) |
 | H | Split InteractionHost / gesture controller | later |
 
 ### Explicit non-goals

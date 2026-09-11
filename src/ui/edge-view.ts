@@ -15,7 +15,7 @@ export class EdgeView {
   private fromPt: Point = { x: 0, y: 0 }
   private toPt: Point = { x: 0, y: 0 }
   private orientation: 'horizontal' | 'vertical' = 'horizontal'
-  private points: readonly Point[] = []
+  private pointsCache: readonly Point[] = []
   private active = false
 
   constructor(id: string) {
@@ -24,6 +24,11 @@ export class EdgeView {
 
   get bounds(): Rect {
     return this.cachedBounds
+  }
+
+  /** Validated orthogonal polyline including endpoints (paint + hit). */
+  get points(): readonly Point[] {
+    return this.pointsCache
   }
 
   get isActive(): boolean {
@@ -58,7 +63,7 @@ export class EdgeView {
     this.fromPt = anchors.from
     this.toPt = anchors.to
     this.orientation = anchors.orientation
-    this.points = anchors.points
+    this.pointsCache = anchors.points
     this.cachedBounds = anchors.bounds
     this.dirty = false
   }
@@ -75,7 +80,7 @@ export class EdgeView {
       selected,
       hovered,
       orientation: this.orientation,
-      points: this.points,
+      points: this.pointsCache,
     }
   }
 }

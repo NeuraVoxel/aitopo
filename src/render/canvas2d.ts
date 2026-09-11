@@ -19,6 +19,19 @@ export interface NodePaintView {
   readonly bounds: Rect
   readonly selected: boolean
   readonly hovered: boolean
+  /** Truncated primary label for paint. */
+  readonly label: string
+  /** Truncated secondary/meta line when present. */
+  readonly meta?: string
+  /** Circle body (tool / data.shape). */
+  readonly circular: boolean
+  /** Alarm badge in world space when the node has alarms. */
+  readonly alarm?: {
+    readonly level: 'info' | 'warn' | 'error'
+    readonly x: number
+    readonly y: number
+    readonly radius: number
+  }
 }
 
 /** Cached geometry for an edge paint. */
@@ -241,9 +254,8 @@ export class Canvas2DRenderer implements Renderer {
     const stroke = typeof data.stroke === 'string' ? data.stroke : statusStroke(node.status)
     const labelColor = typeof data.labelColor === 'string' ? data.labelColor : '#e8eaed'
     const metaColor = typeof data.metaColor === 'string' ? data.metaColor : '#a8b0c0'
-    const circular = node.type === 'tool' || data.shape === 'circle'
     const lineWidth = (node.status === 'active' ? 2.5 : 1.25) / this.viewport.zoom
-    if (circular) {
+    if (view.circular) {
       const cx = bounds.x + bounds.width / 2
       const cy = bounds.y + bounds.height / 2
       const r = Math.min(bounds.width, bounds.height) / 2
@@ -258,7 +270,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.font = '10px sans-serif'
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
-      ctx.fillText(truncate(node.label, 8), cx, cy)
+      ctx.fillText(view.label, cx, cy)
       ctx.textAlign = 'start'
     } else {
       const radius = 8
@@ -271,20 +283,17 @@ export class Canvas2DRenderer implements Renderer {
       ctx.fillStyle = labelColor
       ctx.font = '12px sans-serif'
       ctx.textBaseline = 'middle'
-      ctx.fillText(truncate(node.label, 18), bounds.x + 12, bounds.y + bounds.height / 2 - 6)
-      if (node.status !== undefined) {
+      ctx.fillText(view.label, bounds.x + 12, bounds.y + bounds.height / 2 - 6)
+      if (view.meta !== undefined) {
         ctx.fillStyle = metaColor
         ctx.font = '10px sans-serif'
-        const meta = typeof data.meta === 'string' ? data.meta : node.status
-        ctx.fillText(truncate(meta, 18), bounds.x + 12, bounds.y + bounds.height / 2 + 10)
+        ctx.fillText(view.meta, bounds.x + 12, bounds.y + bounds.height / 2 + 10)
       }
     }
-    const alarm = node.alarms?.find(a => a.level === 'error') ?? node.alarms?.[0]
+    const alarm = view.alarm
     if (alarm !== undefined) {
-      const ax = bounds.x + bounds.width - 10
-      const ay = bounds.y + 10
       ctx.beginPath()
-      ctx.arc(ax, ay, 6, 0, Math.PI * 2)
+      ctx.arc(alarm.x, alarm.y, alarm.radius, 0, Math.PI * 2)
       ctx.fillStyle = alarm.level === 'error' ? '#ef4444' : alarm.level === 'warn' ? '#f59e0b' : '#3b82f6'
       ctx.fill()
     }
@@ -533,8 +542,4 @@ function drawRoundedPolyline(
   }
   const last = points[points.length - 1]!
   ctx.lineTo(last.x, last.y)
-}
-
-function truncate(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
 }

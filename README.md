@@ -23,6 +23,8 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave E execution checklist: [docs/2026-09-11-aitopo-wave-e-paint-channels.md](docs/2026-09-11-aitopo-wave-e-paint-channels.md)
 - Wave F (apply / preview dirty granularity): [.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md](.agents/notes/implemented/architecture/2026-09-11-wave-f-dirty-granularity.md)
 - Wave F execution checklist: [docs/2026-09-11-aitopo-wave-f-dirty-granularity.md](docs/2026-09-11-aitopo-wave-f-dirty-granularity.md)
+- Wave G (View label / alarm / hit facets): [.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md](.agents/notes/implemented/architecture/2026-09-11-wave-g-view-facets.md)
+- Wave G execution checklist: [docs/2026-09-11-aitopo-wave-g-view-facets.md](docs/2026-09-11-aitopo-wave-g-view-facets.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 

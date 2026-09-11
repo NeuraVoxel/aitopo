@@ -2,7 +2,7 @@
  * Network: mount, RAF validate loop, protocol API, event fan-out.
  */
 
-import { growRect, unionRect, type Rect } from '../geom.ts'
+import { growRect, hitRect, unionRect, distanceToPolyline, type Rect } from '../geom.ts'
 import { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
@@ -12,9 +12,6 @@ import { Canvas2DRenderer } from '../render/canvas2d.ts'
 import type { Renderer } from '../render/canvas2d.ts'
 import {
   groupBounds,
-  hitTestEdges,
-  hitTestGroups,
-  hitTestNodes,
   nodeBounds,
   ViewSet,
 } from '../ui/index.ts'
@@ -355,11 +352,27 @@ export class Network {
   hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' } | undefined {
     const world = this.viewport.screenToWorld({ x: screenX, y: screenY })
     const zoom = this.viewport.state.zoom
+    this.views.validateDirty(this.scene)
     const nodes = [...this.scene.nodes.values()]
-    const nodeHit = hitTestNodes(world, nodes, 2 / zoom)
-    if (nodeHit !== undefined) return { id: nodeHit.id, kind: 'node' }
-    const edgeHit = hitTestEdges(world, [...this.scene.edges.values()], this.scene.nodes, 4 / zoom)
-    return edgeHit === undefined ? undefined : { id: edgeHit.id, kind: 'edge' }
+    for (let i = nodes.length - 1; i >= 0; i -= 1) {
+      const node = nodes[i]!
+      const view = this.views.getNode(node.id)
+      if (view === undefined || !view.isActive) continue
+      if (hitRect(world, view.bounds, 2 / zoom)) return { id: node.id, kind: 'node' }
+    }
+    const pad = 4 / zoom
+    let bestId: string | undefined
+    let bestDist = pad
+    for (const edge of this.scene.edges.values()) {
+      const view = this.views.getEdge(edge.id)
+      if (view === undefined || !view.isActive) continue
+      const dist = distanceToPolyline(world, view.points)
+      if (dist <= bestDist) {
+        bestDist = dist
+        bestId = edge.id
+      }
+    }
+    return bestId === undefined ? undefined : { id: bestId, kind: 'edge' }
   }
 
   /**
@@ -439,8 +452,22 @@ export class Network {
    */
   hitTestGroupScreen(screenX: number, screenY: number): string | undefined {
     const world = this.screenToWorld(screenX, screenY)
-    const hit = hitTestGroups(world, this.getGroups())
-    return hit?.id
+    this.views.validateDirty(this.scene)
+    let bestId: string | undefined
+    let bestArea = Infinity
+    const groups = [...this.scene.groups.values()]
+    for (let i = groups.length - 1; i >= 0; i -= 1) {
+      const group = groups[i]!
+      const view = this.views.getGroup(group.id)
+      if (view === undefined || !view.isActive) continue
+      if (!hitRect(world, view.bounds)) continue
+      const area = view.bounds.width * view.bounds.height
+      if (bestId === undefined || area < bestArea) {
+        bestId = group.id
+        bestArea = area
+      }
+    }
+    return bestId
   }
 
   /**

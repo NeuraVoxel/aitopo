@@ -57,12 +57,44 @@ describe('ViewSet', () => {
     expect(node.bounds).not.toBe(first)
   })
 
+  it('caches label and alarm facets on validate', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'VeryLongAgentLabelXYZ',
+        status: 'idle',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+        alarms: [{ id: 'al1', level: 'error', message: 'boom' }],
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const paint = views.getNode('a')!.toPaintView(false, false)
+    expect(paint.label.endsWith('…')).toBe(true)
+    expect(paint.label.length).toBeLessThanOrEqual(18)
+    expect(paint.meta).toBe('idle')
+    expect(paint.circular).toBe(false)
+    expect(paint.alarm).toEqual({
+      level: 'error',
+      x: 90,
+      y: 10,
+      radius: 6,
+    })
+  })
+
   it('sync after remove disposes missing ids', () => {
     const scene = loadScene()
     const views = new ViewSet()
     views.rebuild(scene)
     scene.apply({ ops: [{ op: 'removeNode', id: 'b' }] })
-    // removeNode may leave dangling edge depending on patch rules — remove edge too if needed
     if (scene.edges.has('e1')) {
       scene.apply({ ops: [{ op: 'removeEdge', id: 'e1' }] })
     }
@@ -70,5 +102,22 @@ describe('ViewSet', () => {
     expect(views.getNode('b')).toBeUndefined()
     expect(views.getEdge('e1')).toBeUndefined()
     expect(views.getNode('a')).toBeDefined()
+  })
+
+  it('exposes edge route points for hit-test reuse', () => {
+    const scene = loadScene()
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const edge = views.getEdge('e1')!
+    const first = edge.points
+    expect(first.length).toBeGreaterThanOrEqual(2)
+    views.validateDirty(scene)
+    expect(edge.points).toBe(first)
+    views.markDirty('e1')
+    scene.writePositions({ a: { x: 40, y: 0 } })
+    views.markNodeGeometryDirty(scene, 'a')
+    views.validateDirty(scene)
+    expect(edge.points).not.toBe(first)
   })
 })
