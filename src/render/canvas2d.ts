@@ -269,7 +269,10 @@ export class Canvas2DRenderer implements Renderer {
       ctx.lineWidth = lineWidth
       ctx.stroke()
       ctx.fillStyle = labelColor
-      ctx.font = '10px sans-serif'
+      const fontSize = typeof data.fontSize === 'number' && data.fontSize > 0
+        ? data.fontSize
+        : 10
+      ctx.font = `${fontSize}px sans-serif`
       ctx.textAlign = 'center'
       ctx.textBaseline = 'middle'
       ctx.fillText(view.label, cx, cy)
