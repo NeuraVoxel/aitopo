@@ -16,6 +16,19 @@ The date in the filename is when the topic was **first proposed** (per git histo
 
 The active lifecycle tree is the working inventory: browse its lifecycle/class folders or search the repository. Do not add a centralized `INDEX.md`. Low-future-value implemented records move to the separate frozen [`archived/`](#archiving-and-deletion) tree described below.
 
+## Design drafts and checklists
+
+In repositories that use this Agent Note tree, **`docs/` is for human- or package-consumer guidance** (stable current behavior, testing policy, public API references). It is **not** the home for in-progress agent plans.
+
+| Artifact | Location |
+|---|---|
+| Uncommitted spark | `.agents/inbox/` when the repo has an inbox; otherwise keep in chat until ready for `proposed/` |
+| Approved design / roadmap / architecture proposal | `.agents/notes/proposed/<class>/yyyy-mm-dd-topic.md` |
+| Implementation checklist | PR body, a planning-skill artifact, or a temporary section inside the **proposed** note — not a standing `docs/` file |
+| Shipped decision | `implemented/`; keep verify facts under `## Testing`; delete standalone checklists |
+
+Do **not** default to `docs/superpowers/specs/` (common brainstorming-skill default) or maintain a duplicate pair of “owning Agent Note + full checklist under `docs/`”. Brainstorming and similar skills must follow this table; repository `AGENTS.md` overrides those skills’ default paths. Historical `docs/2026-*-wave-*.md` checklists predate this rule; do not add new ones.
+
 ## Classification
 
 Each Agent Note belongs to one path-encoded class from the closed set enforced by `ai-eng verify-notes`; the classification gate rejects other folders. Adding a class requires updating the kit's class list and this section.

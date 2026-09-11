@@ -134,7 +134,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 | Wave | Focus | Status |
 |---|---|---|
-| J | Demand-driven rAF, hover coalesce, paint stats | `proposed` — [roadmap](./2026-09-11-aitopo-performance-roadmap.md) |
+| J | Demand-driven rAF, hover coalesce, paint stats | `proposed` — [roadmap](../.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md) |
 | K | Draw culling, multi-rect dirty, filter/lazy defaults | `proposed` |
 | L | Pan/zoom quality ladder | `proposed` |
 | M | Spatial hit index | `proposed` |

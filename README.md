@@ -29,8 +29,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave H execution checklist: [docs/2026-09-11-aitopo-wave-h-gesture-editor.md](docs/2026-09-11-aitopo-wave-h-gesture-editor.md)
 - Wave I (edge bend waypoints): [.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md](.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md)
 - Wave I execution checklist: [docs/2026-09-11-aitopo-wave-i-move-edge-bend.md](docs/2026-09-11-aitopo-wave-i-move-edge-bend.md)
-- Performance roadmap (Waves J–N, proposed): [docs/2026-09-11-aitopo-performance-roadmap.md](docs/2026-09-11-aitopo-performance-roadmap.md)
-- Performance roadmap decision: [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
+- Performance roadmap (Waves J–N, proposed): [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
@@ -143,6 +142,6 @@ Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-
 - Selection / hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); `apply` and live move/resize preview use dirty-rect when possible (Wave F).
 - Selected/hovered nodes use overlay rings; root body stroke no longer turns blue for select/hover.
 - Open **Debug dirty** while dragging a node in Editor: red rects should track the mover (not full-frame) when Hide others is off.
-- Performance follow-ups (demand rAF, culling, pan ladder, spatial hit, gated WebGL): [performance roadmap](docs/2026-09-11-aitopo-performance-roadmap.md) (proposed; not implemented).
+- Performance follow-ups (demand rAF, culling, pan ladder, spatial hit, gated WebGL): [performance roadmap](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md) (proposed; not implemented).
 
 Full per-module status vs `twaver.vector`: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md).
