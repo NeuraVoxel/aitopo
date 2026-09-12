@@ -11,6 +11,7 @@ export type {
   InteractionEditHost,
   InteractionHitHost,
   InteractionHost,
+  InteractionNavigationHost,
   InteractionQueryHost,
   InteractionSelectionHost,
   OverlayChrome,

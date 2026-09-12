@@ -232,6 +232,19 @@ export interface InteractionBusHost {
   apply(patch: GraphPatch): void
 }
 
+/** Sub-network navigation. */
+export interface InteractionNavigationHost {
+  /**
+   * Enter the sub-network of the given id.
+   * @param id - sub-network id (document.networks key).
+   */
+  enterSubNetwork(id: string): void
+  /** Leave the current sub-network for its parent. */
+  exitSubNetwork(): void
+  /** Active sub-network id, or null at the root network. */
+  readonly currentNetworkId: string | null
+}
+
 /**
  * Full host surface interactions bind to (Network implements all facets).
  */
@@ -243,6 +256,7 @@ export type InteractionHost =
   & InteractionChromeHost
   & InteractionEditHost
   & InteractionBusHost
+  & InteractionNavigationHost
 
 /** Pluggable pointer / wheel behavior. */
 export interface Interaction {

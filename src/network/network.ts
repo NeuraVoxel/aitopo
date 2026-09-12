@@ -366,6 +366,11 @@ export class Network {
     this.emit({ type: 'nodeActivated', nodeId, detail })
   }
 
+  /** Active sub-network id, or null at the root network. */
+  get currentNetworkId(): string | null {
+    return this.scene.currentNetworkId
+  }
+
   /**
    * Update camera and emit viewportChanged.
    * @param mutate - mutates Viewport then syncs.

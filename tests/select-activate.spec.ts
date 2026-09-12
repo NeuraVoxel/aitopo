@@ -42,14 +42,22 @@ class FakeHitCanvas {
 function createHost(
   canvas: FakeHitCanvas,
   hit: { id: string; kind: 'node' | 'edge' | 'group' } = { id: 'n1', kind: 'node' },
+  options: {
+    node?: { id: string; networkId?: string }
+    currentNetworkId?: string | null
+  } = {},
 ): InteractionHost & {
   gestureDragged: boolean
   activateNode: ReturnType<typeof vi.fn>
   toggleGroupExpanded: ReturnType<typeof vi.fn>
+  enterSubNetwork: ReturnType<typeof vi.fn>
+  exitSubNetwork: ReturnType<typeof vi.fn>
 } {
   let gestureDragged = false
   const activateNode = vi.fn()
   const toggleGroupExpanded = vi.fn()
+  const enterSubNetwork = vi.fn()
+  const exitSubNetwork = vi.fn()
   const host = {
     get gestureDragged() {
       return gestureDragged
@@ -59,6 +67,11 @@ function createHost(
     },
     activateNode,
     toggleGroupExpanded,
+    enterSubNetwork,
+    exitSubNetwork,
+    get currentNetworkId() {
+      return options.currentNetworkId ?? null
+    },
     getHitElement: () => canvas as unknown as HTMLCanvasElement,
     getViewElement: () => null,
     hitTestScreen: () => hit,
@@ -66,7 +79,8 @@ function createHost(
     setHover: vi.fn(),
     updateCamera: vi.fn(),
     viewport: {} as InteractionHost['viewport'],
-    getNode: () => undefined,
+    getNode: (id: string) =>
+      options.node?.id === id ? options.node : undefined,
     getGroup: () => undefined,
     getNodes: () => [],
     getEdges: () => [],
@@ -157,6 +171,79 @@ describe('SelectActivate drag gate', () => {
     canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 40 })
 
     expect(host.toggleGroupExpanded).not.toHaveBeenCalled()
+    dispose()
+  })
+})
+
+describe('SelectActivate sub-network navigation', () => {
+  function doubleClick(canvas: FakeHitCanvas, x = 10, y = 10): void {
+    canvas.dispatch('pointerdown', { button: 0, clientX: x, clientY: y })
+    canvas.dispatch('pointerup', { button: 0, clientX: x, clientY: y })
+    canvas.dispatch('pointerdown', { button: 0, clientX: x, clientY: y })
+    canvas.dispatch('pointerup', { button: 0, clientX: x, clientY: y })
+  }
+
+  it('enters the sub-network on node double-click instead of activating', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'team-a-node', kind: 'node' }, {
+      node: { id: 'team-a-node', networkId: 'team-a' },
+    })
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    doubleClick(canvas)
+
+    expect(host.enterSubNetwork).toHaveBeenCalledWith('team-a')
+    // The first click of the pair still activates; the double never fires activation.
+    expect(host.activateNode).toHaveBeenCalledWith('team-a-node', 'click')
+    expect(host.activateNode).not.toHaveBeenCalledWith('team-a-node', 'dblclick')
+    dispose()
+  })
+
+  it('keeps double-click activation for nodes without networkId', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'plain', kind: 'node' }, {
+      node: { id: 'plain' },
+    })
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    doubleClick(canvas)
+
+    expect(host.activateNode).toHaveBeenCalledWith('plain', 'dblclick')
+    expect(host.enterSubNetwork).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('exits the sub-network on empty-space double-click', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'outside', kind: 'node' }, {
+      node: { id: 'outside', networkId: 'team-a' },
+      currentNetworkId: 'team-a',
+    })
+    // Empty space: hit misses.
+    const hitHost = Object.assign(host, {
+      hitTestScreen: () => undefined,
+    })
+    const dispose = new SelectActivateInteraction().attach(hitHost)
+
+    doubleClick(canvas)
+
+    expect(host.exitSubNetwork).toHaveBeenCalled()
+    expect(host.enterSubNetwork).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('ignores empty-space double-click at the root network', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'n1', kind: 'node' })
+    const hitHost = Object.assign(host, {
+      hitTestScreen: () => undefined,
+    })
+    const dispose = new SelectActivateInteraction().attach(hitHost)
+
+    doubleClick(canvas)
+
+    expect(host.exitSubNetwork).not.toHaveBeenCalled()
+    expect(host.activateNode).not.toHaveBeenCalled()
     dispose()
   })
 })
