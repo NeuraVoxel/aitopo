@@ -145,6 +145,6 @@ vite.config.ts.timestamp-*
 # Local brainstorm companion mockups
 .superpowers/
 
-# Build outputs
-lib/
+# Build outputs (root tsc emit only — do not ignore demo/lib)
+/lib/
 demo/dist/
