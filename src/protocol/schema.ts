@@ -77,13 +77,44 @@ const graphNodeSchema = z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 })
 
+const graphEdgeArrowStyleSchema = z.object({
+  size: z.number().positive().optional(),
+  fill: z.string().optional(),
+  stroke: z.string().optional(),
+})
+
+const graphEdgeStyleSchema = z.object({
+  stroke: z.string().optional(),
+  strokeHover: z.string().optional(),
+  lineWidth: z.number().positive().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  alpha: z.number().min(0).max(1).optional(),
+  labelAt: z.number().min(0).max(1).optional(),
+  label2At: z.number().min(0).max(1).optional(),
+  alarmAt: z.number().min(0).max(1).optional(),
+  tooltipAt: z.number().min(0).max(1).optional(),
+  tooltipMode: z.enum(['hover', 'always']).optional(),
+  label: graphTextStyleSchema.optional(),
+  label2: graphTextStyleSchema.optional(),
+  tooltip: graphTextStyleSchema.optional(),
+  select: graphChromeStyleSchema.optional(),
+  hover: graphChromeStyleSchema.optional(),
+  arrowFrom: z.boolean().optional(),
+  arrowTo: z.boolean().optional(),
+  arrow: graphEdgeArrowStyleSchema.optional(),
+})
+
 const graphEdgeSchema = z.object({
   id: z.string().min(1),
   from: z.string().min(1),
   to: z.string().min(1),
   kind: z.string().optional(),
   waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+  label: z.string().optional(),
+  label2: z.string().optional(),
+  tooltip: z.string().optional(),
   alarms: z.array(alarmSchema).optional(),
+  style: graphEdgeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })
 

@@ -54,12 +54,33 @@ export interface NodePaintView {
 export interface EdgePaintView {
   readonly from: { x: number; y: number }
   readonly to: { x: number; y: number }
+  readonly pathBounds: Rect
+  readonly unionBounds: Rect
   readonly selected: boolean
   readonly hovered: boolean
   /** Prefer horizontal vs vertical control points for the bezier. */
   readonly orientation?: 'horizontal' | 'vertical'
   /** Orthogonal polyline (includes endpoints); drawn with rounded elbows. */
   readonly points?: readonly { x: number; y: number }[]
+  /** Whole-edge opacity `[0, 1]`; default `1`. */
+  readonly alpha: number
+  readonly stroke: string
+  readonly lineWidth: number
+  readonly strokeDash?: readonly number[]
+  readonly arrowFrom?: EdgeArrowPaint
+  readonly arrowTo?: EdgeArrowPaint
+  readonly attachments: readonly AttachmentPaintOp[]
+  readonly overlayAttachments: readonly AttachmentPaintOp[]
+}
+
+/** Resolved arrow head for one edge end. */
+export interface EdgeArrowPaint {
+  readonly tip: { readonly x: number; readonly y: number }
+  /** Unit direction the arrow points toward (away from the path interior). */
+  readonly direction: { readonly x: number; readonly y: number }
+  readonly size: number
+  readonly fill: string
+  readonly stroke: string
 }
 
 /** Cached geometry for a group band. */
@@ -216,9 +237,12 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   drawEdge(edge: GraphEdge, view: EdgePaintView): void {
+    void edge
     const highlight = view.selected || view.hovered
     // Highlighted edges paint on the overlay canvas so node fills cannot cover them.
     const ctx = highlight ? this.overlayCtx : this.rootCtx
+    ctx.save()
+    ctx.globalAlpha = view.alpha
     ctx.beginPath()
     const points = view.points
     if (points !== undefined && points.length >= 2) {
@@ -233,43 +257,20 @@ export class Canvas2DRenderer implements Renderer {
         ctx.bezierCurveTo(view.from.x, midY, view.to.x, midY, view.to.x, view.to.y)
       }
     }
-    const data = edge.data ?? {}
-    const baseStroke = typeof data.stroke === 'string' ? data.stroke : '#5a6478'
-    const hoverStroke = typeof data.strokeHover === 'string' ? data.strokeHover : '#3b82f6'
-    const baseWidth = typeof data.lineWidth === 'number' ? data.lineWidth : 1.25
-    ctx.strokeStyle = highlight ? hoverStroke : baseStroke
-    ctx.lineWidth = (highlight ? Math.max(baseWidth, 2.5) : baseWidth) / this.viewport.zoom
+    ctx.strokeStyle = view.stroke
+    ctx.lineWidth = view.lineWidth / this.viewport.zoom
     ctx.lineJoin = 'round'
     ctx.lineCap = 'round'
-    const dash = Array.isArray(data.strokeDash)
-      ? data.strokeDash.filter((value): value is number => typeof value === 'number')
-      : undefined
+    const dash = view.strokeDash
     if (dash !== undefined && dash.length > 0) {
       ctx.setLineDash([...dash])
     }
     ctx.stroke()
     ctx.setLineDash([])
-    const label = typeof data.label === 'string' ? data.label : undefined
-    if (label !== undefined && label.length > 0) {
-      let mx: number
-      let my: number
-      if (points !== undefined && points.length >= 2) {
-        const mid = Math.floor((points.length - 1) / 2)
-        const a = points[mid]!
-        const b = points[Math.min(points.length - 1, mid + 1)]!
-        mx = (a.x + b.x) / 2
-        my = (a.y + b.y) / 2
-      } else {
-        mx = (view.from.x + view.to.x) / 2
-        my = (view.from.y + view.to.y) / 2
-      }
-      ctx.font = '9px sans-serif'
-      ctx.fillStyle = highlight ? hoverStroke : '#8b939e'
-      ctx.textAlign = 'center'
-      ctx.textBaseline = 'bottom'
-      ctx.fillText(label, mx, my - 3)
-      ctx.textAlign = 'start'
-    }
+    if (view.arrowFrom !== undefined) drawEdgeArrow(ctx, view.arrowFrom, this.viewport.zoom)
+    if (view.arrowTo !== undefined) drawEdgeArrow(ctx, view.arrowTo, this.viewport.zoom)
+    paintAttachmentOps(ctx, view.attachments)
+    ctx.restore()
   }
 
   drawNode(node: GraphNode, view: NodePaintView): void {
@@ -521,6 +522,32 @@ function resizeCanvas(canvas: HTMLCanvasElement, cssW: number, cssH: number, dpr
   if (canvas.height !== h) canvas.height = h
   canvas.style.width = `${cssW}px`
   canvas.style.height = `${cssH}px`
+}
+
+function drawEdgeArrow(
+  ctx: CanvasRenderingContext2D,
+  arrow: EdgeArrowPaint,
+  zoom: number,
+): void {
+  const { tip, direction, size, fill, stroke } = arrow
+  const len = Math.hypot(direction.x, direction.y)
+  const ux = len <= 1e-9 ? 1 : direction.x / len
+  const uy = len <= 1e-9 ? 0 : direction.y / len
+  const px = -uy
+  const py = ux
+  const backX = tip.x - ux * size
+  const backY = tip.y - uy * size
+  const half = size * 0.45
+  ctx.beginPath()
+  ctx.moveTo(tip.x, tip.y)
+  ctx.lineTo(backX + px * half, backY + py * half)
+  ctx.lineTo(backX - px * half, backY - py * half)
+  ctx.closePath()
+  ctx.fillStyle = fill
+  ctx.fill()
+  ctx.strokeStyle = stroke
+  ctx.lineWidth = 1 / zoom
+  ctx.stroke()
 }
 
 function paintAttachmentOps(

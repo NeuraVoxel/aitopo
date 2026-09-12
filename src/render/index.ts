@@ -5,6 +5,7 @@
 export {
   Canvas2DRenderer,
   type Canvas2DRendererOptions,
+  type EdgeArrowPaint,
   type EdgePaintView,
   type FrameDirty,
   type GroupPaintView,

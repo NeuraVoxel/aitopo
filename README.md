@@ -21,6 +21,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Wave H (GestureEditor / OverlayChromeRegistry): [.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md](.agents/notes/implemented/architecture/2026-09-11-wave-h-gesture-editor.md)
 - Wave I (edge bend waypoints): [.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md](.agents/notes/implemented/architecture/2026-09-11-wave-i-move-edge-bend.md)
 - GraphNode attachments (label/label2/icon/tooltip): [.agents/notes/implemented/architecture/2026-09-11-graph-node-attachments.md](.agents/notes/implemented/architecture/2026-09-11-graph-node-attachments.md)
+- GraphEdge attachments (label/label2/tooltip/alarm + style/arrows): [.agents/notes/implemented/architecture/2026-09-12-graph-edge-attachments.md](.agents/notes/implemented/architecture/2026-09-12-graph-edge-attachments.md)
 - Performance roadmap (Waves J–N, proposed): [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
@@ -101,6 +102,7 @@ Pass `defaultInteractions: false` to attach only the listed modules (tests / cus
 
 - `GraphNode.locked?: boolean` — move and membership edits skip locked nodes (selection still allowed)
 - `GraphEdge.waypoints?: { x, y }[]` — intermediate bend points; absent or `[]` = auto orthogonal route
+- `GraphEdge.label?` / `label2?` / `tooltip?` / `style?: GraphEdgeStyle` — path attachments + stroke/alpha/arrows (not `data.*` paint keys)
 - `GraphGroup.style?: { stroke?, strokeWidth?, strokeDash?, fill? }` — Canvas2D band outline (e.g. dashed green composition vs solid gray catalog)
 
 ### Drop MIME types

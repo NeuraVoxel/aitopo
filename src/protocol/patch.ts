@@ -7,6 +7,7 @@ import type {
   Alarm,
   GraphDocument,
   GraphEdge,
+  GraphEdgeStyle,
   GraphGroup,
   GraphGroupStyle,
   GraphNode,
@@ -66,14 +67,25 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if (doc.edges.some(e => e.id === op.edge.id)) {
         throw new Error(`addEdge: duplicate id ${op.edge.id}`)
       }
-      return { ...doc, edges: [...doc.edges, asEdge(op.edge)] }
+      const { style: rawStyle, ...edgeRest } = op.edge
+      return {
+        ...doc,
+        edges: [...doc.edges, asEdge({
+          ...edgeRest,
+          ...(rawStyle !== undefined ? { style: asEdgeStyle(rawStyle) } : {}),
+        })],
+      }
     }
     case 'updateEdge': {
       const index = doc.edges.findIndex(e => e.id === op.id)
       if (index < 0) throw new Error(`updateEdge: missing id ${op.id}`)
       const current = doc.edges[index]!
       const edges = doc.edges.slice()
-      edges[index] = mergeEdge(current, op.patch)
+      const { style: rawStyle, ...patchRest } = op.patch
+      edges[index] = mergeEdge(current, {
+        ...patchRest,
+        ...(rawStyle !== undefined ? { style: asEdgeStyle(rawStyle) } : {}),
+      })
       return { ...doc, edges }
     }
     case 'removeEdge': {
@@ -311,12 +323,16 @@ function asEdge(raw: {
   to: string
   kind?: string | undefined
   waypoints?: Array<{ x: number; y: number }> | undefined
+  label?: string | undefined
+  label2?: string | undefined
+  tooltip?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
     message: string
     ts?: string | undefined
   }> | undefined
+  style?: GraphEdgeStyle | undefined
   data?: Record<string, unknown> | undefined
 }): GraphEdge {
   return {
@@ -327,7 +343,11 @@ function asEdge(raw: {
     ...(raw.waypoints !== undefined
       ? { waypoints: raw.waypoints.map(p => ({ x: p.x, y: p.y })) }
       : {}),
+    ...(raw.label !== undefined ? { label: raw.label } : {}),
+    ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
+    ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
+    ...(raw.style !== undefined ? { style: asEdgeStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
 }
@@ -339,12 +359,16 @@ function mergeEdge(
     to?: string | undefined
     kind?: string | undefined
     waypoints?: Array<{ x: number; y: number }> | undefined
+    label?: string | undefined
+    label2?: string | undefined
+    tooltip?: string | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
       message: string
       ts?: string | undefined
     }> | undefined
+    style?: GraphEdgeStyle | undefined
     data?: Record<string, unknown> | undefined
   },
 ): GraphEdge {
@@ -359,7 +383,13 @@ function mergeEdge(
     to: patch.to ?? current.to,
     kind: patch.kind ?? current.kind,
     ...(waypoints !== undefined ? { waypoints } : {}),
+    label: patch.label ?? current.label,
+    label2: patch.label2 ?? current.label2,
+    tooltip: patch.tooltip ?? current.tooltip,
     alarms: patch.alarms ?? current.alarms?.map(a => ({ ...a })),
+    style: patch.style !== undefined
+      ? mergeEdgeStyle(current.style, asEdgeStyle(patch.style))
+      : current.style,
     data: patch.data ?? (current.data !== undefined ? { ...current.data } : undefined),
   })
   // Empty waypoints clear custom routing back to auto.
@@ -369,6 +399,19 @@ function mergeEdge(
     return rest
   }
   return edge
+}
+
+/** One-level style merge: top keys overwrite; nested objects replace as units. */
+function mergeEdgeStyle(
+  current: GraphEdgeStyle | undefined,
+  patch: GraphEdgeStyle,
+): GraphEdgeStyle {
+  return { ...(current ?? {}), ...patch }
+}
+
+/** Normalize zod style bags under exactOptionalPropertyTypes. */
+function asEdgeStyle(raw: object): GraphEdgeStyle {
+  return raw as GraphEdgeStyle
 }
 
 function asGroup(raw: {

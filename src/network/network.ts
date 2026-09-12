@@ -720,7 +720,11 @@ export class Network {
       if (!flags.selected && !flags.hovered) continue
       const view = this.views.getEdge(edge.id)
       if (view === undefined || !view.isActive) continue
-      renderer.drawEdge(edge, view.toPaintView(flags.selected, flags.hovered))
+      const paint = view.toPaintView(flags.selected, flags.hovered)
+      renderer.drawEdge(edge, paint)
+      if (paint.overlayAttachments.length > 0) {
+        renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
+      }
     }
     for (const node of this.scene.nodes.values()) {
       const view = this.views.getNode(node.id)

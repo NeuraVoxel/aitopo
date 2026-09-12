@@ -58,28 +58,32 @@
       "from": "core",
       "to": "worker",
       "kind": "data",
-      "data": { "label": "data", "stroke": "#22c55e", "strokeHover": "#4ade80" }
+      "label": "data",
+      "style": { "stroke": "#22c55e", "strokeHover": "#4ade80" }
     },
     {
       "id": "e-worker-catalog",
       "from": "worker",
       "to": "catalog-item",
       "kind": "control",
-      "data": { "label": "depends", "stroke": "#94a3b8", "lineWidth": 1.5 }
+      "label": "depends",
+      "style": { "stroke": "#94a3b8", "lineWidth": 1.5 }
     },
     {
       "id": "e-catalog-loose",
       "from": "catalog-item",
       "to": "loose",
       "kind": "data",
-      "data": { "label": "out", "stroke": "#3b82f6" }
+      "label": "out",
+      "style": { "stroke": "#3b82f6" }
     },
     {
       "id": "e-worker-sink",
       "from": "worker",
       "to": "sink",
       "kind": "control",
-      "data": { "label": "ctrl", "stroke": "#a855f7", "strokeHover": "#c084fc" }
+      "label": "ctrl",
+      "style": { "stroke": "#a855f7", "strokeHover": "#c084fc" }
     }
   ],
   "groups": [

@@ -120,6 +120,47 @@ export interface GraphNode {
   readonly data?: Readonly<Record<string, unknown>>
 }
 
+/** Shared arrow head paint for both ends of an edge. */
+export interface GraphEdgeArrowStyle {
+  readonly size?: number
+  readonly fill?: string
+  readonly stroke?: string
+}
+
+/** Optional per-edge visual overrides (one-level merge on updateEdge). */
+export interface GraphEdgeStyle {
+  readonly stroke?: string
+  readonly strokeHover?: string
+  readonly lineWidth?: number
+  /** Canvas setLineDash segments in world px. */
+  readonly strokeDash?: readonly number[]
+  /**
+   * Whole-edge opacity in `[0, 1]`. Default `1`.
+   * Applies to path, arrows, scene attachments, and overlay chrome/tooltip.
+   */
+  readonly alpha?: number
+  /** Arc-length ratio along the polyline for label (0=from, 1=to). Default `0.5`. */
+  readonly labelAt?: number
+  /** Default `0.15`. */
+  readonly label2At?: number
+  /** Default `0.85`. */
+  readonly alarmAt?: number
+  /** Default `0.5`. */
+  readonly tooltipAt?: number
+  /** Default `hover` — overlay only; `always` joins scene + union bounds. */
+  readonly tooltipMode?: 'hover' | 'always'
+  readonly label?: GraphTextStyle
+  readonly label2?: GraphTextStyle
+  readonly tooltip?: GraphTextStyle
+  readonly select?: GraphChromeStyle
+  readonly hover?: GraphChromeStyle
+  /** Draw arrow at `from`. Default `false`. */
+  readonly arrowFrom?: boolean
+  /** Draw arrow at `to`. Default `true`. */
+  readonly arrowTo?: boolean
+  readonly arrow?: GraphEdgeArrowStyle
+}
+
 /** Directed edge between two node ids. */
 export interface GraphEdge {
   readonly id: string
@@ -131,7 +172,15 @@ export interface GraphEdge {
    * Absent or empty → orthogonal auto-route from node boxes.
    */
   readonly waypoints?: readonly { readonly x: number; readonly y: number }[]
+  /** Primary label along the path (EdgeLabelAttachment). */
+  readonly label?: string
+  /** Secondary label along the path (EdgeLabel2Attachment). */
+  readonly label2?: string
+  /** EdgeTooltipAttachment text when set. */
+  readonly tooltip?: string
   readonly alarms?: readonly Alarm[]
+  readonly style?: GraphEdgeStyle
+  /** Business bag only — renderer does not read visual keys from `data`. */
   readonly data?: Readonly<Record<string, unknown>>
 }
 

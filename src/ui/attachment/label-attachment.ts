@@ -3,7 +3,7 @@
  */
 
 import type { AttachmentPosition } from '../../protocol/types.ts'
-import { Attachment, type AttachmentValidateCtx } from './attachment.ts'
+import { Attachment, isNodeAttachmentCtx, type AttachmentValidateCtx } from './attachment.ts'
 import { estimateTextSize, placeAttachment } from './position.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
@@ -19,6 +19,7 @@ export class LabelAttachment extends Attachment {
   private position: AttachmentPosition = 'bottom'
 
   validate(ctx: AttachmentValidateCtx): void {
+    if (!isNodeAttachmentCtx(ctx)) return
     const style = ctx.node.style
     this.position = style?.labelPosition ?? 'bottom'
     this.color = style?.label?.color ?? DEFAULT_COLOR
@@ -51,6 +52,7 @@ export class Label2Attachment extends Attachment {
   private position: AttachmentPosition = 'top'
 
   validate(ctx: AttachmentValidateCtx): void {
+    if (!isNodeAttachmentCtx(ctx)) return
     const style = ctx.node.style
     this.position = style?.label2Position ?? 'top'
     this.color = style?.label2?.color ?? '#374151'

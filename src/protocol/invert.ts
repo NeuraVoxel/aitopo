@@ -153,7 +153,13 @@ function invertEdgePatch(edge: GraphEdge, patch: UpdateEdgePatch): UpdateEdgePat
       ? edge.waypoints.map(p => ({ x: p.x, y: p.y }))
       : []
   }
+  if (patch.label !== undefined && edge.label !== undefined) inv.label = edge.label
+  if (patch.label2 !== undefined && edge.label2 !== undefined) inv.label2 = edge.label2
+  if (patch.tooltip !== undefined && edge.tooltip !== undefined) inv.tooltip = edge.tooltip
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(edge.alarms)
+  if (patch.style !== undefined && edge.style !== undefined) {
+    inv.style = cloneEdgeStyle(edge.style)
+  }
   if (patch.data !== undefined && edge.data !== undefined) inv.data = { ...edge.data }
   return inv
 }
@@ -220,8 +226,26 @@ function cloneEdge(edge: GraphEdge): PatchEdge {
     ...(edge.waypoints !== undefined
       ? { waypoints: edge.waypoints.map(p => ({ x: p.x, y: p.y })) }
       : {}),
+    ...(edge.label !== undefined ? { label: edge.label } : {}),
+    ...(edge.label2 !== undefined ? { label2: edge.label2 } : {}),
+    ...(edge.tooltip !== undefined ? { tooltip: edge.tooltip } : {}),
     ...(edge.alarms !== undefined ? { alarms: cloneAlarms(edge.alarms) } : {}),
+    ...(edge.style !== undefined ? { style: cloneEdgeStyle(edge.style) } : {}),
     ...(edge.data !== undefined ? { data: { ...edge.data } } : {}),
+  }
+}
+
+function cloneEdgeStyle(style: NonNullable<GraphEdge['style']>): NonNullable<PatchEdge['style']> {
+  const { strokeDash, arrow, label, label2, tooltip, select, hover, ...rest } = style
+  return {
+    ...rest,
+    ...(strokeDash !== undefined ? { strokeDash: [...strokeDash] } : {}),
+    ...(arrow !== undefined ? { arrow: { ...arrow } } : {}),
+    ...(label !== undefined ? { label: { ...label } } : {}),
+    ...(label2 !== undefined ? { label2: { ...label2 } } : {}),
+    ...(tooltip !== undefined ? { tooltip: { ...tooltip } } : {}),
+    ...(select !== undefined ? { select: { ...select } } : {}),
+    ...(hover !== undefined ? { hover: { ...hover } } : {}),
   }
 }
 

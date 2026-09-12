@@ -3,7 +3,7 @@
  */
 
 import type { AlarmLevel, AttachmentPosition } from '../../protocol/types.ts'
-import { Attachment, type AttachmentValidateCtx } from './attachment.ts'
+import { Attachment, isNodeAttachmentCtx, type AttachmentValidateCtx } from './attachment.ts'
 import { placeAttachment } from './position.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
@@ -16,6 +16,7 @@ export class AlarmAttachment extends Attachment {
   private position: AttachmentPosition = 'topRight'
 
   validate(ctx: AttachmentValidateCtx): void {
+    if (!isNodeAttachmentCtx(ctx)) return
     const alarm = ctx.node.alarms?.find(a => a.level === 'error') ?? ctx.node.alarms?.[0]
     if (alarm === undefined) {
       this.cachedBounds = { x: 0, y: 0, width: 0, height: 0 }

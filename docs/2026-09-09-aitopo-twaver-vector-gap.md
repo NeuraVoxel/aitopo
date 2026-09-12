@@ -43,16 +43,16 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 |---|---|---|---|
 | `ElementUI.js` | Validate bounds → paint | `done` | `NodeView` / `EdgeView` / `GroupView` + `ViewSet` |
 | `NodeUI.js` | Node body paint | `done` | `NodeView` + `Canvas2DRenderer.drawNode` |
-| `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + orthogonal polylines in renderer |
+| `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + orthogonal polylines + `GraphEdgeStyle` / attachments |
 | `GroupUI.js` | Group band + outline styles | `done` | `GroupView` + `GraphGroup.style` |
-| `Attachment.js` | Attachment base | `done` | `src/ui/attachment/Attachment` under NodeView |
-| `BasicAttachment.js` | Shared attachment paint | `done` (lean) | Fixed positions + paint ops; no pointer/glow stack |
-| `AlarmAttachment.js` | Alarm badge | `done` | `AlarmAttachment` + union bounds |
-| `LabelAttachment.js` | Primary label | `done` | `LabelAttachment` (default bottom, outside body) |
-| `Label2Attachment.js` | Secondary label | `done` | `Label2Attachment` (default top); field `label2` |
-| `IconsAttachment.js` | Icon strip | `done` (single) | `IconsAttachment` + `IconRegistry` (`icon` key, center) |
+| `Attachment.js` | Attachment base | `done` | `src/ui/attachment/Attachment` under NodeView / EdgeView |
+| `BasicAttachment.js` | Shared attachment paint | `done` (lean) | Fixed positions + path ratios + paint ops; no pointer/glow stack |
+| `AlarmAttachment.js` | Alarm badge | `done` | Node + Edge `AlarmAttachment` + union bounds |
+| `LabelAttachment.js` | Primary label | `done` | Node `LabelAttachment`; Edge `EdgeLabelAttachment` (path ratio) |
+| `Label2Attachment.js` | Secondary label | `done` | Node `Label2Attachment`; Edge `EdgeLabel2Attachment` |
+| `IconsAttachment.js` | Icon strip | `done` (single) | `IconsAttachment` + `IconRegistry` (`icon` key, center); edges deferred |
 | `EditAttachment.js` | Resize/rotate handles | `done` (resize) | Overlay handles via `ResizeNodeInteraction`; rotate still `later` |
-| `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction`; bend handles via Wave I |
+| `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction`; bend handles via Wave I; bundle still deferred |
 | `HTMLNodeUI.js` | HTML overlay node | `wont` | |
 | `HTMLLinkUI.js` | HTML overlay link | `wont` | |
 | `HTMLLabelAttachment.js` | HTML label | `wont` | |

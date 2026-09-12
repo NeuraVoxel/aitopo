@@ -3,7 +3,7 @@
  */
 
 import type { AttachmentPosition } from '../../protocol/types.ts'
-import { Attachment, type AttachmentValidateCtx } from './attachment.ts'
+import { Attachment, isNodeAttachmentCtx, type AttachmentValidateCtx } from './attachment.ts'
 import { estimateTextSize, placeAttachment } from './position.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
@@ -28,6 +28,7 @@ export class TooltipAttachment extends Attachment {
   }
 
   validate(ctx: AttachmentValidateCtx): void {
+    if (!isNodeAttachmentCtx(ctx)) return
     const style = ctx.node.style
     this.mode = style?.tooltipMode ?? 'hover'
     this.position = style?.tooltipPosition ?? 'right'

@@ -9,6 +9,8 @@ export type {
   GraphChromeStyle,
   GraphDocument,
   GraphEdge,
+  GraphEdgeArrowStyle,
+  GraphEdgeStyle,
   GraphGroup,
   GraphGroupStyle,
   GraphMeta,

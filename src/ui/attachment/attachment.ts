@@ -1,15 +1,34 @@
 /**
- * Base class for node-side attachments (View layer; not protocol objects).
+ * Base class for View-layer attachments (node or edge hosts; not protocol objects).
  */
 
 import { hitRect, type Point, type Rect } from '../../geom.ts'
-import type { GraphNode } from '../../protocol/types.ts'
+import type { GraphEdge, GraphNode } from '../../protocol/types.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
-/** Inputs shared by every attachment validate. */
-export interface AttachmentValidateCtx {
+/** Validate inputs when the host is a node body. */
+export interface NodeAttachmentValidateCtx {
   readonly node: GraphNode
   readonly body: Rect
+}
+
+/** Validate inputs when the host is an edge polyline. */
+export interface EdgeAttachmentValidateCtx {
+  readonly edge: GraphEdge
+  readonly points: readonly Point[]
+}
+
+/** Inputs shared by attachment validate (node or edge). */
+export type AttachmentValidateCtx = NodeAttachmentValidateCtx | EdgeAttachmentValidateCtx
+
+/** @param ctx - validate context. */
+export function isNodeAttachmentCtx(ctx: AttachmentValidateCtx): ctx is NodeAttachmentValidateCtx {
+  return 'node' in ctx
+}
+
+/** @param ctx - validate context. */
+export function isEdgeAttachmentCtx(ctx: AttachmentValidateCtx): ctx is EdgeAttachmentValidateCtx {
+  return 'edge' in ctx
 }
 
 /**
@@ -24,7 +43,7 @@ export abstract class Attachment {
   }
 
   /**
-   * Whether this attachment joins `unionBounds` / node hit.
+   * Whether this attachment joins `unionBounds` / host dirty geometry.
    * Hover-only tooltips return false.
    */
   contributesToUnion(): boolean {
@@ -32,14 +51,14 @@ export abstract class Attachment {
   }
 
   /**
-   * Recompute `bounds` from the live node and body.
+   * Recompute `bounds` from the live host.
    * @param ctx - validate context.
    */
   abstract validate(ctx: AttachmentValidateCtx): void
 
   /**
    * Build a paint DTO for the current validated state.
-   * @param hovered - whether the host node is hovered (tooltip hover mode).
+   * @param hovered - whether the host element is hovered (tooltip hover mode).
    */
   abstract toPaintOp(hovered: boolean): AttachmentPaintOp | undefined
 
