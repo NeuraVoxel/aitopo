@@ -21,6 +21,9 @@ const attachmentPositionSchema = z.enum([
   'bottomLeft',
   'bottomRight',
   'center',
+  'insideTop',
+  'insideTopLeft',
+  'insideTopRight',
 ])
 
 const graphTextStyleSchema = z.object({

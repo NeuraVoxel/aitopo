@@ -105,8 +105,7 @@ export class GroupView {
     this.selectStyle = style?.select
     this.hoverStyle = style?.hover
     this.attachments = syncAttachments(group, this.expanded, this.attachments)
-    const host = withLabelDefaults(group, this.expanded)
-    const ctx = { group: host, body: this.band }
+    const ctx = { group, body: this.band }
     let union: Rect | undefined = this.band
     for (const attachment of this.attachments) {
       attachment.validate(ctx)
@@ -172,18 +171,6 @@ export class GroupView {
 function clampAlpha(value: number | undefined): number {
   if (value === undefined || Number.isNaN(value)) return 1
   return Math.min(1, Math.max(0, value))
-}
-
-/** Label defaults: band header `top` when expanded; node-like `bottom` when collapsed. */
-function withLabelDefaults(group: GraphGroup, expanded: boolean): GraphGroup {
-  if (group.style?.labelPosition !== undefined) return group
-  return {
-    ...group,
-    style: {
-      ...(group.style ?? {}),
-      labelPosition: expanded ? 'top' : 'bottom',
-    },
-  }
 }
 
 function syncAttachments(

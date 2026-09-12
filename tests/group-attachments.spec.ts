@@ -84,6 +84,36 @@ describe('Group attachments and expand/collapse', () => {
     expect(label && 'text' in label && label.text).toBe('VeryLongG…')
   })
 
+  it('defaults label to top outside the body when collapsed and expanded', () => {
+    for (const expanded of [false, true] as const) {
+      const { views } = loadGroupDoc({ expanded })
+      const view = views.getGroup('g1')!
+      const paint = view.toPaintView(false, false)
+      const label = paint.attachments.find(op => op.kind === 'label')
+      expect(label && 'bounds' in label).toBe(true)
+      if (label === undefined || !('bounds' in label)) return
+      expect(label.bounds.y + label.bounds.height).toBeLessThanOrEqual(view.bandBounds.y)
+    }
+  })
+
+  it('honors labelPosition insideTopLeft inside the band body', () => {
+    const { views } = loadGroupDoc({
+      expanded: true,
+      style: { labelPosition: 'insideTopLeft' },
+      groupExtra: { label: 'Inside' },
+    })
+    const view = views.getGroup('g1')!
+    const paint = view.toPaintView(false, false)
+    const label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'bounds' in label).toBe(true)
+    if (label === undefined || !('bounds' in label)) return
+    const band = view.bandBounds
+    expect(label.bounds.x).toBeGreaterThanOrEqual(band.x)
+    expect(label.bounds.y).toBeGreaterThanOrEqual(band.y)
+    expect(label.bounds.x + label.bounds.width).toBeLessThanOrEqual(band.x + band.width)
+    expect(label.bounds.y + label.bounds.height).toBeLessThanOrEqual(band.y + band.height)
+  })
+
   it('honors collapsed w/h overrides', () => {
     const { views } = loadGroupDoc({ groupExtra: { w: 72, h: 64 } })
     const band = views.getGroup('g1')!.bandBounds

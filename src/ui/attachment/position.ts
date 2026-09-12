@@ -6,6 +6,8 @@ import type { Rect } from '../../geom.ts'
 import type { AttachmentPosition } from '../../protocol/types.ts'
 
 const DEFAULT_GAP = 4
+/** Inset from the body edge for `insideTop*` positions (old in-body group title). */
+const DEFAULT_INSET = 8
 
 /**
  * Axis-aligned box for attachment content at a fixed position around/inside body.
@@ -13,7 +15,7 @@ const DEFAULT_GAP = 4
  * @param position - anchor enum.
  * @param width - content width.
  * @param height - content height.
- * @param gap - gap outside the body (ignored for `center`).
+ * @param gap - gap outside the body (ignored for `center` and `insideTop*`).
  */
 export function placeAttachment(
   body: Rect,
@@ -24,6 +26,7 @@ export function placeAttachment(
 ): Rect {
   const cx = body.x + body.width / 2
   const cy = body.y + body.height / 2
+  const inset = DEFAULT_INSET
   switch (position) {
     case 'center':
       return {
@@ -85,6 +88,27 @@ export function placeAttachment(
       return {
         x: body.x + body.width - width + gap,
         y: body.y + body.height + gap,
+        width,
+        height,
+      }
+    case 'insideTop':
+      return {
+        x: cx - width / 2,
+        y: body.y + inset,
+        width,
+        height,
+      }
+    case 'insideTopLeft':
+      return {
+        x: body.x + inset,
+        y: body.y + inset,
+        width,
+        height,
+      }
+    case 'insideTopRight':
+      return {
+        x: body.x + body.width - width - inset,
+        y: body.y + inset,
         width,
         height,
       }

@@ -27,7 +27,7 @@ export interface GraphViewport {
   readonly zoom: number
 }
 
-/** Fixed attachment anchor relative to the node body (free offsets later). */
+/** Fixed attachment anchor relative to the node/group body (free offsets later). */
 export type AttachmentPosition =
   | 'top'
   | 'bottom'
@@ -38,6 +38,12 @@ export type AttachmentPosition =
   | 'bottomLeft'
   | 'bottomRight'
   | 'center'
+  /** Inside the body, top edge, horizontally centered. */
+  | 'insideTop'
+  /** Inside the body, upper-left (classic group band title). */
+  | 'insideTopLeft'
+  /** Inside the body, upper-right. */
+  | 'insideTopRight'
 
 /** Text paint overrides for label / label2 / tooltip attachments. */
 export interface GraphTextStyle {
