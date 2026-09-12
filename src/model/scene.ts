@@ -195,6 +195,27 @@ export class GraphScene {
   }
 
   /**
+   * Replace group band origin (live group-drag preview).
+   * @param positions - group id → x/y.
+   */
+  writeGroupPositions(positions: Readonly<Record<string, { x: number; y: number }>>): void {
+    for (const [id, pos] of Object.entries(positions)) {
+      const group = this.groupMap.get(id)
+      if (group === undefined) continue
+      this.groupMap.set(id, { ...group, x: pos.x, y: pos.y })
+      this.markDirty(id)
+    }
+    this.sceneVersion += 1
+    this.active = {
+      version: 1,
+      nodes: [...this.nodeMap.values()],
+      edges: [...this.edgeMap.values()],
+      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
+      viewport: this.viewport,
+    }
+  }
+
+  /**
    * Replace node bounds (live resize preview path).
    * @param bounds - id → x/y/w/h.
    */

@@ -167,19 +167,20 @@ function invertEdgePatch(edge: GraphEdge, patch: UpdateEdgePatch): UpdateEdgePat
 function invertGroupPatch(group: GraphGroup, patch: UpdateGroupPatch): UpdateGroupPatch {
   const inv: UpdateGroupPatch = {}
   if (patch.label !== undefined) inv.label = group.label
+  if (patch.label2 !== undefined && group.label2 !== undefined) inv.label2 = group.label2
+  if (patch.tooltip !== undefined && group.tooltip !== undefined) inv.tooltip = group.tooltip
   if (patch.memberIds !== undefined) inv.memberIds = [...group.memberIds]
+  if (patch.expanded !== undefined) inv.expanded = group.expanded === true
   if (patch.x !== undefined && group.x !== undefined) inv.x = group.x
   if (patch.y !== undefined && group.y !== undefined) inv.y = group.y
   if (patch.w !== undefined && group.w !== undefined) inv.w = group.w
   if (patch.h !== undefined && group.h !== undefined) inv.h = group.h
+  if (patch.locked !== undefined) inv.locked = group.locked === true
+  if (patch.alarms !== undefined) inv.alarms = cloneAlarms(group.alarms)
   if (patch.style !== undefined && group.style !== undefined) {
-    inv.style = {
-      ...(group.style.stroke !== undefined ? { stroke: group.style.stroke } : {}),
-      ...(group.style.strokeWidth !== undefined ? { strokeWidth: group.style.strokeWidth } : {}),
-      ...(group.style.strokeDash !== undefined ? { strokeDash: [...group.style.strokeDash] } : {}),
-      ...(group.style.fill !== undefined ? { fill: group.style.fill } : {}),
-    }
+    inv.style = cloneGroupStyle(group.style)
   }
+  if (patch.data !== undefined && group.data !== undefined) inv.data = { ...group.data }
   return inv
 }
 
@@ -254,19 +255,30 @@ function cloneGroup(group: GraphGroup): PatchGroup {
     id: group.id,
     label: group.label,
     memberIds: [...group.memberIds],
+    ...(group.label2 !== undefined ? { label2: group.label2 } : {}),
+    ...(group.tooltip !== undefined ? { tooltip: group.tooltip } : {}),
+    ...(group.expanded !== undefined ? { expanded: group.expanded } : {}),
     ...(group.x !== undefined ? { x: group.x } : {}),
     ...(group.y !== undefined ? { y: group.y } : {}),
     ...(group.w !== undefined ? { w: group.w } : {}),
     ...(group.h !== undefined ? { h: group.h } : {}),
-    ...(group.style !== undefined
-      ? {
-          style: {
-            ...(group.style.stroke !== undefined ? { stroke: group.style.stroke } : {}),
-            ...(group.style.strokeWidth !== undefined ? { strokeWidth: group.style.strokeWidth } : {}),
-            ...(group.style.strokeDash !== undefined ? { strokeDash: [...group.style.strokeDash] } : {}),
-            ...(group.style.fill !== undefined ? { fill: group.style.fill } : {}),
-          },
-        }
-      : {}),
+    ...(group.locked !== undefined ? { locked: group.locked } : {}),
+    ...(group.alarms !== undefined ? { alarms: cloneAlarms(group.alarms) } : {}),
+    ...(group.style !== undefined ? { style: cloneGroupStyle(group.style) } : {}),
+    ...(group.data !== undefined ? { data: { ...group.data } } : {}),
+  }
+}
+
+function cloneGroupStyle(style: NonNullable<GraphGroup['style']>): NonNullable<PatchGroup['style']> {
+  const { strokeDash, label, label2, tooltip, select, hover, shadow, ...rest } = style
+  return {
+    ...rest,
+    ...(strokeDash !== undefined ? { strokeDash: [...strokeDash] } : {}),
+    ...(label !== undefined ? { label: { ...label } } : {}),
+    ...(label2 !== undefined ? { label2: { ...label2 } } : {}),
+    ...(tooltip !== undefined ? { tooltip: { ...tooltip } } : {}),
+    ...(select !== undefined ? { select: { ...select } } : {}),
+    ...(hover !== undefined ? { hover: { ...hover } } : {}),
+    ...(shadow !== undefined ? { shadow: { ...shadow } } : {}),
   }
 }

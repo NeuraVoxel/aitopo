@@ -3,7 +3,12 @@
  */
 
 import type { AttachmentPosition } from '../../protocol/types.ts'
-import { Attachment, isNodeAttachmentCtx, type AttachmentValidateCtx } from './attachment.ts'
+import {
+  Attachment,
+  isBoxAttachmentCtx,
+  isGroupAttachmentCtx,
+  type AttachmentValidateCtx,
+} from './attachment.ts'
 import { estimateTextSize, placeAttachment } from './position.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
@@ -14,7 +19,7 @@ const DEFAULT_BG = 'rgba(20, 24, 32, 0.92)'
 const DEFAULT_FONT = 11
 const MAX_CHARS = 48
 
-/** TooltipAttachment for GraphNode.tooltip. */
+/** TooltipAttachment for GraphNode.tooltip / GraphGroup.tooltip. */
 export class TooltipAttachment extends Attachment {
   private text = ''
   private color = DEFAULT_COLOR
@@ -28,13 +33,14 @@ export class TooltipAttachment extends Attachment {
   }
 
   validate(ctx: AttachmentValidateCtx): void {
-    if (!isNodeAttachmentCtx(ctx)) return
-    const style = ctx.node.style
+    if (!isBoxAttachmentCtx(ctx)) return
+    const style = isGroupAttachmentCtx(ctx) ? ctx.group.style : ctx.node.style
+    const tooltip = isGroupAttachmentCtx(ctx) ? ctx.group.tooltip : ctx.node.tooltip
     this.mode = style?.tooltipMode ?? 'hover'
     this.position = style?.tooltipPosition ?? 'right'
     this.color = style?.tooltip?.color ?? DEFAULT_COLOR
     this.fontSize = style?.tooltip?.fontSize ?? DEFAULT_FONT
-    this.text = truncate(ctx.node.tooltip ?? '', MAX_CHARS)
+    this.text = truncate(tooltip ?? '', MAX_CHARS)
     const size = estimateTextSize(this.text, this.fontSize)
     this.cachedBounds = placeAttachment(
       ctx.body,

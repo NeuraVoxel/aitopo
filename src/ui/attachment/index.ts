@@ -4,10 +4,14 @@
 
 export {
   Attachment,
+  isBoxAttachmentCtx,
   isEdgeAttachmentCtx,
+  isGroupAttachmentCtx,
   isNodeAttachmentCtx,
   type AttachmentValidateCtx,
+  type BoxAttachmentValidateCtx,
   type EdgeAttachmentValidateCtx,
+  type GroupAttachmentValidateCtx,
   type NodeAttachmentValidateCtx,
 } from './attachment.ts'
 export { AlarmAttachment } from './alarm-attachment.ts'

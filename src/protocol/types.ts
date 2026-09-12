@@ -191,18 +191,57 @@ export interface GraphGroupStyle {
   /** Canvas setLineDash segments in world px. */
   readonly strokeDash?: readonly number[]
   readonly fill?: string
+  /**
+   * Whole-group opacity in `[0, 1]`. Default `1`.
+   * Applies to band body, scene attachments, and overlay chrome/tooltip.
+   */
+  readonly alpha?: number
+  /** Padding around member union when auto-fitting (world px). */
+  readonly padding?: number
+  /**
+   * When expanded, grow the band from member body bounds + padding.
+   * Default `true` when omitted.
+   */
+  readonly autoFit?: boolean
+  /** Band outline shape. Only `rectangle` this release. */
+  readonly shape?: 'rectangle'
+  readonly labelPosition?: AttachmentPosition
+  readonly label2Position?: AttachmentPosition
+  readonly tooltipPosition?: AttachmentPosition
+  /** Default `hover` — overlay only; `always` joins scene + union bounds. */
+  readonly tooltipMode?: 'hover' | 'always'
+  readonly label?: GraphTextStyle
+  readonly label2?: GraphTextStyle
+  readonly tooltip?: GraphTextStyle
+  readonly select?: GraphChromeStyle
+  readonly hover?: GraphChromeStyle
+  readonly shadow?: GraphShadowStyle
 }
 
 /** Visual grouping band for member nodes. */
 export interface GraphGroup {
   readonly id: string
   readonly label: string
+  /** Secondary label (Label2Attachment). */
+  readonly label2?: string
+  /** TooltipAttachment text when set. */
+  readonly tooltip?: string
   readonly memberIds: readonly string[]
+  /**
+   * Whether the band is expanded. Omitted → `false` (collapsed).
+   * Open with `updateGroup` `{ expanded: true }` or host gesture.
+   */
+  readonly expanded?: boolean
   readonly x?: number
   readonly y?: number
   readonly w?: number
   readonly h?: number
+  /** When true, move edits skip this group. */
+  readonly locked?: boolean
+  readonly alarms?: readonly Alarm[]
   readonly style?: GraphGroupStyle
+  /** Business bag only — renderer does not read visual keys from `data`. */
+  readonly data?: Readonly<Record<string, unknown>>
 }
 
 /**

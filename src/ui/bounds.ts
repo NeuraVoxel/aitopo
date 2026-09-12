@@ -57,7 +57,27 @@ export function edgeAnchors(
   /** Polyline points including endpoints (orthogonal.H.V / V.H style). */
   points: readonly Point[]
 } {
-  const auto = edgeAnchorsAuto(from, to)
+  return edgeAnchorsFromRects(nodeBounds(from), nodeBounds(to), waypoints)
+}
+
+/**
+ * Orthogonal route between two world boxes (nodes or collapsed group bands).
+ * @param fromBox - source AABB.
+ * @param toBox - target AABB.
+ * @param waypoints - optional intermediate bend points.
+ */
+export function edgeAnchorsFromRects(
+  fromBox: Rect,
+  toBox: Rect,
+  waypoints?: readonly { readonly x: number; readonly y: number }[],
+): {
+  from: Point
+  to: Point
+  bounds: Rect
+  orientation: 'horizontal' | 'vertical'
+  points: readonly Point[]
+} {
+  const auto = edgeAnchorsAutoFromRects(fromBox, toBox)
   if (waypoints === undefined || waypoints.length === 0) return auto
   const points: Point[] = [
     auto.from,
@@ -89,8 +109,21 @@ export function edgeAnchorsAuto(from: GraphNode, to: GraphNode): {
   orientation: 'horizontal' | 'vertical'
   points: readonly Point[]
 } {
-  const a = nodeBounds(from)
-  const b = nodeBounds(to)
+  return edgeAnchorsAutoFromRects(nodeBounds(from), nodeBounds(to))
+}
+
+/**
+ * Auto orthogonal route from two AABBs (no custom waypoints).
+ * @param a - source box.
+ * @param b - target box.
+ */
+export function edgeAnchorsAutoFromRects(a: Rect, b: Rect): {
+  from: Point
+  to: Point
+  bounds: Rect
+  orientation: 'horizontal' | 'vertical'
+  points: readonly Point[]
+} {
   const acx = a.x + a.width / 2
   const acy = a.y + a.height / 2
   const bcx = b.x + b.width / 2

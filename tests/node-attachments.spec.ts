@@ -123,7 +123,7 @@ describe('Node attachments', () => {
         y: 0,
         w: 100,
         h: 40,
-        alarms: [{ id: 'al1', level: 'error', message: 'boom' }],
+        alarms: [{ id: 'al1', level: 'warn', message: '12' }],
       }],
       edges: [],
     })
@@ -131,7 +131,8 @@ describe('Node attachments', () => {
     views.rebuild(scene)
     views.validateDirty(scene)
     const paint = views.getNode('a')!.toPaintView(false, false)
-    expect(paint.attachments.some(op => op.kind === 'alarm')).toBe(true)
+    const alarm = paint.attachments.find(op => op.kind === 'alarm')
+    expect(alarm).toMatchObject({ kind: 'alarm', level: 'warn', text: '12' })
   })
 
   it('hover tooltip stays off union and only paints on overlay when hovered', () => {

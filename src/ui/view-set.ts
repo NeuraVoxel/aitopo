@@ -59,6 +59,7 @@ export class ViewSet {
 
   /**
    * Mark a node and every incident edge dirty after a geometry move.
+   * Also dirties the owning group so auto-fit bands recompute.
    * @param scene - active graph scene.
    * @param nodeId - moved node id.
    */
@@ -69,6 +70,15 @@ export class ViewSet {
         this.edges.get(edge.id)?.markDirty()
       }
     }
+    const node = scene.nodes.get(nodeId)
+    if (node?.groupId !== undefined) {
+      this.groups.get(node.groupId)?.markDirty()
+    }
+    for (const group of scene.groups.values()) {
+      if (group.memberIds.includes(nodeId)) {
+        this.groups.get(group.id)?.markDirty()
+      }
+    }
   }
 
   /**
@@ -77,9 +87,33 @@ export class ViewSet {
    */
   validateDirty(scene: GraphScene): void {
     const opts = { showNodeIconsDefault: this.showNodeIconsDefault }
+    // Nodes first (member bodies), then groups (auto-fit), then edges (agent remap).
     for (const view of this.nodes.values()) view.validate(scene, opts)
-    for (const view of this.edges.values()) view.validate(scene)
     for (const view of this.groups.values()) view.validate(scene)
+    for (const view of this.edges.values()) view.validate(scene)
+  }
+
+  /**
+   * Mark a group, its members, and incident edges dirty after expand/collapse or move.
+   * @param scene - active graph scene.
+   * @param groupId - group id.
+   */
+  markGroupGeometryDirty(scene: GraphScene, groupId: string): void {
+    this.groups.get(groupId)?.markDirty()
+    const group = scene.groups.get(groupId)
+    if (group === undefined) return
+    const members = new Set(group.memberIds)
+    for (const node of scene.nodes.values()) {
+      if (node.groupId === groupId) members.add(node.id)
+    }
+    for (const memberId of members) {
+      this.markNodeGeometryDirty(scene, memberId)
+    }
+    for (const edge of scene.edges.values()) {
+      if (members.has(edge.from) || members.has(edge.to)) {
+        this.edges.get(edge.id)?.markDirty()
+      }
+    }
   }
 
   getNode(id: string): NodeView | undefined {

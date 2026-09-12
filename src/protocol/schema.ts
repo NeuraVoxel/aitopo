@@ -118,20 +118,42 @@ const graphEdgeSchema = z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 })
 
+const graphGroupStyleSchema = z.object({
+  stroke: z.string().optional(),
+  strokeWidth: z.number().positive().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  fill: z.string().optional(),
+  alpha: z.number().min(0).max(1).optional(),
+  padding: z.number().nonnegative().optional(),
+  autoFit: z.boolean().optional(),
+  shape: z.literal('rectangle').optional(),
+  labelPosition: attachmentPositionSchema.optional(),
+  label2Position: attachmentPositionSchema.optional(),
+  tooltipPosition: attachmentPositionSchema.optional(),
+  tooltipMode: z.enum(['hover', 'always']).optional(),
+  label: graphTextStyleSchema.optional(),
+  label2: graphTextStyleSchema.optional(),
+  tooltip: graphTextStyleSchema.optional(),
+  select: graphChromeStyleSchema.optional(),
+  hover: graphChromeStyleSchema.optional(),
+  shadow: graphShadowStyleSchema.optional(),
+})
+
 const graphGroupSchema = z.object({
   id: z.string().min(1),
   label: z.string(),
+  label2: z.string().optional(),
+  tooltip: z.string().optional(),
   memberIds: z.array(z.string()),
+  expanded: z.boolean().optional(),
   x: z.number().optional(),
   y: z.number().optional(),
   w: z.number().positive().optional(),
   h: z.number().positive().optional(),
-  style: z.object({
-    stroke: z.string().optional(),
-    strokeWidth: z.number().positive().optional(),
-    strokeDash: z.array(z.number()).optional(),
-    fill: z.string().optional(),
-  }).optional(),
+  locked: z.boolean().optional(),
+  alarms: z.array(alarmSchema).optional(),
+  style: graphGroupStyleSchema.optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
 })
 
 const graphViewportSchema = z.object({

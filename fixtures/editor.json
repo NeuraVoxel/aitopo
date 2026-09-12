@@ -95,6 +95,7 @@
       "y": 40,
       "w": 420,
       "h": 220,
+      "expanded": true,
       "style": {
         "stroke": "#22c55e",
         "strokeWidth": 2,
@@ -110,6 +111,7 @@
       "y": 40,
       "w": 260,
       "h": 180,
+      "expanded": true,
       "style": {
         "stroke": "#94a3b8",
         "strokeWidth": 1.5,

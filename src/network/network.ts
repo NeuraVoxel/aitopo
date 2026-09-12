@@ -377,8 +377,8 @@ export class Network {
     })
   }
 
-  /** Hit-test at a screen point relative to the hit canvas (nodes first, then edges). */
-  hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' } | undefined {
+  /** Hit-test at a screen point relative to the hit canvas (nodes first, then groups, then edges). */
+  hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' | 'group' } | undefined {
     const world = this.viewport.screenToWorld({ x: screenX, y: screenY })
     const zoom = this.viewport.state.zoom
     this.views.validateDirty(this.scene)
@@ -386,8 +386,15 @@ export class Network {
     for (let i = nodes.length - 1; i >= 0; i -= 1) {
       const node = nodes[i]!
       const view = this.views.getNode(node.id)
-      if (view === undefined || !view.isActive) continue
+      if (view === undefined || !view.isVisible) continue
       if (hitRect(world, view.bounds, 2 / zoom)) return { id: node.id, kind: 'node' }
+    }
+    const groups = [...this.scene.groups.values()]
+    for (let i = groups.length - 1; i >= 0; i -= 1) {
+      const group = groups[i]!
+      const view = this.views.getGroup(group.id)
+      if (view === undefined || !view.isActive) continue
+      if (hitRect(world, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
     }
     const pad = 4 / zoom
     let bestId: string | undefined
@@ -410,6 +417,11 @@ export class Network {
    */
   getNode(id: string): GraphNode | undefined {
     return this.scene.nodes.get(id)
+  }
+
+  /** @param id - group id. @returns group from the active network, or undefined. */
+  getGroup(id: string): GraphGroup | undefined {
+    return this.scene.groups.get(id)
   }
 
   /** @returns nodes in the active network. */
@@ -481,8 +493,8 @@ export class Network {
       const group = groups[i]!
       const view = this.views.getGroup(group.id)
       if (view === undefined || !view.isActive) continue
-      if (!hitRect(world, view.bounds)) continue
-      const area = view.bounds.width * view.bounds.height
+      if (!hitRect(world, view.bandBounds)) continue
+      const area = view.bandBounds.width * view.bandBounds.height
       if (bestId === undefined || area < bestArea) {
         bestId = group.id
         bestArea = area
@@ -510,6 +522,20 @@ export class Network {
    */
   previewNodePosition(id: string, x: number, y: number): void {
     this.gestures.previewNodePosition(id, x, y)
+  }
+
+  /**
+   * Live preview of a group drag (group origin + member nodes).
+   * @param args - deltas and drag-start origins.
+   */
+  previewGroupMove(args: {
+    groupId: string
+    dx: number
+    dy: number
+    groupFrom: { x: number; y: number }
+    members: readonly { id: string; fromX: number; fromY: number }[]
+  }): void {
+    this.gestures.previewGroupMove(args)
   }
 
   /**
@@ -542,6 +568,23 @@ export class Network {
     toGroupId?: string | undefined
   }): void {
     this.gestures.commitNodeMove(args)
+  }
+
+  /**
+   * Commit a group drag: updateGroup x/y and member node positions.
+   * @param args - group and member from/to.
+   */
+  commitGroupMove(args: {
+    groupId: string
+    groupFrom: { x: number; y: number }
+    groupTo: { x: number; y: number }
+    members: readonly {
+      id: string
+      from: { x: number; y: number }
+      to: { x: number; y: number }
+    }[]
+  }): void {
+    this.gestures.commitGroupMove(args)
   }
 
   /**
@@ -668,6 +711,8 @@ export class Network {
     for (const id of peek.ids) {
       if (this.scene.nodes.has(id)) {
         this.views.markNodeGeometryDirty(this.scene, id)
+      } else if (this.scene.groups.has(id)) {
+        this.views.markGroupGeometryDirty(this.scene, id)
       } else {
         this.views.markDirty(id)
       }
@@ -726,9 +771,24 @@ export class Network {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
       }
     }
+    for (const group of this.scene.groups.values()) {
+      const view = this.views.getGroup(group.id)
+      if (view === undefined || !view.isActive) continue
+      const selected = this.scene.selectedIds.has(group.id)
+      const hovered = hoverId === group.id
+      const paint = view.toPaintView(selected, hovered)
+      if (selected) {
+        renderer.drawSelectionOverlay(view.bandBounds, paint.selectStyle, paint.alpha)
+      } else if (hovered) {
+        renderer.drawHoverOverlay(view.bandBounds, paint.hoverStyle, paint.alpha)
+      }
+      if (paint.overlayAttachments.length > 0) {
+        renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
+      }
+    }
     for (const node of this.scene.nodes.values()) {
       const view = this.views.getNode(node.id)
-      if (view === undefined || !view.isActive) continue
+      if (view === undefined || !view.isVisible) continue
       const selected = this.scene.selectedIds.has(node.id)
       const hovered = hoverId === node.id
       const paint = view.toPaintView(selected, hovered)
@@ -768,7 +828,9 @@ export class Network {
           for (const group of this.scene.groups.values()) {
             const view = this.views.getGroup(group.id)
             if (view === undefined || !view.isActive) continue
-            renderer.drawGroup(group, view.toPaintView())
+            const selected = this.scene.selectedIds.has(group.id)
+            const hovered = this.scene.hover === group.id
+            renderer.drawGroup(group, view.toPaintView(selected, hovered))
           }
         }
         for (const edge of this.scene.edges.values()) {
@@ -783,7 +845,7 @@ export class Network {
         for (const node of this.scene.nodes.values()) {
           if (filter !== undefined && !filter.has(node.id)) continue
           const view = this.views.getNode(node.id)
-          if (view === undefined || !view.isActive) continue
+          if (view === undefined || !view.isVisible) continue
           renderer.drawNode(node, view.toPaintView(
             this.scene.selectedIds.has(node.id),
             this.scene.hover === node.id,

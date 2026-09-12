@@ -86,6 +86,21 @@ export interface EdgeArrowPaint {
 /** Cached geometry for a group band. */
 export interface GroupPaintView {
   readonly bounds: Rect
+  readonly bandBounds: Rect
+  readonly unionBounds: Rect
+  readonly selected: boolean
+  readonly hovered: boolean
+  readonly expanded: boolean
+  readonly alpha: number
+  readonly stroke: string
+  readonly fill: string
+  readonly strokeWidth: number
+  readonly strokeDash?: readonly number[]
+  readonly shadow?: NodePaintView['shadow']
+  readonly selectStyle?: NodePaintView['selectStyle']
+  readonly hoverStyle?: NodePaintView['hoverStyle']
+  readonly attachments: readonly AttachmentPaintOp[]
+  readonly overlayAttachments: readonly AttachmentPaintOp[]
 }
 
 /**
@@ -211,29 +226,36 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   drawGroup(group: GraphGroup, view: GroupPaintView): void {
-    const { bounds } = view
+    void group
+    const { bandBounds: bounds } = view
     const ctx = this.rootCtx
-    const style = group.style ?? {}
-    const stroke = style.stroke ?? '#5a6478'
-    const fill = style.fill ?? 'rgba(90, 100, 120, 0.08)'
-    const strokeWidth = (style.strokeWidth ?? 1) / this.viewport.zoom
-    const radius = 12
+    ctx.save()
+    ctx.globalAlpha = view.alpha
+    if (view.shadow !== undefined) {
+      ctx.shadowColor = view.shadow.color ?? 'rgba(0, 0, 0, 0.35)'
+      ctx.shadowBlur = view.shadow.blur ?? 6
+      ctx.shadowOffsetX = view.shadow.offsetX ?? 0
+      ctx.shadowOffsetY = view.shadow.offsetY ?? 2
+    }
+    const strokeWidth = view.strokeWidth / this.viewport.zoom
+    const radius = view.expanded ? 12 : 8
     roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, radius)
-    ctx.fillStyle = fill
+    ctx.fillStyle = view.fill
     ctx.fill()
-    ctx.strokeStyle = stroke
+    ctx.shadowColor = 'transparent'
+    ctx.shadowBlur = 0
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    ctx.strokeStyle = view.stroke
     ctx.lineWidth = strokeWidth
-    const dash = style.strokeDash
+    const dash = view.strokeDash
     if (dash !== undefined && dash.length > 0) {
       ctx.setLineDash([...dash])
     }
     ctx.stroke()
     ctx.setLineDash([])
-    ctx.fillStyle = stroke
-    // World-space font — scales with viewport zoom (do not divide by zoom).
-    ctx.font = '12px sans-serif'
-    ctx.textBaseline = 'top'
-    ctx.fillText(group.label, bounds.x + 8, bounds.y + 6)
+    paintAttachmentOps(ctx, view.attachments)
+    ctx.restore()
   }
 
   drawEdge(edge: GraphEdge, view: EdgePaintView): void {
@@ -584,12 +606,21 @@ function paintAttachmentOps(
         const cy = op.bounds.y + op.bounds.height / 2
         ctx.beginPath()
         ctx.arc(cx, cy, op.radius, 0, Math.PI * 2)
+        // Warm palette on dark canvases; keep error distinct but orange-red.
         ctx.fillStyle = op.level === 'error'
-          ? '#ef4444'
+          ? '#f97316'
           : op.level === 'warn'
-            ? '#f59e0b'
-            : '#3b82f6'
+            ? '#fb923c'
+            : '#fbbf24'
         ctx.fill()
+        if (op.text !== undefined && op.text.length > 0) {
+          ctx.fillStyle = '#1a1d24'
+          ctx.font = `bold ${Math.max(9, Math.round(op.radius))}px sans-serif`
+          ctx.textAlign = 'center'
+          ctx.textBaseline = 'middle'
+          ctx.fillText(op.text, cx, cy + 0.5)
+          ctx.textAlign = 'start'
+        }
         break
       }
       case 'tooltip': {

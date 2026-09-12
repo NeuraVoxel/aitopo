@@ -11,7 +11,7 @@ function loadScene(): GraphScene {
       { id: 'b', type: 'agent', label: 'B', x: 200, y: 0, w: 100, h: 40 },
     ],
     edges: [{ id: 'e1', from: 'a', to: 'b' }],
-    groups: [{ id: 'g1', label: 'G', memberIds: ['a'], x: -10, y: -10, w: 140, h: 80 }],
+    groups: [{ id: 'g1', label: 'G', memberIds: ['a'], x: -10, y: -10, w: 140, h: 80, expanded: true }],
   })
   return scene
 }

@@ -176,6 +176,77 @@ export class GestureEditor {
   }
 
   /**
+   * Live preview of a group drag (group origin + member nodes).
+   * @param args - deltas and drag-start origins.
+   */
+  previewGroupMove(args: {
+    groupId: string
+    dx: number
+    dy: number
+    groupFrom: { x: number; y: number }
+    members: readonly { id: string; fromX: number; fromY: number }[]
+  }): void {
+    if (this.deps.scene.groups.get(args.groupId) === undefined) return
+    const positions: Record<string, { x: number; y: number }> = {}
+    for (const member of args.members) {
+      positions[member.id] = {
+        x: member.fromX + args.dx,
+        y: member.fromY + args.dy,
+      }
+    }
+    this.deps.scene.writePositions(positions)
+    this.deps.scene.writeGroupPositions({
+      [args.groupId]: {
+        x: args.groupFrom.x + args.dx,
+        y: args.groupFrom.y + args.dy,
+      },
+    })
+    this.deps.views.markGroupGeometryDirty(this.deps.scene, args.groupId)
+    this.deps.dirty.markAll()
+    this.deps.scheduleScenePaint()
+  }
+
+  /**
+   * Commit a group drag: updateGroup x/y and member node positions.
+   * @param args - group and member from/to.
+   */
+  commitGroupMove(args: {
+    groupId: string
+    groupFrom: { x: number; y: number }
+    groupTo: { x: number; y: number }
+    members: readonly {
+      id: string
+      from: { x: number; y: number }
+      to: { x: number; y: number }
+    }[]
+  }): void {
+    if (this.deps.scene.groups.get(args.groupId) === undefined) {
+      throw new Error(`commitGroupMove: missing group ${args.groupId}`)
+    }
+    const ops: GraphPatch['ops'] = [
+      {
+        op: 'updateGroup',
+        id: args.groupId,
+        patch: { x: args.groupTo.x, y: args.groupTo.y },
+      },
+      ...args.members.map(member => ({
+        op: 'updateNode' as const,
+        id: member.id,
+        patch: { x: member.to.x, y: member.to.y },
+      })),
+    ]
+    this.deps.apply({ ops })
+    for (const member of args.members) {
+      this.deps.emit({
+        type: 'nodeMoved',
+        nodeId: member.id,
+        from: { x: member.from.x, y: member.from.y },
+        to: { x: member.to.x, y: member.to.y },
+      })
+    }
+  }
+
+  /**
    * Commit a node resize.
    * @param args - from/to bounds.
    */

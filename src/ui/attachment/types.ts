@@ -32,6 +32,8 @@ export type AttachmentPaintOp =
     readonly bounds: Rect
     readonly level: AlarmLevel
     readonly radius: number
+    /** Optional badge text (e.g. Turn count) painted centered in the circle. */
+    readonly text?: string
   }
   | {
     readonly kind: 'tooltip'

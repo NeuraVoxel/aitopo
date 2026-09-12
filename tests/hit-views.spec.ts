@@ -53,7 +53,7 @@ describe('Network hit-test via Views', () => {
         { id: 'b', type: 'unit', label: 'B', x: 200, y: 0, w: 40, h: 24 },
       ],
       edges: [{ id: 'e1', from: 'a', to: 'b' }],
-      groups: [{ id: 'g1', label: 'G', memberIds: ['a'], x: -8, y: -8, w: 80, h: 60 }],
+      groups: [{ id: 'g1', label: 'G', memberIds: ['a'], x: -8, y: -8, w: 80, h: 60, expanded: true }],
     })
     host = document.createElement('div')
     host.style.width = '400px'

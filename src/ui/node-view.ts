@@ -16,6 +16,7 @@ import {
   type AttachmentPaintOp,
 } from './attachment/index.ts'
 import { nodeBounds } from './bounds.ts'
+import { isNodeVisibleInScene } from './group-state.ts'
 
 const DEFAULT_SHADOW: GraphShadowStyle = {
   color: 'rgba(0, 0, 0, 0.35)',
@@ -39,6 +40,8 @@ export class NodeView {
   private attachments: Attachment[] = []
   private sceneOps: AttachmentPaintOp[] = []
   private overlayOps: AttachmentPaintOp[] = []
+  /** False when the owning group is collapsed (still active in scene). */
+  private visible = true
 
   constructor(id: string) {
     this.id = id
@@ -64,6 +67,11 @@ export class NodeView {
     return this.active
   }
 
+  /** Whether the node should be painted and hit-tested. */
+  get isVisible(): boolean {
+    return this.active && this.visible
+  }
+
   markDirty(): void {
     this.dirty = true
   }
@@ -81,6 +89,7 @@ export class NodeView {
     const node = scene.nodes.get(this.id)
     if (node === undefined) {
       this.active = false
+      this.visible = false
       this.body = { x: 0, y: 0, width: 0, height: 0 }
       this.union = this.body
       this.circular = false
@@ -95,6 +104,7 @@ export class NodeView {
       return
     }
     this.active = true
+    this.visible = isNodeVisibleInScene(scene, this.id)
     this.body = nodeBounds(node)
     this.circular = node.type === 'tool' || node.data?.shape === 'circle'
     this.shadow = node.style?.shadow ?? DEFAULT_SHADOW

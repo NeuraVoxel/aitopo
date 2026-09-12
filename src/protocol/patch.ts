@@ -103,7 +103,7 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
         ...doc,
         groups: [...(doc.groups ?? []), asGroup({
           ...groupRest,
-          ...(rawStyle !== undefined ? { style: normalizeGroupStyle(rawStyle) } : {}),
+          ...(rawStyle !== undefined ? { style: asGroupStyle(rawStyle) } : {}),
         })],
       }
     }
@@ -116,7 +116,7 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       const { style: rawStyle, ...patchRest } = op.patch
       next[index] = mergeGroup(current, {
         ...patchRest,
-        ...(rawStyle !== undefined ? { style: normalizeGroupStyle(rawStyle) } : {}),
+        ...(rawStyle !== undefined ? { style: asGroupStyle(rawStyle) } : {}),
       })
       return { ...doc, groups: next }
     }
@@ -417,22 +417,39 @@ function asEdgeStyle(raw: object): GraphEdgeStyle {
 function asGroup(raw: {
   id: string
   label: string
+  label2?: string | undefined
+  tooltip?: string | undefined
   memberIds: readonly string[]
+  expanded?: boolean | undefined
   x?: number | undefined
   y?: number | undefined
   w?: number | undefined
   h?: number | undefined
+  locked?: boolean | undefined
+  alarms?: Array<{
+    id: string
+    level: Alarm['level']
+    message: string
+    ts?: string | undefined
+  }> | undefined
   style?: GraphGroupStyle | undefined
+  data?: Readonly<Record<string, unknown>> | undefined
 }): GraphGroup {
   return {
     id: raw.id,
     label: raw.label,
     memberIds: [...raw.memberIds],
+    ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
+    ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
+    ...(raw.expanded !== undefined ? { expanded: raw.expanded } : {}),
     ...(raw.x !== undefined ? { x: raw.x } : {}),
     ...(raw.y !== undefined ? { y: raw.y } : {}),
     ...(raw.w !== undefined ? { w: raw.w } : {}),
     ...(raw.h !== undefined ? { h: raw.h } : {}),
-    ...(raw.style !== undefined ? { style: normalizeGroupStyle(raw.style) } : {}),
+    ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
+    ...(raw.style !== undefined ? { style: asGroupStyle(raw.style) } : {}),
+    ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
 }
 
@@ -440,39 +457,61 @@ function mergeGroup(
   current: GraphGroup,
   patch: {
     label?: string | undefined
+    label2?: string | undefined
+    tooltip?: string | undefined
     memberIds?: readonly string[] | undefined
+    expanded?: boolean | undefined
     x?: number | undefined
     y?: number | undefined
     w?: number | undefined
     h?: number | undefined
+    locked?: boolean | undefined
+    alarms?: Array<{
+      id: string
+      level: Alarm['level']
+      message: string
+      ts?: string | undefined
+    }> | undefined
     style?: GraphGroupStyle | undefined
+    data?: Readonly<Record<string, unknown>> | undefined
   },
 ): GraphGroup {
   return asGroup({
     id: current.id,
     label: patch.label ?? current.label,
+    label2: patch.label2 ?? current.label2,
+    tooltip: patch.tooltip ?? current.tooltip,
     memberIds: patch.memberIds ?? current.memberIds,
+    expanded: patch.expanded ?? current.expanded,
     x: patch.x ?? current.x,
     y: patch.y ?? current.y,
     w: patch.w ?? current.w,
     h: patch.h ?? current.h,
-    style: patch.style ?? current.style,
+    locked: patch.locked ?? current.locked,
+    alarms: patch.alarms ?? current.alarms?.map(a => ({
+      id: a.id,
+      level: a.level,
+      message: a.message,
+      ...(a.ts !== undefined ? { ts: a.ts } : {}),
+    })),
+    style: patch.style !== undefined
+      ? mergeGroupStyle(current.style, asGroupStyle(patch.style))
+      : current.style,
+    data: patch.data ?? current.data,
   })
 }
 
-/** Drop undefined optional style keys for exactOptionalPropertyTypes. */
-function normalizeGroupStyle(style: {
-  stroke?: string | undefined
-  strokeWidth?: number | undefined
-  strokeDash?: readonly number[] | undefined
-  fill?: string | undefined
-}): GraphGroupStyle {
-  return {
-    ...(style.stroke !== undefined ? { stroke: style.stroke } : {}),
-    ...(style.strokeWidth !== undefined ? { strokeWidth: style.strokeWidth } : {}),
-    ...(style.strokeDash !== undefined ? { strokeDash: [...style.strokeDash] } : {}),
-    ...(style.fill !== undefined ? { fill: style.fill } : {}),
-  }
+/** One-level style merge: top keys overwrite; nested objects replace as units. */
+function mergeGroupStyle(
+  current: GraphGroupStyle | undefined,
+  patch: GraphGroupStyle,
+): GraphGroupStyle {
+  return { ...(current ?? {}), ...patch }
+}
+
+/** Normalize zod style bags under exactOptionalPropertyTypes. */
+function asGroupStyle(raw: object): GraphGroupStyle {
+  return raw as GraphGroupStyle
 }
 
 function setNodeAlarms(doc: GraphDocument, id: string, alarms: readonly Alarm[]): GraphDocument {

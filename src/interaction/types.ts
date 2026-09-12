@@ -33,7 +33,7 @@ export interface OverlayChrome {
 export interface InteractionHitHost {
   getViewElement(): HTMLDivElement | null
   getHitElement(): HTMLCanvasElement | null
-  hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' } | undefined
+  hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' | 'group' } | undefined
   /**
    * Hit-test groups at a screen point.
    * @param screenX - CSS x relative to the hit canvas.
@@ -68,6 +68,8 @@ export interface InteractionCameraHost {
 export interface InteractionQueryHost {
   /** @param id - node id. @returns node or undefined. */
   getNode(id: string): GraphNode | undefined
+  /** @param id - group id. @returns group or undefined. */
+  getGroup(id: string): GraphGroup | undefined
   /** @returns nodes in the active network. */
   getNodes(): readonly GraphNode[]
   /** @returns edges in the active network. */
@@ -123,6 +125,34 @@ export interface InteractionEditHost {
     from: { x: number; y: number }
     to: { x: number; y: number }
     toGroupId?: string | undefined
+  }): void
+  /**
+   * Live preview of a group drag: translate group x/y and all member nodes.
+   * @param groupId - group id.
+   * @param dx - world delta x from drag start.
+   * @param dy - world delta y from drag start.
+   * @param origins - drag-start positions for group and members.
+   */
+  previewGroupMove(args: {
+    groupId: string
+    dx: number
+    dy: number
+    groupFrom: { x: number; y: number }
+    members: readonly { id: string; fromX: number; fromY: number }[]
+  }): void
+  /**
+   * Commit a group drag: updateGroup x/y + updateNode for each member.
+   * @param args - group and member from/to positions.
+   */
+  commitGroupMove(args: {
+    groupId: string
+    groupFrom: { x: number; y: number }
+    groupTo: { x: number; y: number }
+    members: readonly {
+      id: string
+      from: { x: number; y: number }
+      to: { x: number; y: number }
+    }[]
   }): void
   /**
    * Commit resize: apply updateNode x/y/w/h, emit nodeResized.

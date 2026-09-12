@@ -44,7 +44,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `ElementUI.js` | Validate bounds → paint | `done` | `NodeView` / `EdgeView` / `GroupView` + `ViewSet` |
 | `NodeUI.js` | Node body paint | `done` | `NodeView` + `Canvas2DRenderer.drawNode` |
 | `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + orthogonal polylines + `GraphEdgeStyle` / attachments |
-| `GroupUI.js` | Group band + outline styles | `done` | `GroupView` + `GraphGroup.style` |
+| `GroupUI.js` | Group band + expand/collapse + outline styles | `done` | `GroupView` + `GraphGroup.expanded` / `style` / attachments; agent-link remap when collapsed |
 | `Attachment.js` | Attachment base | `done` | `src/ui/attachment/Attachment` under NodeView / EdgeView |
 | `BasicAttachment.js` | Shared attachment paint | `done` (lean) | Fixed positions + path ratios + paint ops; no pointer/glow stack |
 | `AlarmAttachment.js` | Alarm badge | `done` | Node + Edge `AlarmAttachment` + union bounds |

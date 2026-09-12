@@ -18,7 +18,8 @@ import {
   samplePolylineAt,
   type AttachmentPaintOp,
 } from './attachment/index.ts'
-import { edgeAnchors } from './bounds.ts'
+import { edgeAnchors, edgeAnchorsFromRects, nodeBounds } from './bounds.ts'
+import { collapsedGroupForNode, computeGroupBandBounds } from './group-state.ts'
 
 const PATH_BOUNDS_PAD = 4
 const DEFAULT_STROKE = '#5a6478'
@@ -100,7 +101,26 @@ export class EdgeView {
       this.resetInactive()
       return
     }
-    const anchors = edgeAnchors(from, to, edge.waypoints)
+    const fromCollapsed = collapsedGroupForNode(scene, edge.from)
+    const toCollapsed = collapsedGroupForNode(scene, edge.to)
+    // Intra-group edge while collapsed: hide (agent links only cross the group boundary).
+    if (
+      fromCollapsed !== undefined
+      && toCollapsed !== undefined
+      && fromCollapsed.id === toCollapsed.id
+    ) {
+      this.resetInactive()
+      return
+    }
+    const fromBox = fromCollapsed !== undefined
+      ? computeGroupBandBounds(scene, fromCollapsed)
+      : nodeBounds(from)
+    const toBox = toCollapsed !== undefined
+      ? computeGroupBandBounds(scene, toCollapsed)
+      : nodeBounds(to)
+    const anchors = (fromCollapsed !== undefined || toCollapsed !== undefined)
+      ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints)
+      : edgeAnchors(from, to, edge.waypoints)
     this.active = true
     this.fromPt = anchors.from
     this.toPt = anchors.to
