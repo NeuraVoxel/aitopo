@@ -13,8 +13,6 @@ export const subnetworkDocument: GraphDocument = {
       status: 'idle',
       x: 80,
       y: 120,
-      w: 120,
-      h: 52,
     },
     {
       id: 'solo',
@@ -23,8 +21,6 @@ export const subnetworkDocument: GraphDocument = {
       status: 'running',
       x: 280,
       y: 120,
-      w: 80,
-      h: 48,
     },
   ],
   edges: [],
@@ -34,8 +30,8 @@ export const subnetworkDocument: GraphDocument = {
       version: 1,
       meta: { title: 'Team Alpha members' },
       nodes: [
-        { id: 'm1', type: 'agent', label: 'member-1', status: 'idle', x: 80, y: 100, w: 96, h: 48 },
-        { id: 'm2', type: 'agent', label: 'member-2', status: 'running', x: 260, y: 100, w: 96, h: 48 },
+        { id: 'm1', type: 'agent', label: 'member-1', status: 'idle', x: 80, y: 100 },
+        { id: 'm2', type: 'agent', label: 'member-2', status: 'running', x: 260, y: 100 },
       ],
       edges: [{ id: 'me1', from: 'm1', to: 'm2', kind: 'parent', label: 'parent' }],
     },

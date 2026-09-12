@@ -11,8 +11,6 @@ export const alarmDocument: GraphDocument = {
       label: 'Info',
       x: 60,
       y: 100,
-      w: 88,
-      h: 48,
       alarms: [{ id: 'a-info', level: 'info', message: 'Heartbeat ok' }],
     },
     {
@@ -21,8 +19,6 @@ export const alarmDocument: GraphDocument = {
       label: 'Warn',
       x: 220,
       y: 100,
-      w: 88,
-      h: 48,
       alarms: [{ id: 'a-warn', level: 'warn', message: 'Queue backing up' }],
     },
     {
@@ -31,8 +27,6 @@ export const alarmDocument: GraphDocument = {
       label: 'Error',
       x: 380,
       y: 100,
-      w: 88,
-      h: 48,
       alarms: [
         { id: 'a-err', level: 'error', message: 'Probe failed' },
         { id: 'a-stale', level: 'warn', message: 'Stale metric' },

@@ -11,8 +11,6 @@ export const nodeDocument: GraphDocument = {
       label: 'Plain',
       x: 60,
       y: 80,
-      w: 88,
-      h: 48,
     },
     {
       id: 'labeled',
@@ -23,8 +21,6 @@ export const nodeDocument: GraphDocument = {
       status: 'running',
       x: 220,
       y: 80,
-      w: 100,
-      h: 52,
       style: { labelPosition: 'top', label2Position: 'bottom' },
     },
     {
@@ -35,8 +31,6 @@ export const nodeDocument: GraphDocument = {
       icon: 'node',
       x: 60,
       y: 200,
-      w: 88,
-      h: 48,
     },
     {
       id: 'service',
@@ -45,8 +39,6 @@ export const nodeDocument: GraphDocument = {
       status: 'idle',
       x: 220,
       y: 200,
-      w: 100,
-      h: 52,
       style: { labelPosition: 'insideTop', showIcon: false },
     },
   ],

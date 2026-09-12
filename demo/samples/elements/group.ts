@@ -5,9 +5,9 @@ export const groupDocument: GraphDocument = {
   version: 1,
   meta: { title: 'Group', kind: 'custom' },
   nodes: [
-    { id: 'a', type: 'agent', label: 'A', x: 100, y: 100, w: 64, h: 44, groupId: 'band' },
-    { id: 'b', type: 'agent', label: 'B', x: 220, y: 100, w: 64, h: 44, groupId: 'band' },
-    { id: 'outside', type: 'agent', label: 'Outside', x: 420, y: 110, w: 88, h: 48 },
+    { id: 'a', type: 'agent', label: 'A', x: 100, y: 100, groupId: 'band' },
+    { id: 'b', type: 'agent', label: 'B', x: 220, y: 100, groupId: 'band' },
+    { id: 'outside', type: 'agent', label: 'Outside', x: 420, y: 110 },
   ],
   edges: [{ id: 'inner', from: 'a', to: 'b', label: 'member' }],
   groups: [{

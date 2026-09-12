@@ -5,10 +5,10 @@ export const edgeDocument: GraphDocument = {
   version: 1,
   meta: { title: 'Edge', kind: 'custom' },
   nodes: [
-    { id: 'n1', type: 'agent', label: 'From', x: 60, y: 60, w: 80, h: 48 },
-    { id: 'n2', type: 'agent', label: 'To', x: 300, y: 60, w: 80, h: 48 },
-    { id: 'n3', type: 'agent', label: 'Dash', x: 60, y: 200, w: 80, h: 48 },
-    { id: 'n4', type: 'agent', label: 'Bend', x: 300, y: 200, w: 80, h: 48 },
+    { id: 'n1', type: 'agent', label: 'From', x: 60, y: 60 },
+    { id: 'n2', type: 'agent', label: 'To', x: 300, y: 60 },
+    { id: 'n3', type: 'agent', label: 'Dash', x: 60, y: 200 },
+    { id: 'n4', type: 'agent', label: 'Bend', x: 300, y: 200 },
   ],
   edges: [
     {
