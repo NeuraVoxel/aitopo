@@ -1,0 +1,384 @@
+import { useRef, useState, type ReactNode } from 'react'
+import type { GraphPatch, Network } from '../../src/index.ts'
+import {
+  buildPropertyPatch,
+  LABEL_POSITIONS,
+  type PropertyFields,
+  type PropTarget,
+} from '../lib/property-patch.ts'
+
+export interface PropertyPanelProps {
+  readonly selectedIds: readonly string[]
+  readonly applyPatch: (patch: GraphPatch) => void
+  readonly getNetwork: () => Network | null
+}
+
+interface FormDraft {
+  label: string
+  x: string
+  y: string
+  w: string
+  h: string
+  type: string
+  kind: string
+  expanded: boolean
+  labelPosition: string
+  fill: string
+  stroke: string
+  strokeWidth: string
+  labelColor: string
+  labelFontSize: string
+  dataJson: string
+}
+
+const LABEL_POSITION_OPTIONS = ['', ...LABEL_POSITIONS] as const
+
+const EMPTY_DRAFT: FormDraft = {
+  label: '',
+  x: '',
+  y: '',
+  w: '',
+  h: '',
+  type: '',
+  kind: '',
+  expanded: false,
+  labelPosition: '',
+  fill: '',
+  stroke: '',
+  strokeWidth: '',
+  labelColor: '',
+  labelFontSize: '',
+  dataJson: '{}',
+}
+
+/** Right-column inspector: single-select write-back on blur/Enter. */
+export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyPanelProps) {
+  const [draft, setDraft] = useState<FormDraft>(EMPTY_DRAFT)
+  const [error, setError] = useState<string | undefined>(undefined)
+  const [seenSnapshot, setSeenSnapshot] = useState('')
+  const target = resolveTarget(getNetwork(), selectedIds)
+  const networkDraft = target === null ? EMPTY_DRAFT : draftFrom(target)
+  const snapshot = target === null ? '' : `${target.kind}:${target.element.id}:${JSON.stringify(networkDraft)}`
+  if (snapshot !== seenSnapshot) {
+    setSeenSnapshot(snapshot)
+    setDraft(networkDraft)
+    setError(undefined)
+  }
+  const formDraft = snapshot !== seenSnapshot ? networkDraft : draft
+  const draftRef = useRef(formDraft)
+  draftRef.current = formDraft
+
+  const commit = (nextDraft: FormDraft = draftRef.current): void => {
+    const current = resolveTarget(getNetwork(), selectedIds)
+    if (current === null) return
+    try {
+      const fields = fieldsFromDraft(current, nextDraft)
+      if (Object.keys(fields).length === 0) return
+      applyPatch(buildPropertyPatch(current, fields))
+      setError(undefined)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : String(caught))
+    }
+  }
+
+  const setField = <K extends keyof FormDraft>(key: K, value: FormDraft[K]): void => {
+    setDraft(current => ({ ...current, [key]: value }))
+  }
+
+  if (selectedIds.length !== 1) {
+    return (
+      <aside className="property-panel" aria-label="Properties">
+        <h2 className="property-panel-title">Properties</h2>
+        <p className="property-empty">Select one element</p>
+      </aside>
+    )
+  }
+
+  if (target === null) {
+    return (
+      <aside className="property-panel" aria-label="Properties">
+        <h2 className="property-panel-title">Properties</h2>
+        <p className="property-empty">Element not in the active network</p>
+      </aside>
+    )
+  }
+
+  const kindLabel = target.kind === 'node' ? 'Node' : target.kind === 'edge' ? 'Edge' : 'Group'
+  const id = target.element.id
+  const alarms = formatAlarms(target)
+
+  return (
+    <aside className="property-panel" aria-label="Properties">
+      <h2 className="property-panel-title">Properties · {kindLabel}</h2>
+      <Row label="id">
+        <span className="property-readonly">{id}</span>
+      </Row>
+      <TextRow
+        label="label"
+        value={formDraft.label}
+        onChange={value => setField('label', value)}
+        onCommit={() => commit()}
+      />
+      {target.kind === 'node' && (
+        <TextRow
+          label="type"
+          value={formDraft.type}
+          onChange={value => setField('type', value)}
+          onCommit={() => commit()}
+        />
+      )}
+      {target.kind === 'edge' && (
+        <>
+          <TextRow
+            label="kind"
+            value={formDraft.kind}
+            onChange={value => setField('kind', value)}
+            onCommit={() => commit()}
+          />
+          <Row label="from">
+            <span className="property-readonly">{target.element.from}</span>
+          </Row>
+          <Row label="to">
+            <span className="property-readonly">{target.element.to}</span>
+          </Row>
+        </>
+      )}
+      {target.kind === 'group' && (
+        <>
+          <Row label="expanded">
+            <input
+              type="checkbox"
+              checked={formDraft.expanded}
+              onChange={event => {
+                const next = { ...draftRef.current, expanded: event.target.checked }
+                setDraft(next)
+                commit(next)
+              }}
+            />
+          </Row>
+          <Row label="members">
+            <span className="property-readonly">{target.element.memberIds.join(', ') || '—'}</span>
+          </Row>
+        </>
+      )}
+      {(target.kind === 'node' || target.kind === 'group') && (
+        <>
+          <TextRow label="x" value={formDraft.x} onChange={value => setField('x', value)} onCommit={() => commit()} />
+          <TextRow label="y" value={formDraft.y} onChange={value => setField('y', value)} onCommit={() => commit()} />
+          <TextRow label="w" value={formDraft.w} onChange={value => setField('w', value)} onCommit={() => commit()} />
+          <TextRow label="h" value={formDraft.h} onChange={value => setField('h', value)} onCommit={() => commit()} />
+          <Row label="label pos">
+            <select
+              value={formDraft.labelPosition}
+              onChange={event => {
+                const next = { ...draftRef.current, labelPosition: event.target.value }
+                setDraft(next)
+                commit(next)
+              }}
+            >
+              {LABEL_POSITION_OPTIONS.map(option => (
+                <option key={option || 'unset'} value={option}>
+                  {option || '(default)'}
+                </option>
+              ))}
+            </select>
+          </Row>
+        </>
+      )}
+      {target.kind === 'group' && (
+        <TextRow
+          label="fill"
+          value={formDraft.fill}
+          onChange={value => setField('fill', value)}
+          onCommit={() => commit()}
+        />
+      )}
+      {(target.kind === 'edge' || target.kind === 'group') && (
+        <>
+          <TextRow
+            label="stroke"
+            value={formDraft.stroke}
+            onChange={value => setField('stroke', value)}
+            onCommit={() => commit()}
+          />
+          <TextRow
+            label="stroke w"
+            value={formDraft.strokeWidth}
+            onChange={value => setField('strokeWidth', value)}
+            onCommit={() => commit()}
+          />
+        </>
+      )}
+      <TextRow
+        label="label color"
+        value={formDraft.labelColor}
+        onChange={value => setField('labelColor', value)}
+        onCommit={() => commit()}
+      />
+      <TextRow
+        label="label size"
+        value={formDraft.labelFontSize}
+        onChange={value => setField('labelFontSize', value)}
+        onCommit={() => commit()}
+      />
+      <Row label="data">
+        <textarea
+          rows={4}
+          value={formDraft.dataJson}
+          spellCheck={false}
+          onChange={event => setField('dataJson', event.target.value)}
+          onBlur={() => commit()}
+        />
+      </Row>
+      <Row label="alarms">
+        <span className="property-readonly">{alarms}</span>
+      </Row>
+      {error !== undefined && <p className="property-error" role="alert">{error}</p>}
+    </aside>
+  )
+}
+
+function Row({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="property-row">
+      <label>{label}</label>
+      {children}
+    </div>
+  )
+}
+
+function TextRow(props: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  onCommit: () => void
+}) {
+  return (
+    <Row label={props.label}>
+      <input
+        type="text"
+        value={props.value}
+        onChange={event => props.onChange(event.target.value)}
+        onBlur={props.onCommit}
+        onKeyDown={event => {
+          if (event.key !== 'Enter') return
+          event.preventDefault()
+          event.currentTarget.blur()
+        }}
+      />
+    </Row>
+  )
+}
+
+function resolveTarget(network: Network | null, selectedIds: readonly string[]): PropTarget | null {
+  if (network === null || selectedIds.length !== 1) return null
+  const id = selectedIds[0]!
+  const node = network.getNodes().find(element => element.id === id)
+  if (node !== undefined) return { kind: 'node', element: node }
+  const edge = network.getEdges().find(element => element.id === id)
+  if (edge !== undefined) return { kind: 'edge', element: edge }
+  const group = network.getGroups().find(element => element.id === id)
+  if (group !== undefined) return { kind: 'group', element: group }
+  return null
+}
+
+function draftFrom(target: PropTarget): FormDraft {
+  const data = stringData(target.element.data)
+  const labelStyle = target.element.style?.label
+  const base: FormDraft = {
+    ...EMPTY_DRAFT,
+    label: target.element.label ?? '',
+    labelColor: labelStyle?.color ?? '',
+    labelFontSize: numStr(labelStyle?.fontSize),
+    dataJson: JSON.stringify(data, null, 2),
+  }
+  if (target.kind === 'node') {
+    return {
+      ...base,
+      type: target.element.type,
+      x: numStr(target.element.x),
+      y: numStr(target.element.y),
+      w: numStr(target.element.w),
+      h: numStr(target.element.h),
+      labelPosition: target.element.style?.labelPosition ?? '',
+    }
+  }
+  if (target.kind === 'edge') {
+    return {
+      ...base,
+      kind: target.element.kind ?? '',
+      stroke: target.element.style?.stroke ?? '',
+      strokeWidth: numStr(target.element.style?.lineWidth),
+    }
+  }
+  return {
+    ...base,
+    expanded: target.element.expanded === true,
+    x: numStr(target.element.x),
+    y: numStr(target.element.y),
+    w: numStr(target.element.w),
+    h: numStr(target.element.h),
+    labelPosition: target.element.style?.labelPosition ?? '',
+    fill: target.element.style?.fill ?? '',
+    stroke: target.element.style?.stroke ?? '',
+    strokeWidth: numStr(target.element.style?.strokeWidth),
+  }
+}
+
+function fieldsFromDraft(target: PropTarget, draft: FormDraft): PropertyFields {
+  const current = draftFrom(target)
+  const fields: PropertyFields = {}
+  if (draft.label !== current.label) fields.label = draft.label
+  assignNumber(fields, 'x', draft.x, current.x)
+  assignNumber(fields, 'y', draft.y, current.y)
+  assignNumber(fields, 'w', draft.w, current.w)
+  assignNumber(fields, 'h', draft.h, current.h)
+  if (target.kind === 'node' && draft.type !== current.type) fields.type = draft.type
+  if (target.kind === 'edge' && draft.kind !== current.kind) fields.kind = draft.kind
+  if (target.kind === 'group' && draft.expanded !== current.expanded) {
+    fields.expanded = draft.expanded
+  }
+  if (draft.labelPosition !== current.labelPosition && draft.labelPosition !== '') {
+    fields.labelPosition = draft.labelPosition
+  }
+  if (draft.fill !== current.fill) fields.fill = draft.fill
+  if (draft.stroke !== current.stroke) fields.stroke = draft.stroke
+  assignNumber(fields, 'strokeWidth', draft.strokeWidth, current.strokeWidth)
+  if (draft.labelColor !== current.labelColor) fields.labelColor = draft.labelColor
+  assignNumber(fields, 'labelFontSize', draft.labelFontSize, current.labelFontSize)
+  if (draft.dataJson !== current.dataJson) fields.dataJson = draft.dataJson
+  return fields
+}
+
+function assignNumber(
+  fields: PropertyFields,
+  key: 'x' | 'y' | 'w' | 'h' | 'strokeWidth' | 'labelFontSize',
+  draft: string,
+  current: string,
+): void {
+  if (draft === current) return
+  const trimmed = draft.trim()
+  if (trimmed === '') return
+  const value = Number(trimmed)
+  if (!Number.isFinite(value)) throw new Error(`Invalid ${key}`)
+  fields[key] = value
+}
+
+function numStr(value: number | undefined): string {
+  return value === undefined ? '' : String(value)
+}
+
+function stringData(data: Readonly<Record<string, unknown>> | undefined): Record<string, string> {
+  const out: Record<string, string> = {}
+  if (data === undefined) return out
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'string') out[key] = value
+  }
+  return out
+}
+
+function formatAlarms(target: PropTarget): string {
+  const alarms = target.element.alarms
+  if (alarms === undefined || alarms.length === 0) return 'none'
+  return alarms.map(alarm => `${alarm.level}: ${alarm.message}`).join('; ')
+}

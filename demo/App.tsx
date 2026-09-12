@@ -1,4 +1,5 @@
 import { CanvasHost } from './components/CanvasHost.tsx'
+import { PropertyPanel } from './components/PropertyPanel.tsx'
 import { SampleNav } from './components/SampleNav.tsx'
 import { StatusBar } from './components/StatusBar.tsx'
 import { Toolbar } from './components/Toolbar.tsx'
@@ -28,6 +29,11 @@ export function App() {
           onSelect={demo.setSampleId}
         />
         <CanvasHost stageRef={demo.stageRef} />
+        <PropertyPanel
+          selectedIds={demo.selectedIds}
+          applyPatch={demo.applyPatch}
+          getNetwork={demo.getNetwork}
+        />
       </div>
       <StatusBar status={demo.status} />
     </div>
