@@ -1,5 +1,7 @@
 import { CanvasHost } from './components/CanvasHost.tsx'
 import { SampleNav } from './components/SampleNav.tsx'
+import { StatusBar } from './components/StatusBar.tsx'
+import { Toolbar } from './components/Toolbar.tsx'
 import { useNetworkDemo } from './hooks/useNetworkDemo.ts'
 import { listSamples } from './samples/registry.ts'
 
@@ -7,12 +9,27 @@ export function App() {
   const demo = useNetworkDemo()
   return (
     <div className="app">
-      <SampleNav
-        samples={listSamples()}
-        activeId={demo.sampleId}
-        onSelect={demo.setSampleId}
+      <Toolbar
+        mode={demo.mode}
+        debug={demo.debug}
+        canUndo={demo.canUndo}
+        canRedo={demo.canRedo}
+        setMode={demo.setMode}
+        setDebug={demo.setDebug}
+        undo={demo.undo}
+        redo={demo.redo}
+        enterSubNetwork={demo.enterSubNetwork}
+        exitSubNetwork={demo.exitSubNetwork}
       />
-      <CanvasHost stageRef={demo.stageRef} />
+      <div className="app-body">
+        <SampleNav
+          samples={listSamples()}
+          activeId={demo.sampleId}
+          onSelect={demo.setSampleId}
+        />
+        <CanvasHost stageRef={demo.stageRef} />
+      </div>
+      <StatusBar status={demo.status} />
     </div>
   )
 }

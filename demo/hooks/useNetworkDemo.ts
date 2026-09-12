@@ -27,9 +27,15 @@ export interface NetworkDemoApi {
   redo: () => void
   applyPatch: (patch: GraphPatch) => void
   fitContent: () => void
+  enterSubNetwork: (id: string) => void
+  exitSubNetwork: () => void
   /** Latest Network instance for property reads (null before mount). */
   getNetwork: () => Network | null
 }
+
+const CREATE_NODE_W = 80
+const CREATE_NODE_H = 48
+const CREATE_CLICK_DRAG_PX = 4
 
 function fitNetwork(network: Network): void {
   const bounds = contentBounds(network.scene)
@@ -161,6 +167,65 @@ export function useNetworkDemo(): NetworkDemoApi {
     networkRef.current?.setDebugPaintRects(debug)
   }, [debug])
 
+  // Stage bubble pointerup runs after SelectActivate on the canvas.
+  useEffect(() => {
+    if (mode !== 'create-node') return
+    const host = stageRef.current
+    if (host === null) return
+
+    let downX = 0
+    let downY = 0
+
+    const onPointerDown = (event: PointerEvent): void => {
+      if (event.button !== 0) return
+      downX = event.clientX
+      downY = event.clientY
+    }
+
+    const onPointerUp = (event: PointerEvent): void => {
+      if (event.button !== 0) return
+      if (Math.hypot(event.clientX - downX, event.clientY - downY) > CREATE_CLICK_DRAG_PX) {
+        return
+      }
+      const clientX = event.clientX
+      const clientY = event.clientY
+      queueMicrotask(() => {
+        const network = networkRef.current
+        if (network === null) return
+        if (network.getSelectedIds().length > 0) return
+        const canvas = network.getHitElement()
+        if (canvas === null) return
+        const rect = canvas.getBoundingClientRect()
+        const screenX = clientX - rect.left
+        const screenY = clientY - rect.top
+        if (screenX < 0 || screenY < 0 || screenX > rect.width || screenY > rect.height) return
+        if (network.hitTestScreen(screenX, screenY) !== undefined) return
+        const world = network.screenToWorld(screenX, screenY)
+        network.apply({
+          ops: [{
+            op: 'addNode',
+            node: {
+              id: `n-${Date.now()}`,
+              type: 'unit',
+              label: 'node',
+              x: world.x,
+              y: world.y,
+              w: CREATE_NODE_W,
+              h: CREATE_NODE_H,
+            },
+          }],
+        })
+      })
+    }
+
+    host.addEventListener('pointerdown', onPointerDown)
+    host.addEventListener('pointerup', onPointerUp)
+    return () => {
+      host.removeEventListener('pointerdown', onPointerDown)
+      host.removeEventListener('pointerup', onPointerUp)
+    }
+  }, [mode])
+
   const setSampleId = useCallback((id: string) => {
     const sample = getSample(id)
     if (sample === undefined) {
@@ -206,6 +271,30 @@ export function useNetworkDemo(): NetworkDemoApi {
     fitNetwork(network)
   }, [])
 
+  const enterSubNetwork = useCallback((id: string) => {
+    const network = networkRef.current
+    if (network === null) return
+    try {
+      network.enterSubNetwork(id)
+      fitNetwork(network)
+      setStatus(`Entered ${id}`)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error))
+    }
+  }, [])
+
+  const exitSubNetwork = useCallback(() => {
+    const network = networkRef.current
+    if (network === null) return
+    try {
+      network.exitSubNetwork()
+      fitNetwork(network)
+      setStatus('Exited subnet')
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : String(error))
+    }
+  }, [])
+
   const getNetwork = useCallback(() => networkRef.current, [])
 
   return {
@@ -224,6 +313,8 @@ export function useNetworkDemo(): NetworkDemoApi {
     redo,
     applyPatch,
     fitContent,
+    enterSubNetwork,
+    exitSubNetwork,
     getNetwork,
   }
 }

@@ -11,9 +11,64 @@ body {
 
 .app {
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   height: 100%;
   color: #334155;
+}
+
+.app-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.toolbar-sep {
+  width: 1px;
+  height: 18px;
+  margin: 0 4px;
+  background: #334155;
+}
+
+.toolbar-btn {
+  margin: 0;
+  padding: 4px 10px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #1e293b;
+  color: inherit;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.toolbar-btn.is-active {
+  background: #334155;
+  border-color: #64748b;
+}
+
+.toolbar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.status-bar {
+  padding: 6px 10px;
+  border-top: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 12px;
+  color: #64748b;
+  min-height: 1.5em;
 }
 
 .sample-nav {
