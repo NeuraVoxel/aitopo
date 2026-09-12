@@ -17,10 +17,10 @@ export const groupDocument: GraphDocument = {
     expanded: true,
     x: 60,
     y: 48,
-    w: 280,
-    h: 140,
+    // w: 280,
+    // h: 140,
     style: {
-      labelPosition: 'insideTopLeft',
+      labelPosition: 'top',
       stroke: '#2563eb',
       strokeWidth: 1.5,
       fill: 'rgba(37, 99, 235, 0.08)',
