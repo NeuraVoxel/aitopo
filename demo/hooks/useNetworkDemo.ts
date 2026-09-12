@@ -31,8 +31,6 @@ export interface NetworkDemoApi {
   redo: () => void
   applyPatch: (patch: GraphPatch) => void
   fitContent: () => void
-  enterSubNetwork: (id: string) => void
-  exitSubNetwork: () => void
   /** Latest Network instance for property reads (null before mount). */
   getNetwork: () => Network | null
 }
@@ -295,30 +293,6 @@ export function useNetworkDemo(): NetworkDemoApi {
     fitNetwork(network)
   }, [])
 
-  const enterSubNetwork = useCallback((id: string) => {
-    const network = networkRef.current
-    if (network === null) return
-    try {
-      network.enterSubNetwork(id)
-      fitNetwork(network)
-      setStatus(`Entered ${id}`)
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error))
-    }
-  }, [])
-
-  const exitSubNetwork = useCallback(() => {
-    const network = networkRef.current
-    if (network === null) return
-    try {
-      network.exitSubNetwork()
-      fitNetwork(network)
-      setStatus('Exited subnet')
-    } catch (error) {
-      setStatus(error instanceof Error ? error.message : String(error))
-    }
-  }, [])
-
   const getNetwork = useCallback(() => networkRef.current, [])
 
   return {
@@ -337,8 +311,6 @@ export function useNetworkDemo(): NetworkDemoApi {
     redo,
     applyPatch,
     fitContent,
-    enterSubNetwork,
-    exitSubNetwork,
     getNetwork,
   }
 }

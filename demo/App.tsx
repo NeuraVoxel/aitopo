@@ -19,8 +19,6 @@ export function App() {
         setDebug={demo.setDebug}
         undo={demo.undo}
         redo={demo.redo}
-        enterSubNetwork={demo.enterSubNetwork}
-        exitSubNetwork={demo.exitSubNetwork}
       />
       <div className="app-body">
         <SampleNav

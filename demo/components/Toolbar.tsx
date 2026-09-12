@@ -10,8 +10,6 @@ export type ToolbarProps = Pick<
   | 'setDebug'
   | 'undo'
   | 'redo'
-  | 'enterSubNetwork'
-  | 'exitSubNetwork'
 >
 
 const MODES: readonly { id: DemoMode; label: string }[] = [
@@ -21,7 +19,7 @@ const MODES: readonly { id: DemoMode; label: string }[] = [
   { id: 'create-link', label: 'Create Link' },
 ]
 
-/** Interaction modes, history, Debug, and SubNetwork enter/exit. */
+/** Interaction modes, history, and Debug. */
 export function Toolbar({
   mode,
   debug,
@@ -31,8 +29,6 @@ export function Toolbar({
   setDebug,
   undo,
   redo,
-  enterSubNetwork,
-  exitSubNetwork,
 }: ToolbarProps) {
   return (
     <div className="toolbar" role="toolbar" aria-label="Interaction">
@@ -61,23 +57,6 @@ export function Toolbar({
         onClick={() => setDebug(!debug)}
       >
         {debug ? 'Debug ✓' : 'Debug'}
-      </button>
-      <span className="toolbar-sep" aria-hidden="true" />
-      <button
-        type="button"
-        className="toolbar-btn"
-        title="Enter SubNetwork team-a"
-        onClick={() => enterSubNetwork('team-a')}
-      >
-        Enter team-a
-      </button>
-      <button
-        type="button"
-        className="toolbar-btn"
-        title="Exit current SubNetwork"
-        onClick={exitSubNetwork}
-      >
-        Exit subnet
       </button>
     </div>
   )
