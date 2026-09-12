@@ -128,4 +128,21 @@ describe('PatchHistory', () => {
     expect(history.undo()).toBe(false)
     expect(doc.nodes[0]?.x).toBe(1)
   })
+
+  it('clear drops undo and redo stacks', () => {
+    let doc = parseDocument({
+      version: 1,
+      nodes: [{ id: 'a', type: 'agent', label: 'A', x: 1, y: 2 }],
+      edges: [],
+    })
+    const history = new PatchHistory(
+      (patch) => { doc = applyPatch(doc, patch) },
+      () => doc,
+    )
+    history.pushAndApply({ ops: [{ op: 'updateNode', id: 'a', patch: { x: 3 } }] })
+    expect(history.undo()).toBe(true)
+    history.clear()
+    expect(history.undo()).toBe(false)
+    expect(history.redo()).toBe(false)
+  })
 })

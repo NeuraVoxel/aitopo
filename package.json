@@ -24,7 +24,7 @@
   ],
   "scripts": {
     "test": "vitest run --config vitest.config.ts",
-    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p demo/tsconfig.json --noEmit",
     "build": "tsc -p tsconfig.json",
     "demo": "vite --config demo/vite.config.ts",
     "verify-notes": "ai-eng verify-notes .agents/notes",

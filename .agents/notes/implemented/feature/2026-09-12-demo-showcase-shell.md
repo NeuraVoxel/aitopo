@@ -31,7 +31,7 @@ Mutually exclusive primary mode:
 | Create Node | Click empty canvas → `addNode` at world point |
 | Create Link | Exclusive link mode (`CreateEdgeInteraction` with `requireAlt: false`) |
 
-Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when history is active (Edit and create modes). Switching samples or modes recreates `Network` (clears history) then `load` + optional layout + `fitContent`.
+Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when history is active (Edit and create modes). Switching samples or modes recreates `Network` (clears history) then `load` + optional layout + `fitContent`. `Network.on('subNetworkChanged')` clears `PatchHistory`, resets undo/redo flags, and `setSelection([])` so PropertyPanel does not keep parent-network ids. Undo/redo apply failures become status text.
 
 ### Sample catalog
 
@@ -55,10 +55,11 @@ demo/
   components/ SampleNav, Toolbar, PropertyPanel, StatusBar, CanvasHost
   samples/ registry + hello-world + elements/* + business/placeholders
   hooks/useNetworkDemo.ts
-  lib/interactions.ts, property-patch.ts
+  lib/interactions.ts, property-patch.ts, subnetwork-session.ts
+  tsconfig.json
 ```
 
-`react` / `react-dom` (+ types) and `@vitejs/plugin-react` ^4.x (Vite 6) are demo `devDependencies`. `pnpm run demo` is unchanged.
+`react` / `react-dom` (+ types) and `@vitejs/plugin-react` ^4.x (Vite 6) are demo `devDependencies`. `pnpm run demo` is unchanged. `pnpm run typecheck` runs `tsc -p tsconfig.json --noEmit` then `tsc -p demo/tsconfig.json --noEmit` so demo TSX is checked without folding `demo/` into the engine program.
 
 ## Alternatives considered
 
@@ -68,6 +69,8 @@ demo/
 - **Multi-route sample pages:** rejected — breaks shared toolbar/modes/properties when switching samples.
 - **Ship business topologies in the same change:** deferred — catalog placeholders only (`dsh-event-topo` etc.).
 - **Full property editor (alarms, waypoints, multi-select, edge arrows):** deferred — write-back level A only.
+- **Keep PatchHistory and React selection across SubNetwork enter/exit:** rejected — inverses target the previous network, and scene selection retains parent ids that PropertyPanel then shows as missing.
+- **Fold `demo/` into the root `tsconfig.json` include:** rejected — engine emit uses `rootDir: src`; a separate `demo/tsconfig.json` keeps that program isolated.
 - **IDE layout B (nav rail + bottom props) or C (floating edit tools):** rejected after layout review; Classic IDE (A) won.
 
 ## Consequences
@@ -76,12 +79,15 @@ demo/
 - Recreating `Network` on every sample/mode remount drops transient UI state; acceptable for a showcase (status bar reports load / reserved / subnet messages).
 - Create Node by click has no first-class engine interaction (no `CreateElement`); the host uses pointer + `addNode`. Mode exclusivity tears down conflicting interactions on remount.
 - Edge arrow fields stay off the property panel (deferred from level A).
-- Enter/Exit subnet lives on the Toolbar (`Enter team-a` / `Exit subnet`), not the property panel.
+- Enter/Exit subnet lives on the Toolbar (`Enter team-a` / `Exit subnet`), not the property panel. Successful navigation drops undo/redo for the previous network.
 - Optional catalog drag-drop chrome did not ship; Edit and Create Node still attach `ExternalDropInteraction` for host drops.
+- Status bar does not append the current mode (optional review follow-up, skipped).
 
 ## Testing
 
 - Default load is `hello-world` (two nodes, one edge).
 - `tests/demo-registry.spec.ts` — catalog groups, default id, reserved business rows do not load documents.
 - `tests/demo-property-patch.spec.ts` — single-select write-back ops for node/edge/group; invalid `dataJson` / `labelPosition` throw.
+- `tests/demo-subnetwork-session.spec.ts` — `subNetworkChanged` helper clears `PatchHistory` and selection; undo/redo apply errors become status text.
 - Observe / Edit / Create Node / Create Link / Debug / Undo / Redo / Enter–Exit subnet are host-wired; engine unit tests stay green (`pnpm test`).
+- `pnpm run typecheck` covers `src` and `demo`.

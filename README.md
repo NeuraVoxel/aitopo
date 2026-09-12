@@ -136,7 +136,7 @@ Fleet / Flow / Teams / Editor are no longer primary toolbar entries. `fixtures/*
 | Create Node | Click empty canvas → `addNode` at world point |
 | Create Link | Exclusive `CreateEdgeInteraction` (`requireAlt: false`) |
 | Debug | Toggles `setDebugPaintRects` |
-| Enter team-a / Exit subnet | Toolbar SubNetwork navigation (sample must define `team-a`) |
+| Enter team-a / Exit subnet | Toolbar SubNetwork navigation (sample must define `team-a`); clears selection and `PatchHistory` |
 
 **Property panel** — single selection. On blur/Enter, `updateNode` / `updateEdge` / `updateGroup` through `PatchHistory` when history is active: label; geometry `x/y/w/h` where applicable; node `type`; common style fields (fill, stroke, strokeWidth, labelPosition, label color/fontSize; edge kind); string `data` map. Read-only: id, alarms summary, membership / from–to. No alarm list editor, waypoint editor, multi-select batch edit, or edge arrow fields.
 

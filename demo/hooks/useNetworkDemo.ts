@@ -8,6 +8,10 @@ import {
 } from '../../src/index.ts'
 import { DEFAULT_SAMPLE_ID, getSample } from '../samples/registry.ts'
 import { buildInteractions, type DemoMode } from '../lib/interactions.ts'
+import {
+  resetDemoOnSubNetworkChanged,
+  runDemoHistoryStep,
+} from '../lib/subnetwork-session.ts'
 
 export type { DemoMode }
 
@@ -59,7 +63,8 @@ function wrapApplyWithHistory(
 
 /**
  * Mounts one Network into `stageRef`. Sample or mode change destroys and remounts
- * (history cleared). Reserved samples set status only and leave the current Network.
+ * (history cleared). `subNetworkChanged` clears history and selection. Reserved
+ * samples set status only and leave the current Network.
  */
 export function useNetworkDemo(): NetworkDemoApi {
   const stageRef = useRef<HTMLDivElement | null>(null)
@@ -127,6 +132,15 @@ export function useNetworkDemo(): NetworkDemoApi {
     const unsub = network.on(event => {
       if (event.type === 'selectionChanged' || event.type === 'documentChanged') {
         setSelectedIds([...network.getSelectedIds()])
+      }
+      if (event.type === 'subNetworkChanged') {
+        const selected = resetDemoOnSubNetworkChanged({
+          history: historyRef.current,
+          getSelectedIds: () => network.getSelectedIds(),
+          setSelection: nextIds => network.setSelection(nextIds),
+        })
+        setSelectedIds([...selected])
+        clearHistoryFlags()
       }
     })
 
@@ -246,19 +260,29 @@ export function useNetworkDemo(): NetworkDemoApi {
   const undo = useCallback(() => {
     const history = historyRef.current
     if (history === null) return
-    if (!history.undo()) return
-    undoDepthRef.current -= 1
-    redoDepthRef.current += 1
-    syncHistoryFlags()
+    const error = runDemoHistoryStep(
+      () => history.undo(),
+      () => {
+        undoDepthRef.current -= 1
+        redoDepthRef.current += 1
+        syncHistoryFlags()
+      },
+    )
+    if (error !== undefined) setStatus(error)
   }, [syncHistoryFlags])
 
   const redo = useCallback(() => {
     const history = historyRef.current
     if (history === null) return
-    if (!history.redo()) return
-    undoDepthRef.current += 1
-    redoDepthRef.current -= 1
-    syncHistoryFlags()
+    const error = runDemoHistoryStep(
+      () => history.redo(),
+      () => {
+        undoDepthRef.current += 1
+        redoDepthRef.current -= 1
+        syncHistoryFlags()
+      },
+    )
+    if (error !== undefined) setStatus(error)
   }, [syncHistoryFlags])
 
   const applyPatch = useCallback((patch: GraphPatch) => {
