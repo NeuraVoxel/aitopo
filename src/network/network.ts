@@ -16,6 +16,8 @@ import {
   ViewSet,
 } from '../ui/index.ts'
 import {
+  MarqueeSelectInteraction,
+  MoveNodeInteraction,
   PanZoomInteraction,
   SelectActivateInteraction,
   type Interaction,
@@ -32,7 +34,10 @@ export type GraphEventHandler = (event: GraphEvent) => void
 export interface NetworkOptions {
   /** Extra interactions beyond defaults. */
   readonly interactions?: readonly Interaction[]
-  /** Attach default pan/zoom + select when true (default true). */
+  /**
+   * Attach the default interaction set when true (default true):
+   * pan/zoom, click select/activate, node/group move, Shift-marquee select.
+   */
   readonly defaultInteractions?: boolean
   debugPaintRects?: boolean
   /**
@@ -679,7 +684,12 @@ export class Network {
   private attachInteractions(): void {
     const defaults = this.options.defaultInteractions === false
       ? []
-      : [new PanZoomInteraction(), new SelectActivateInteraction()]
+      : [
+        new PanZoomInteraction(),
+        new SelectActivateInteraction(),
+        new MoveNodeInteraction(),
+        new MarqueeSelectInteraction(),
+      ]
     this.interactionModules = [...defaults, ...(this.options.interactions ?? [])]
     for (const interaction of this.interactionModules) {
       this.disposers.push(interaction.attach(this))
