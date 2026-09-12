@@ -24,12 +24,13 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - GraphEdge attachments (label/label2/tooltip/alarm + style/arrows): [.agents/notes/implemented/architecture/2026-09-12-graph-edge-attachments.md](.agents/notes/implemented/architecture/2026-09-12-graph-edge-attachments.md)
 - GraphGroup attachments + expand/collapse: [.agents/notes/implemented/architecture/2026-09-12-graph-group-attachments.md](.agents/notes/implemented/architecture/2026-09-12-graph-group-attachments.md)
 - Performance roadmap (Waves J–N, proposed): [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
+- Demo showcase shell (catalog / modes / property panel): [.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md](.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md)
 
 Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
 ## Status
 
-Peer repository (`NeuraVoxel/aitopo`, private). deepseek-harness consumes this engine via git submodule (then npm). Engine + vanilla demo ship Editor interactions (move, drop, marquee, optional undo). Session UI adapters (`agent-observe`) stay in deepseek-harness.
+Peer repository (`NeuraVoxel/aitopo`, private). deepseek-harness consumes this engine via git submodule (then npm). Engine + React demo ship Editor interactions (move, drop, marquee, optional undo). Session UI adapters (`agent-observe`) stay in deepseek-harness.
 
 Agent workflow uses `@neuravoxel/ai-eng` as a committed `devDependency` (`github:NeuraVoxel/ai-eng-kit#…`; see [AGENTS.md](AGENTS.md)). After `pnpm install`, run `pnpm run verify-notes`. Bump the kit commit when upgrading process gates. CI needs repository secret `AI_ENG_KIT_TOKEN` (read access to the private kit) so `pnpm install` can fetch that GitHub dependency.
 
@@ -112,12 +113,32 @@ Pass `defaultInteractions: false` to attach only the listed modules (tests / cus
 
 ### Undo / redo
 
-Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply` / `toJSON`. Hosts may ignore it and own their own stack. The vanilla demo wires Undo/Redo only in **Editor** mode.
+Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply` / `toJSON`. Hosts may ignore it and own their own stack. The demo wires Undo/Redo in **Edit** and create modes (not Observe).
 
-### Demo
+## Demo
 
-- **Fleet / Flow / Teams** — observation mode (defaults only); unchanged behavior.
-- **Editor** — remounts with editor interactions, loads `fixtures/editor.json` (sample **data/control** edges), select edge → drag bend handles, Alt+drag to link, Delete edge / Delete key, **Link mode**, **Kind** toggle, **Hide others** (default off — full scene paint), drop catalog chip, Undo/Redo via `PatchHistory`.
+`pnpm run demo` starts a Vite + React Classic IDE shell on port 5179: top toolbar, left sample catalog, center `Network`, right property panel, bottom status. React is demo-only; the published engine stays framework-agnostic. `@vitejs/plugin-react` is pinned at ^4.x for Vite 6 (`@vitejs/plugin-react` 5 requires Vite 7).
+
+**Catalog** (registry-driven; switching a sample remounts `Network` and clears history):
+
+- **Getting started** — `hello-world` (default): two nodes, one edge, explicit coordinates (no layout).
+- **Elements** — Node, Edge, Group, Alarm, SubNetwork (one page each).
+- **Business (soon)** — reserved rows such as `dsh-event-topo` (status message only; no document load).
+
+Fleet / Flow / Teams / Editor are no longer primary toolbar entries. `fixtures/*.json` remain for engine tests.
+
+**Modes** (mutually exclusive except Debug):
+
+| Control | Behavior |
+|---|---|
+| Observe (default) | Defaults only: `PanZoom` + `SelectActivate` |
+| Edit | Move / resize / bend / marquee / delete edge; Alt+drag link; `PatchHistory` Undo/Redo |
+| Create Node | Click empty canvas → `addNode` at world point |
+| Create Link | Exclusive `CreateEdgeInteraction` (`requireAlt: false`) |
+| Debug | Toggles `setDebugPaintRects` |
+| Enter team-a / Exit subnet | Toolbar SubNetwork navigation (sample must define `team-a`) |
+
+**Property panel** — single selection. On blur/Enter, `updateNode` / `updateEdge` / `updateGroup` through `PatchHistory` when history is active: label; geometry `x/y/w/h` where applicable; node `type`; common style fields (fill, stroke, strokeWidth, labelPosition, label color/fontSize; edge kind); string `data` map. Read-only: id, alarms summary, membership / from–to. No alarm list editor, waypoint editor, multi-select batch edit, or edge arrow fields.
 
 ## Non-goals (current)
 
@@ -136,7 +157,7 @@ Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-
 - Pan/zoom triggers full-frame invalidate; element edits use dirty-rect.
 - Selection / hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); `apply` and live move/resize preview use dirty-rect when possible (Wave F).
 - Selected/hovered nodes use overlay rings; root body stroke no longer turns blue for select/hover.
-- Open **Debug dirty** while dragging a node in Editor: red rects should track the mover (not full-frame) when Hide others is off.
+- Open **Debug** while dragging a node in Edit: red rects should track the mover (not full-frame).
 - Performance follow-ups (demand rAF, culling, pan ladder, spatial hit, gated WebGL): [performance roadmap](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md) (proposed; not implemented).
 
 Full per-module status vs `twaver.vector`: [docs/2026-09-09-aitopo-twaver-vector-gap.md](docs/2026-09-09-aitopo-twaver-vector-gap.md).
