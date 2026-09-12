@@ -10,7 +10,7 @@
 
 **Tech Stack:** React 19 (or latest React 18+ compatible with Vite 6), `react-dom`, existing `@neuravoxel/aitopo` `src/` via Vite alias, Vitest for registry/patch helpers, TypeScript ~5.8.
 
-**Spec:** `.agents/notes/proposed/feature/2026-09-12-demo-showcase-shell.md`
+**Spec:** `.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md`
 
 ## Global Constraints
 
