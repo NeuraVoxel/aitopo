@@ -133,4 +133,53 @@ describe('GestureEditor', () => {
     editor.clearGestureDragged()
     expect(editor.wasGestureDragged()).toBe(false)
   })
+
+  it('preview move inside an auto-fit band dirties the band old and new rects', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'unit', label: 'A', x: 100, y: 100, groupId: 'g1' }],
+      edges: [],
+      groups: [
+        { id: 'g1', label: 'G1', memberIds: ['a'], x: 84, y: 84, expanded: true },
+      ],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const dirty = new DirtyAccumulator()
+    const editor = new GestureEditor({
+      scene,
+      views,
+      dirty,
+      scheduleScenePaint: vi.fn(),
+      apply: vi.fn(),
+      emit: vi.fn(),
+    })
+
+    editor.previewNodePosition('a', 300, 100)
+
+    const union = dirty.rect
+    expect(union).toBeDefined()
+    // Band = member union (50x50 default body) + 16px padding, so the old band
+    // occupies (84, 84)-(166, 166) and the new one (284, 84)-(366, 166). Each
+    // 8px-grown band corner must fall inside the dirty union or the repaint
+    // clip leaves band ghosts.
+    for (const corner of [
+      { x: 76, y: 76 },
+      { x: 174, y: 174 },
+      { x: 276, y: 76 },
+      { x: 374, y: 174 },
+    ]) {
+      expect(containsPoint(union!, corner)).toBe(true)
+    }
+  })
 })
+
+function containsPoint(
+  rect: { x: number; y: number; width: number; height: number },
+  point: { x: number; y: number },
+): boolean {
+  return point.x >= rect.x && point.x <= rect.x + rect.width
+    && point.y >= rect.y && point.y <= rect.y + rect.height
+}

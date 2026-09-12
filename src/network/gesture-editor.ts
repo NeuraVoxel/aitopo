@@ -421,11 +421,16 @@ export class GestureEditor {
 
   private previewNodeGeometry(id: string, mutate: () => void): void {
     const oldRects = this.captureNodeGeometryRects(id)
+    const oldGroupRects = this.captureNodeGroupRects(id)
     mutate()
     this.deps.views.markNodeGeometryDirty(this.deps.scene, id)
     this.deps.views.validateDirty(this.deps.scene)
     for (const rect of oldRects) this.deps.dirty.add(rect)
     for (const rect of this.captureNodeGeometryRects(id)) this.deps.dirty.add(rect)
+    // Auto-fit bands recompute from member positions during validate; without
+    // their old/new rects the repaint clip skips the band and leaves ghosts.
+    for (const rect of oldGroupRects) this.deps.dirty.add(rect)
+    for (const rect of this.captureNodeGroupRects(id)) this.deps.dirty.add(rect)
     this.deps.scene.takeDirty()
     if (this.filter !== undefined) {
       this.deps.dirty.markAll()
@@ -441,6 +446,22 @@ export class GestureEditor {
       if (edge.from !== nodeId && edge.to !== nodeId) continue
       const edgeView = this.deps.views.getEdge(edge.id)
       if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
+    }
+    return rects
+  }
+
+  /** Bounds of every group view the node belongs to (`groupId` ∪ `memberIds`). */
+  private captureNodeGroupRects(nodeId: string): Rect[] {
+    const node = this.deps.scene.nodes.get(nodeId)
+    const ids = new Set<string>()
+    if (node?.groupId !== undefined) ids.add(node.groupId)
+    for (const group of this.deps.scene.groups.values()) {
+      if (group.memberIds.includes(nodeId)) ids.add(group.id)
+    }
+    const rects: Rect[] = []
+    for (const id of ids) {
+      const groupView = this.deps.views.getGroup(id)
+      if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
     }
     return rects
   }
