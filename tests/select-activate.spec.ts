@@ -71,6 +71,7 @@ function createHost(
     getNodes: () => [],
     getEdges: () => [],
     getGroups: () => [],
+    getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getSelectedIds: () => [],
     hitTestGroupScreen: () => undefined,
     screenToWorld: () => ({ x: 0, y: 0 }),

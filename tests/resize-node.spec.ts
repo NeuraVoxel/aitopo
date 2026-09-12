@@ -109,7 +109,6 @@ function createHost(options: {
       drawMarquee: vi.fn(),
       drawEdgeRubberBand: vi.fn(),
       drawLazyMoveGhost: vi.fn(),
-      drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(() => {
         handlePaints += 1
       }),
@@ -136,6 +135,7 @@ function createHost(options: {
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
     getGroups: () => [],
+    getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),

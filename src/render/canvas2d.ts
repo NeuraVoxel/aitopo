@@ -130,8 +130,6 @@ export interface Renderer {
   drawEdgeRubberBand(from: Point, to: Point): void
   /** Overlay: ghost outline while lazy-moving a node. */
   drawLazyMoveGhost(bounds: Rect): void
-  /** Overlay: highlight group under pointer during membership drop. */
-  drawDropTargetHighlight(bounds: Rect): void
   /** Overlay: resize handle square at a corner. */
   drawResizeHandle(center: Point, size: number): void
   /** Overlay: edge bend waypoint handle. */
@@ -477,22 +475,6 @@ export class Canvas2DRenderer implements Renderer {
     ctx.fillStyle = 'rgba(59, 130, 246, 0.08)'
     ctx.lineWidth = 1.5 / this.viewport.zoom
     ctx.setLineDash([5 / this.viewport.zoom, 4 / this.viewport.zoom])
-    ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
-    ctx.restore()
-  }
-
-  /**
-   * Draw a drop-target group highlight on the overlay.
-   * @param bounds - group band bounds.
-   */
-  drawDropTargetHighlight(bounds: Rect): void {
-    const ctx = this.overlayCtx
-    ctx.save()
-    ctx.strokeStyle = '#22c55e'
-    ctx.fillStyle = 'rgba(34, 197, 94, 0.12)'
-    ctx.lineWidth = 2 / this.viewport.zoom
-    ctx.setLineDash([])
     ctx.fillRect(bounds.x, bounds.y, bounds.width, bounds.height)
     ctx.strokeRect(bounds.x, bounds.y, bounds.width, bounds.height)
     ctx.restore()

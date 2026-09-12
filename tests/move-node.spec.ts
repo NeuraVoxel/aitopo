@@ -122,7 +122,7 @@ function createHost(options: {
       drawLazyMoveGhost: vi.fn(() => {
         ghostPaints += 1
       }),
-      drawDropTargetHighlight: vi.fn(() => {
+      drawSelectionOverlay: vi.fn(() => {
         dropTargetPaints += 1
       }),
       drawResizeHandle: vi.fn(),
@@ -162,6 +162,7 @@ function createHost(options: {
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
     getGroups: () => groups,
+    getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => groupOnUp,
     screenToWorld: (x, y) => ({ x, y }),
@@ -509,6 +510,45 @@ describe('MoveNodeInteraction', () => {
     canvas.dispatch('pointermove', { button: 0, clientX: 40, clientY: 10 })
     expect(host.dropTargetPaints).toBeGreaterThan(0)
     canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 10 })
+    dispose()
+  })
+
+  it('does not highlight the group a dragged node already belongs to', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'a', x: 10, y: 20, groupId: 'g1' })],
+      selectedIds: ['a'],
+      hitId: 'a',
+      groupOnUp: 'g1',
+      groups: [{ id: 'g1', label: 'G', memberIds: ['a'], x: 0, y: 0, w: 100, h: 80 }],
+    })
+    const dispose = new MoveNodeInteraction().attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointermove', { button: 0, clientX: 40, clientY: 10 })
+    expect(host.dropTargetPaints).toBe(0)
+    canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 10 })
+    dispose()
+  })
+
+  it('highlights when at least one selected mover would join the group', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [
+        node({ id: 'a', x: 10, y: 20, groupId: 'g1' }),
+        node({ id: 'b', x: 60, y: 20 }),
+      ],
+      selectedIds: ['a', 'b'],
+      hitId: 'b',
+      groupOnUp: 'g1',
+      groups: [{ id: 'g1', label: 'G', memberIds: ['a'], x: 0, y: 0, w: 100, h: 80 }],
+    })
+    const dispose = new MoveNodeInteraction().attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 60, clientY: 10 })
+    canvas.dispatch('pointermove', { button: 0, clientX: 90, clientY: 10 })
+    expect(host.dropTargetPaints).toBeGreaterThan(0)
+    canvas.dispatch('pointerup', { button: 0, clientX: 90, clientY: 10 })
     dispose()
   })
 })

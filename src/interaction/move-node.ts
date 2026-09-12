@@ -2,7 +2,7 @@
  * Drag-move selected unlocked nodes or groups with optional group membership on drop.
  */
 
-import { groupBounds, nodeBounds } from '../ui/bounds.ts'
+import { nodeBounds } from '../ui/bounds.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
 const DRAG_THRESHOLD_PX = 4
@@ -107,8 +107,11 @@ export class MoveNodeInteraction implements Interaction {
         paint(renderer) {
           if (dropTargetGroupId !== undefined) {
             const group = network.getGroup(dropTargetGroupId)
-            if (group !== undefined) {
-              renderer.drawDropTargetHighlight(groupBounds(group))
+            const band = network.getGroupBandBounds(dropTargetGroupId)
+            // Paint the target group exactly as selection does — its own
+            // selectStyle over its live band — instead of a foreign rect.
+            if (group !== undefined && band !== undefined) {
+              renderer.drawSelectionOverlay(band, group.style?.select)
             }
           }
           if (!lazyMove || !dragged) return
@@ -260,6 +263,13 @@ export class MoveNodeInteraction implements Interaction {
       }
     }
 
+    /** Whether the node already belongs to the group (`groupId` ∪ `memberIds`). */
+    const nodeBelongsToGroup = (nodeId: string, groupId: string): boolean => {
+      const node = network.getNode(nodeId)
+      if (node?.groupId === groupId) return true
+      return network.getGroup(groupId)?.memberIds.includes(nodeId) === true
+    }
+
     const updateDropTarget = (clientX: number, clientY: number): void => {
       // Group-only drags do not reparent via drop target.
       if (movers.every(m => m.kind === 'group')) {
@@ -268,10 +278,16 @@ export class MoveNodeInteraction implements Interaction {
         return
       }
       const rect = canvas.getBoundingClientRect()
-      dropTargetGroupId = network.hitTestGroupScreen(
+      const candidate = network.hitTestGroupScreen(
         clientX - rect.left,
         clientY - rect.top,
       )
+      // Dropping into the group a node already sits in is a no-op; only
+      // highlight groups that would take at least one new member.
+      dropTargetGroupId = candidate !== undefined
+        && movers.some(m => m.kind === 'node' && !nodeBelongsToGroup(m.id, candidate))
+        ? candidate
+        : undefined
       ensureChrome()
     }
 

@@ -46,7 +46,6 @@ function recordingRenderer(): Renderer & {
     drawMarquee: vi.fn(),
     drawEdgeRubberBand: vi.fn(),
     drawLazyMoveGhost: vi.fn(),
-    drawDropTargetHighlight: vi.fn(),
     drawResizeHandle: vi.fn(),
     drawEdgeBendHandle: vi.fn(),
   }

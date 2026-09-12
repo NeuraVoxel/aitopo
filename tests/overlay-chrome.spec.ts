@@ -18,7 +18,6 @@ describe('overlay chrome registry', () => {
           drawMarquee: vi.fn(),
           drawEdgeRubberBand: vi.fn(),
           drawLazyMoveGhost: vi.fn(),
-          drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
       drawEdgeBendHandle: vi.fn(),
         }
@@ -58,7 +57,6 @@ describe('overlay chrome registry', () => {
       },
       drawEdgeRubberBand: vi.fn(),
       drawLazyMoveGhost: vi.fn(),
-      drawDropTargetHighlight: vi.fn(),
       drawResizeHandle: vi.fn(),
       drawEdgeBendHandle: vi.fn(),
     })

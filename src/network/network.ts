@@ -509,6 +509,18 @@ export class Network {
   }
 
   /**
+   * Validated band / collapsed-body bounds of a group (auto-fit aware).
+   * @param id - group id.
+   * @returns world rect, or undefined when the group is inactive.
+   */
+  getGroupBandBounds(id: string): { x: number; y: number; width: number; height: number } | undefined {
+    this.views.validateDirty(this.scene)
+    const view = this.views.getGroup(id)
+    if (view === undefined || !view.isActive) return undefined
+    return view.bandBounds
+  }
+
+  /**
    * @param screenX - CSS x relative to the hit canvas.
    * @param screenY - CSS y relative to the hit canvas.
    * @returns world point.

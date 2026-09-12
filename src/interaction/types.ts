@@ -5,7 +5,7 @@
  * edit / bus facets. Runtime still binds one Network object; facets document ownership.
  */
 
-import type { Point } from '../geom.ts'
+import type { Point, Rect } from '../geom.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
 import type { GraphEdge, GraphGroup, GraphNode } from '../protocol/types.ts'
@@ -76,6 +76,12 @@ export interface InteractionQueryHost {
   getEdges(): readonly GraphEdge[]
   /** @returns groups in the active network. */
   getGroups(): readonly GraphGroup[]
+  /**
+   * Validated band / collapsed-body bounds of a group (auto-fit aware).
+   * @param id - group id.
+   * @returns world rect, or undefined when the group is inactive.
+   */
+  getGroupBandBounds(id: string): Rect | undefined
 }
 
 /** Overlay chrome schedule (Wave E / H registry). */
