@@ -11,9 +11,63 @@ body {
 
 .app {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   height: 100%;
   color: #334155;
+}
+
+.sample-nav {
+  width: 220px;
+  flex-shrink: 0;
+  overflow: auto;
+  padding: 12px 10px 16px;
+  border-right: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.sample-nav-heading {
+  margin: 12px 8px 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.sample-nav-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.sample-nav-row {
+  margin: 0;
+}
+
+.sample-nav-item {
+  display: block;
+  width: 100%;
+  margin: 0;
+  padding: 6px 8px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sample-nav-item.is-active {
+  background: #e2e8f0;
+  font-weight: 600;
+}
+
+.sample-nav-item.disabled,
+.sample-nav-item:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
 }
 
 .canvas-host {
