@@ -870,11 +870,11 @@ export class Network {
         }
         for (const edge of this.scene.edges.values()) {
           if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
-          const flags = this.edgeHighlightFlags(edge)
-          // Highlighted edges paint only in the overlay pass so root stays free of select/hover.
-          if (flags.selected || flags.hovered) continue
           const view = this.views.getEdge(edge.id)
           if (view === undefined || !view.isActive) continue
+          // Base paint always lands on the root layer; select/hover styling is
+          // stacked on top by the overlay pass. Skipping highlighted edges here
+          // would leave root holes that unhover (overlay-only) never refills.
           renderer.drawEdge(edge, view.toPaintView(false, false))
         }
         for (const node of this.scene.nodes.values()) {
