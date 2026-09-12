@@ -10,7 +10,7 @@
     { "id": "e1", "from": "s1", "to": "s2", "kind": "parent" }
   ],
   "groups": [
-    { "id": "ws", "label": "Workspace A", "memberIds": ["s1", "s2"], "x": 24, "y": 24, "w": 400, "h": 200, "expanded": true },
-    { "id": "other", "label": "Other", "memberIds": ["s3"], "x": 460, "y": 24, "w": 220, "h": 120, "expanded": true }
+    { "id": "ws", "label": "Workspace A", "memberIds": ["s1", "s2"], "x": 24, "y": 24, "expanded": true },
+    { "id": "other", "label": "Other", "memberIds": ["s3"], "x": 460, "y": 24, "expanded": true }
   ]
 }

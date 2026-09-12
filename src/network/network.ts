@@ -588,6 +588,14 @@ export class Network {
   }
 
   /**
+   * Toggle group expand/collapse (double-click path).
+   * @param groupId - group id.
+   */
+  toggleGroupExpanded(groupId: string): void {
+    this.gestures.toggleGroupExpanded(groupId)
+  }
+
+  /**
    * Commit a node resize.
    * @param args - from/to bounds.
    */

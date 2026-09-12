@@ -1,20 +1,26 @@
 /**
- * Cached group band geometry, attachments, and paint DTOs.
+ * Cached group band / collapsed-node geometry, attachments, and paint DTOs.
  */
 
 import { unionRect, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
-import type { GraphChromeStyle, GraphShadowStyle } from '../protocol/types.ts'
+import type { GraphChromeStyle, GraphGroup, GraphShadowStyle } from '../protocol/types.ts'
 import type { GroupPaintView } from '../render/canvas2d.ts'
 import {
   AlarmAttachment,
   Attachment,
+  IconsAttachment,
   Label2Attachment,
   LabelAttachment,
   TooltipAttachment,
   type AttachmentPaintOp,
 } from './attachment/index.ts'
 import { computeGroupBandBounds, isGroupExpanded } from './group-state.ts'
+
+const COLLAPSED_FILL = '#64748b'
+const COLLAPSED_STROKE = '#475569'
+const EXPANDED_FILL = 'rgba(90, 100, 120, 0.08)'
+const EXPANDED_STROKE = '#5a6478'
 
 /** Per-group View: invalidate → validate attachments → paint DTO. */
 export class GroupView {
@@ -25,8 +31,8 @@ export class GroupView {
   private active = false
   private expanded = false
   private alpha = 1
-  private stroke = '#5a6478'
-  private fill = 'rgba(90, 100, 120, 0.08)'
+  private stroke = EXPANDED_STROKE
+  private fill = EXPANDED_FILL
   private strokeWidth = 1
   private strokeDash: readonly number[] | undefined
   private shadow: GraphShadowStyle | undefined
@@ -45,7 +51,7 @@ export class GroupView {
     return this.union
   }
 
-  /** Band body for chrome / auto-fit / agent anchors. */
+  /** Band / collapsed body for chrome / auto-fit / agent anchors. */
   get bandBounds(): Rect {
     return this.band
   }
@@ -68,7 +74,7 @@ export class GroupView {
   }
 
   /**
-   * Recompute band, attachments, and union when dirty.
+   * Recompute body, attachments, and union when dirty.
    * @param scene - active graph scene.
    */
   validate(scene: GraphScene): void {
@@ -83,15 +89,24 @@ export class GroupView {
     this.band = computeGroupBandBounds(scene, group)
     const style = group.style
     this.alpha = clampAlpha(style?.alpha)
-    this.stroke = style?.stroke ?? '#5a6478'
-    this.fill = style?.fill ?? 'rgba(90, 100, 120, 0.08)'
-    this.strokeWidth = style?.strokeWidth ?? 1
-    this.strokeDash = style?.strokeDash
+    if (this.expanded) {
+      this.stroke = style?.stroke ?? EXPANDED_STROKE
+      this.fill = style?.fill ?? EXPANDED_FILL
+      this.strokeWidth = style?.strokeWidth ?? 1
+      this.strokeDash = style?.strokeDash
+    } else {
+      // Collapsed: opaque node body (twaver Group → NodeUI), not translucent band.
+      this.stroke = style?.stroke ?? COLLAPSED_STROKE
+      this.fill = style?.fill ?? COLLAPSED_FILL
+      this.strokeWidth = style?.strokeWidth ?? 1.25
+      this.strokeDash = undefined
+    }
     this.shadow = style?.shadow
     this.selectStyle = style?.select
     this.hoverStyle = style?.hover
-    this.attachments = syncAttachments(group, this.attachments)
-    const ctx = { group, body: this.band }
+    this.attachments = syncAttachments(group, this.expanded, this.attachments)
+    const host = withLabelDefaults(group, this.expanded)
+    const ctx = { group: host, body: this.band }
     let union: Rect | undefined = this.band
     for (const attachment of this.attachments) {
       attachment.validate(ctx)
@@ -159,11 +174,27 @@ function clampAlpha(value: number | undefined): number {
   return Math.min(1, Math.max(0, value))
 }
 
+/** Label defaults: band header `top` when expanded; node-like `bottom` when collapsed. */
+function withLabelDefaults(group: GraphGroup, expanded: boolean): GraphGroup {
+  if (group.style?.labelPosition !== undefined) return group
+  return {
+    ...group,
+    style: {
+      ...(group.style ?? {}),
+      labelPosition: expanded ? 'top' : 'bottom',
+    },
+  }
+}
+
 function syncAttachments(
-  group: import('../protocol/types.ts').GraphGroup,
+  group: GraphGroup,
+  expanded: boolean,
   previous: Attachment[],
 ): Attachment[] {
   const next: Attachment[] = []
+  if (!expanded) {
+    next.push(takeOrCreate(previous, IconsAttachment, () => new IconsAttachment()))
+  }
   if (group.label.length > 0) {
     next.push(takeOrCreate(previous, LabelAttachment, () => new LabelAttachment()))
   }

@@ -155,6 +155,11 @@ export interface InteractionEditHost {
     }[]
   }): void
   /**
+   * Toggle a group's `expanded` flag (double-click; skipped when locked).
+   * @param groupId - group id.
+   */
+  toggleGroupExpanded(groupId: string): void
+  /**
    * Commit resize: apply updateNode x/y/w/h, emit nodeResized.
    * @param args - from/to bounds.
    */

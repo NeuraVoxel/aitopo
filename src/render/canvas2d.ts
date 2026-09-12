@@ -238,6 +238,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.shadowOffsetY = view.shadow.offsetY ?? 2
     }
     const strokeWidth = view.strokeWidth / this.viewport.zoom
+    // Collapsed: node-like radius 8; expanded band: larger corner radius.
     const radius = view.expanded ? 12 : 8
     roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, radius)
     ctx.fillStyle = view.fill
@@ -254,7 +255,10 @@ export class Canvas2DRenderer implements Renderer {
     }
     ctx.stroke()
     ctx.setLineDash([])
-    paintAttachmentOps(ctx, view.attachments)
+    paintAttachmentOps(
+      ctx,
+      view.expanded ? view.attachments : withContrastingIcons(view.attachments, view.fill),
+    )
     ctx.restore()
   }
 

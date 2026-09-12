@@ -426,6 +426,7 @@ function asGroup(raw: {
   w?: number | undefined
   h?: number | undefined
   locked?: boolean | undefined
+  icon?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -447,6 +448,7 @@ function asGroup(raw: {
     ...(raw.w !== undefined ? { w: raw.w } : {}),
     ...(raw.h !== undefined ? { h: raw.h } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(raw.icon !== undefined ? { icon: raw.icon } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asGroupStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
@@ -466,6 +468,7 @@ function mergeGroup(
     w?: number | undefined
     h?: number | undefined
     locked?: boolean | undefined
+    icon?: string | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -488,6 +491,7 @@ function mergeGroup(
     w: patch.w ?? current.w,
     h: patch.h ?? current.h,
     locked: patch.locked ?? current.locked,
+    icon: patch.icon ?? current.icon,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
       id: a.id,
       level: a.level,

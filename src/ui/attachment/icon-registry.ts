@@ -68,6 +68,19 @@ registerBuiltin({
   },
 })
 
+registerBuiltin({
+  key: 'group',
+  draw(ctx, size, color) {
+    const pad = size * 0.18
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    ctx.lineWidth = Math.max(1, size * 0.08)
+    // Stacked rounded cards — collapsed Group body (twaver IMAGE_GROUP idea).
+    ctx.strokeRect(pad + size * 0.08, pad, size - pad * 2 - size * 0.08, size * 0.42)
+    ctx.strokeRect(pad, pad + size * 0.28, size - pad * 2 - size * 0.08, size * 0.42)
+  },
+})
+
 /**
  * Register or replace an icon definition.
  * @param definition - icon to store.
@@ -77,13 +90,14 @@ export function registerIcon(definition: IconDefinition): void {
 }
 
 /**
- * Resolve an icon key; unknown keys fall back to `node`.
+ * Resolve an icon key; unknown / omitted keys use `fallback` (default `node`).
  * @param key - registry key (may be undefined).
+ * @param fallback - key when `key` is missing or unknown.
  */
-export function getIcon(key: string | undefined): IconDefinition {
+export function getIcon(key: string | undefined, fallback = 'node'): IconDefinition {
   if (key !== undefined) {
     const found = icons.get(key)
     if (found !== undefined) return found
   }
-  return icons.get('node')!
+  return icons.get(fallback) ?? icons.get('node')!
 }

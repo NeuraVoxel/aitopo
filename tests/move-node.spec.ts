@@ -170,6 +170,7 @@ function createHost(options: {
     previewGroupMove: vi.fn(),
     commitNodeMove,
     commitGroupMove: vi.fn(),
+    toggleGroupExpanded: vi.fn(),
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),

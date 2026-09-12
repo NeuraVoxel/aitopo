@@ -18,7 +18,7 @@ Additive `GraphGroup` fields: `label2?`, `tooltip?`, `alarms?`, `expanded?` (**o
 
 `GraphGroupStyle` carries stroke/fill/dash, `alpha` (default `1`), `padding?`, `autoFit?` (**omitted = `true`**), `shape?: 'rectangle'`, attachment positions and text nests, `tooltipMode`, `select` / `hover` / `shadow`.
 
-`updateGroup` merges `style` one level. Zod, `asGroup` / `mergeGroup`, and invert round-trip the new fields. Fixtures that need open bands set `"expanded": true`. Hosts open a group with `updateGroup { expanded: true }` (parameter-driven). No Group `icon` / expand-image this wave.
+`updateGroup` merges `style` one level. Zod, `asGroup` / `mergeGroup`, and invert round-trip the new fields. Fixtures that need open bands set `"expanded": true`. Hosts open a group with `updateGroup { expanded: true }` or double-click (`SelectActivateInteraction` → `toggleGroupExpanded`). Collapsed paints as a **node body** (opaque fill + `group` IconsAttachment, default **50×50** matching twaver `NODE_WIDTH`/`NODE_HEIGHT`); override with `w`/`h` / `icon`. Expanded paints the member band (+ autoFit). No expand-image this wave.
 
 ### View / Attachment
 
@@ -68,4 +68,8 @@ Group ids participate in `setSelection` and hit-testing (`kind: 'group'`). Overl
 
 ## Deferred
 
-Group icon / expand-image; exotic shapes; nested groups; gesture double-click toggle (protocol open is shipped); batch-select-members-on-group-select.
+Group expand-image; exotic shapes; nested groups; batch-select-members-on-group-select.
+
+## Interaction
+
+`SelectActivateInteraction` (default + Editor additive pack) double-clicks a group to call `Network.toggleGroupExpanded`. That path preserves a shared center: collapse parks the 50×50 body at the expanded band center; expand translates members so the auto-fit band recenters on the collapsed body. Locked groups are skipped. Single click only selects.

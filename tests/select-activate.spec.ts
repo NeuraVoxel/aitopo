@@ -39,12 +39,17 @@ class FakeHitCanvas {
   }
 }
 
-function createHost(canvas: FakeHitCanvas): InteractionHost & {
+function createHost(
+  canvas: FakeHitCanvas,
+  hit: { id: string; kind: 'node' | 'edge' | 'group' } = { id: 'n1', kind: 'node' },
+): InteractionHost & {
   gestureDragged: boolean
   activateNode: ReturnType<typeof vi.fn>
+  toggleGroupExpanded: ReturnType<typeof vi.fn>
 } {
   let gestureDragged = false
   const activateNode = vi.fn()
+  const toggleGroupExpanded = vi.fn()
   const host = {
     get gestureDragged() {
       return gestureDragged
@@ -53,14 +58,16 @@ function createHost(canvas: FakeHitCanvas): InteractionHost & {
       gestureDragged = value
     },
     activateNode,
+    toggleGroupExpanded,
     getHitElement: () => canvas as unknown as HTMLCanvasElement,
     getViewElement: () => null,
-    hitTestScreen: () => ({ id: 'n1', kind: 'node' as const }),
+    hitTestScreen: () => hit,
     setSelection: vi.fn(),
     setHover: vi.fn(),
     updateCamera: vi.fn(),
     viewport: {} as InteractionHost['viewport'],
     getNode: () => undefined,
+    getGroup: () => undefined,
     getNodes: () => [],
     getEdges: () => [],
     getGroups: () => [],
@@ -69,7 +76,9 @@ function createHost(canvas: FakeHitCanvas): InteractionHost & {
     screenToWorld: () => ({ x: 0, y: 0 }),
     previewNodePosition: vi.fn(),
     previewNodeBounds: vi.fn(),
+    previewGroupMove: vi.fn(),
     commitNodeMove: vi.fn(),
+    commitGroupMove: vi.fn(),
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
@@ -116,6 +125,37 @@ describe('SelectActivate drag gate', () => {
     canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 40 })
 
     expect(host.activateNode).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('toggles group expanded on double-click without drag', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'g1', kind: 'group' })
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointerup', { button: 0, clientX: 10, clientY: 10 })
+    expect(host.toggleGroupExpanded).not.toHaveBeenCalled()
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointerup', { button: 0, clientX: 10, clientY: 10 })
+    expect(host.toggleGroupExpanded).toHaveBeenCalledWith('g1')
+    expect(host.activateNode).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('skips group toggle after markGestureDragged', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'g1', kind: 'group' })
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointerup', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    host.markGestureDragged()
+    canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 40 })
+
+    expect(host.toggleGroupExpanded).not.toHaveBeenCalled()
     dispose()
   })
 })

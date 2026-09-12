@@ -16,11 +16,17 @@ export {
 } from './bounds.ts'
 export {
   collapsedGroupForNode,
+  computeExpandedBandBounds,
   computeGroupBandBounds,
+  collapsedOriginForCenter,
   DEFAULT_GROUP_PADDING,
+  expandCollapseCenterPatches,
   findGroupForNode,
   isGroupExpanded,
   isNodeVisibleInScene,
+  listGroupMembers,
+  memberUnionBounds,
+  rectCenter,
 } from './group-state.ts'
 export { EdgeView } from './edge-view.ts'
 export { GroupView } from './group-view.ts'

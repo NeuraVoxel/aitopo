@@ -6,6 +6,7 @@ import { growRect, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
+import { expandCollapseCenterPatches } from '../ui/group-state.ts'
 import type { DirtyAccumulator } from './dirty.ts'
 import type { ViewSet } from '../ui/view-set.ts'
 
@@ -242,6 +243,40 @@ export class GestureEditor {
         nodeId: member.id,
         from: { x: member.from.x, y: member.from.y },
         to: { x: member.to.x, y: member.to.y },
+      })
+    }
+  }
+
+  /**
+   * Toggle group expand/collapse via `updateGroup` (no-op when missing or locked).
+   * Preserves the shared center: collapse parks the node at the band center;
+   * expand translates members so the auto-fit band recenters on the node.
+   * @param groupId - group id.
+   */
+  toggleGroupExpanded(groupId: string): void {
+    const group = this.deps.scene.groups.get(groupId)
+    if (group === undefined || group.locked === true) return
+    const nextExpanded = group.expanded !== true
+    const { groupPatch, memberMoves } = expandCollapseCenterPatches(
+      this.deps.scene,
+      group,
+      nextExpanded,
+    )
+    const ops: GraphPatch['ops'] = [
+      { op: 'updateGroup', id: groupId, patch: groupPatch },
+      ...memberMoves.map(move => ({
+        op: 'updateNode' as const,
+        id: move.id,
+        patch: { x: move.to.x, y: move.to.y },
+      })),
+    ]
+    this.deps.apply({ ops })
+    for (const move of memberMoves) {
+      this.deps.emit({
+        type: 'nodeMoved',
+        nodeId: move.id,
+        from: move.from,
+        to: move.to,
       })
     }
   }

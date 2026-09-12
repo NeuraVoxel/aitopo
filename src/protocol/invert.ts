@@ -176,6 +176,7 @@ function invertGroupPatch(group: GraphGroup, patch: UpdateGroupPatch): UpdateGro
   if (patch.w !== undefined && group.w !== undefined) inv.w = group.w
   if (patch.h !== undefined && group.h !== undefined) inv.h = group.h
   if (patch.locked !== undefined) inv.locked = group.locked === true
+  if (patch.icon !== undefined && group.icon !== undefined) inv.icon = group.icon
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(group.alarms)
   if (patch.style !== undefined && group.style !== undefined) {
     inv.style = cloneGroupStyle(group.style)
@@ -263,6 +264,7 @@ function cloneGroup(group: GraphGroup): PatchGroup {
     ...(group.w !== undefined ? { w: group.w } : {}),
     ...(group.h !== undefined ? { h: group.h } : {}),
     ...(group.locked !== undefined ? { locked: group.locked } : {}),
+    ...(group.icon !== undefined ? { icon: group.icon } : {}),
     ...(group.alarms !== undefined ? { alarms: cloneAlarms(group.alarms) } : {}),
     ...(group.style !== undefined ? { style: cloneGroupStyle(group.style) } : {}),
     ...(group.data !== undefined ? { data: { ...group.data } } : {}),

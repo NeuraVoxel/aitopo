@@ -104,7 +104,7 @@ Pass `defaultInteractions: false` to attach only the listed modules (tests / cus
 - `GraphNode.locked?: boolean` — move and membership edits skip locked nodes (selection still allowed)
 - `GraphEdge.waypoints?: { x, y }[]` — intermediate bend points; absent or `[]` = auto orthogonal route
 - `GraphEdge.label?` / `label2?` / `tooltip?` / `style?: GraphEdgeStyle` — path attachments + stroke/alpha/arrows (not `data.*` paint keys)
-- `GraphGroup.label2?` / `tooltip?` / `alarms?` / `expanded?` (default collapsed) / `style?: GraphGroupStyle` — band attachments, alpha, autoFit, select/hover; open with `expanded: true`
+- `GraphGroup.label2?` / `tooltip?` / `alarms?` / `icon?` / `expanded?` (default collapsed → 50×50 node + `group` icon) / `style?: GraphGroupStyle` — open with `expanded: true` or double-click; `w`/`h` resize collapsed body
 
 ### Drop MIME types
 

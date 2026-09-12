@@ -234,10 +234,25 @@ export interface GraphGroup {
   readonly expanded?: boolean
   readonly x?: number
   readonly y?: number
+  /**
+   * Body width in world px when collapsed (or expanded with `autoFit: false`).
+   * Omitted → engine default `50` (twaver `NODE_WIDTH`; Group paints as a Node when collapsed).
+   * Change at runtime with `updateGroup` `{ w }`.
+   */
   readonly w?: number
+  /**
+   * Body height in world px when collapsed (or expanded with `autoFit: false`).
+   * Omitted → engine default `50` (twaver `NODE_HEIGHT`).
+   * Change at runtime with `updateGroup` `{ h }`.
+   */
   readonly h?: number
-  /** When true, move edits skip this group. */
+  /** When true, move and expand-toggle edits skip this group. */
   readonly locked?: boolean
+  /**
+   * IconRegistry key for collapsed IconsAttachment; omitted → `group`.
+   * Unknown keys fall back to `group`.
+   */
+  readonly icon?: string
   readonly alarms?: readonly Alarm[]
   readonly style?: GraphGroupStyle
   /** Business bag only — renderer does not read visual keys from `data`. */

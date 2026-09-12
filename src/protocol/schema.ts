@@ -151,6 +151,7 @@ const graphGroupSchema = z.object({
   w: z.number().positive().optional(),
   h: z.number().positive().optional(),
   locked: z.boolean().optional(),
+  icon: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphGroupStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),

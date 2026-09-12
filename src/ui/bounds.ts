@@ -24,7 +24,9 @@ export function nodeBounds(node: GraphNode): Rect {
 }
 
 /**
- * World bounds for a group band.
+ * World bounds for a group body.
+ * Collapsed (and expanded + `autoFit: false`) use document `x/y/w/h`.
+ * Omitted `w`/`h` → **50×50** (twaver `NODE_WIDTH` / `NODE_HEIGHT`; Group is a Node).
  * @param group - graph group.
  */
 export function groupBounds(group: GraphGroup): Rect {
@@ -32,7 +34,7 @@ export function groupBounds(group: GraphGroup): Rect {
     x: group.x ?? 0,
     y: group.y ?? 0,
     width: group.w ?? DEFAULT_W,
-    height: group.h ?? DEFAULT_H + 28,
+    height: group.h ?? DEFAULT_H,
   }
 }
 
