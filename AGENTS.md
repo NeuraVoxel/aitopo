@@ -9,6 +9,7 @@ Standing orders for AI-assisted work in this repository.
 - Prefer explicit resolve/default steps at package boundaries over hidden `??` inside run paths.
 - Misconfiguration fails loud at the earliest resolvable point.
 - Tests describe behavior, not "correctness."
+- Never commit or push automatically after finishing a change; wait for explicit user approval before running `git commit` or `git push`.
 - Run the smallest relevant checks before push (`ai-eng verify-notes` when notes change; package tests for code). Add a `verify-notes` script that runs `ai-eng verify-notes .agents/notes` when helpful.
 
 Product-specific runtime rules belong in this file only when this repository owns that runtime.
