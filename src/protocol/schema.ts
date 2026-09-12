@@ -26,6 +26,8 @@ const attachmentPositionSchema = z.enum([
 const graphTextStyleSchema = z.object({
   color: z.string().optional(),
   fontSize: z.number().positive().optional(),
+  /** `0` = never truncate; omitted → host default. */
+  maxChars: z.number().int().nonnegative().optional(),
 })
 
 const graphChromeStyleSchema = z.object({

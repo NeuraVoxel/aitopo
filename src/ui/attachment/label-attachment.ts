@@ -2,7 +2,7 @@
  * Primary label attachment (default position: bottom for nodes, top for groups).
  */
 
-import type { AttachmentPosition } from '../../protocol/types.ts'
+import type { AttachmentPosition, GraphTextStyle } from '../../protocol/types.ts'
 import {
   Attachment,
   isBoxAttachmentCtx,
@@ -14,7 +14,10 @@ import type { AttachmentPaintOp } from './types.ts'
 
 const DEFAULT_COLOR = '#000000'
 const DEFAULT_FONT = 12
-const MAX_CHARS = 18
+/** Default maxChars for GraphNode labels when style.maxChars is omitted. */
+const DEFAULT_NODE_MAX_CHARS = 18
+/** Default maxChars for GraphGroup labels when style.maxChars is omitted (`0` = no truncate). */
+const DEFAULT_GROUP_MAX_CHARS = 0
 
 /** LabelAttachment — GraphNode.label / GraphGroup.label outside the body. */
 export class LabelAttachment extends Attachment {
@@ -25,12 +28,16 @@ export class LabelAttachment extends Attachment {
 
   validate(ctx: AttachmentValidateCtx): void {
     if (!isBoxAttachmentCtx(ctx)) return
-    const style = isGroupAttachmentCtx(ctx) ? ctx.group.style : ctx.node.style
-    const label = isGroupAttachmentCtx(ctx) ? ctx.group.label : ctx.node.label
-    this.position = style?.labelPosition ?? (isGroupAttachmentCtx(ctx) ? 'top' : 'bottom')
+    const isGroup = isGroupAttachmentCtx(ctx)
+    const style = isGroup ? ctx.group.style : ctx.node.style
+    const label = isGroup ? ctx.group.label : ctx.node.label
+    this.position = style?.labelPosition ?? (isGroup ? 'top' : 'bottom')
     this.color = style?.label?.color ?? DEFAULT_COLOR
     this.fontSize = style?.label?.fontSize ?? DEFAULT_FONT
-    this.text = truncate(label, MAX_CHARS)
+    this.text = truncateText(
+      label,
+      resolveMaxChars(style?.label, isGroup ? DEFAULT_GROUP_MAX_CHARS : DEFAULT_NODE_MAX_CHARS),
+    )
     const size = estimateTextSize(this.text, this.fontSize)
     this.cachedBounds = placeAttachment(ctx.body, this.position, size.width, size.height)
   }
@@ -59,12 +66,16 @@ export class Label2Attachment extends Attachment {
 
   validate(ctx: AttachmentValidateCtx): void {
     if (!isBoxAttachmentCtx(ctx)) return
-    const style = isGroupAttachmentCtx(ctx) ? ctx.group.style : ctx.node.style
-    const label2 = isGroupAttachmentCtx(ctx) ? ctx.group.label2 : ctx.node.label2
+    const isGroup = isGroupAttachmentCtx(ctx)
+    const style = isGroup ? ctx.group.style : ctx.node.style
+    const label2 = isGroup ? ctx.group.label2 : ctx.node.label2
     this.position = style?.label2Position ?? 'top'
     this.color = style?.label2?.color ?? '#374151'
     this.fontSize = style?.label2?.fontSize ?? 10
-    this.text = truncate(label2 ?? '', MAX_CHARS)
+    this.text = truncateText(
+      label2 ?? '',
+      resolveMaxChars(style?.label2, isGroup ? DEFAULT_GROUP_MAX_CHARS : DEFAULT_NODE_MAX_CHARS),
+    )
     const size = estimateTextSize(this.text, this.fontSize)
     this.cachedBounds = placeAttachment(ctx.body, this.position, size.width, size.height)
   }
@@ -82,6 +93,25 @@ export class Label2Attachment extends Attachment {
   }
 }
 
-function truncate(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
+/**
+ * Resolve maxChars from text style; omitted uses host default.
+ * @param textStyle - optional label/label2 style.
+ * @param hostDefault - default when `maxChars` omitted.
+ */
+export function resolveMaxChars(
+  textStyle: GraphTextStyle | undefined,
+  hostDefault: number,
+): number {
+  return textStyle?.maxChars ?? hostDefault
+}
+
+/**
+ * Truncate with ellipsis. `maxChars <= 0` means never truncate.
+ * @param text - raw label.
+ * @param maxChars - max length; `0` or negative → full text.
+ */
+export function truncateText(text: string, maxChars: number): string {
+  if (maxChars <= 0 || text.length <= maxChars) return text
+  if (maxChars === 1) return '…'
+  return `${text.slice(0, maxChars - 1)}…`
 }

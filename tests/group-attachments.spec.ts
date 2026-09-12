@@ -62,6 +62,28 @@ describe('Group attachments and expand/collapse', () => {
     expect(paint.attachments.some(op => op.kind === 'label')).toBe(true)
   })
 
+  it('does not truncate group labels by default; honors style.label.maxChars', () => {
+    const long = 'VeryLongGroupLabelWithoutEllipsisXYZ'
+    const { scene, views } = loadGroupDoc({
+      groupExtra: { label: long },
+    })
+    let paint = views.getGroup('g1')!.toPaintView(false, false)
+    let label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'text' in label && label.text).toBe(long)
+    scene.apply({
+      ops: [{
+        op: 'updateGroup',
+        id: 'g1',
+        patch: { style: { label: { maxChars: 10 } } },
+      }],
+    })
+    views.markDirty('g1')
+    views.validateDirty(scene)
+    paint = views.getGroup('g1')!.toPaintView(false, false)
+    label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'text' in label && label.text).toBe('VeryLongG…')
+  })
+
   it('honors collapsed w/h overrides', () => {
     const { views } = loadGroupDoc({ groupExtra: { w: 72, h: 64 } })
     const band = views.getGroup('g1')!.bandBounds

@@ -67,6 +67,38 @@ describe('Node attachments', () => {
     expect(icons && 'iconKey' in icons && icons.iconKey).toBe('server')
   })
 
+  it('honors style.label.maxChars including 0 for no truncate', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'VeryLongAgentLabelXYZ',
+        style: { label: { maxChars: 0 }, showIcon: false },
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    let paint = views.getNode('a')!.toPaintView(false, false)
+    let label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'text' in label && label.text).toBe('VeryLongAgentLabelXYZ')
+    scene.apply({
+      ops: [{ op: 'updateNode', id: 'a', patch: { style: { label: { maxChars: 8 } } } }],
+    })
+    views.markDirty('a')
+    views.validateDirty(scene)
+    paint = views.getNode('a')!.toPaintView(false, false)
+    label = paint.attachments.find(op => op.kind === 'label')
+    expect(label && 'text' in label && label.text).toBe('VeryLon…')
+  })
+
   it('honors style.showIcon false to hide the default icon', () => {
     const scene = new GraphScene()
     scene.load({

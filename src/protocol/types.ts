@@ -43,6 +43,11 @@ export type AttachmentPosition =
 export interface GraphTextStyle {
   readonly color?: string
   readonly fontSize?: number
+  /**
+   * Max characters before ellipsis. `0` = never truncate.
+   * Omitted → host default (nodes/edges `18`; groups `0`).
+   */
+  readonly maxChars?: number
 }
 
 /** Selection or hover chrome around the node body. */

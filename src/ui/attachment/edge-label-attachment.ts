@@ -7,13 +7,15 @@ import {
   isEdgeAttachmentCtx,
   type AttachmentValidateCtx,
 } from './attachment.ts'
+import { resolveMaxChars, truncateText } from './label-attachment.ts'
 import { estimateTextSize } from './position.ts'
 import { placeAlongPath } from './path.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
 const DEFAULT_COLOR = '#000000'
 const DEFAULT_FONT = 11
-const MAX_CHARS = 18
+/** Default maxChars for GraphEdge labels when style.maxChars is omitted. */
+const DEFAULT_EDGE_MAX_CHARS = 18
 
 /** EdgeLabelAttachment — GraphEdge.label along the path. */
 export class EdgeLabelAttachment extends Attachment {
@@ -26,7 +28,10 @@ export class EdgeLabelAttachment extends Attachment {
     const style = ctx.edge.style
     this.color = style?.label?.color ?? DEFAULT_COLOR
     this.fontSize = style?.label?.fontSize ?? DEFAULT_FONT
-    this.text = truncate(ctx.edge.label ?? '', MAX_CHARS)
+    this.text = truncateText(
+      ctx.edge.label ?? '',
+      resolveMaxChars(style?.label, DEFAULT_EDGE_MAX_CHARS),
+    )
     const size = estimateTextSize(this.text, this.fontSize)
     this.cachedBounds = placeAlongPath(
       ctx.points,
@@ -60,7 +65,10 @@ export class EdgeLabel2Attachment extends Attachment {
     const style = ctx.edge.style
     this.color = style?.label2?.color ?? '#374151'
     this.fontSize = style?.label2?.fontSize ?? 10
-    this.text = truncate(ctx.edge.label2 ?? '', MAX_CHARS)
+    this.text = truncateText(
+      ctx.edge.label2 ?? '',
+      resolveMaxChars(style?.label2, DEFAULT_EDGE_MAX_CHARS),
+    )
     const size = estimateTextSize(this.text, this.fontSize)
     this.cachedBounds = placeAlongPath(
       ctx.points,
@@ -81,8 +89,4 @@ export class EdgeLabel2Attachment extends Attachment {
       fontSize: this.fontSize,
     }
   }
-}
-
-function truncate(text: string, max: number): string {
-  return text.length <= max ? text : `${text.slice(0, max - 1)}…`
 }
