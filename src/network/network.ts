@@ -15,6 +15,7 @@ import {
   nodeBounds,
   ViewSet,
 } from '../ui/index.ts'
+import { computeGroupBandBounds } from '../ui/group-state.ts'
 import {
   MarqueeSelectInteraction,
   MoveNodeInteraction,
@@ -384,6 +385,40 @@ export class Network {
     this.emit({
       type: 'viewportChanged',
       viewport: { x: cam.x, y: cam.y, zoom: cam.zoom } satisfies GraphViewport,
+    })
+  }
+
+  /**
+   * Union bounds of everything painted in the active network (bodies, bands,
+   * paths, and scene attachments like labels), or undefined when empty.
+   */
+  contentBounds(): Rect | undefined {
+    this.views.validateDirty(this.scene)
+    let bounds: Rect | undefined
+    for (const view of this.views.nodeViews()) {
+      if (!view.isActive) continue
+      bounds = unionRect(bounds, view.bounds)
+    }
+    for (const view of this.views.edgeViews()) {
+      if (!view.isActive) continue
+      bounds = unionRect(bounds, view.bounds)
+    }
+    for (const view of this.views.groupViews()) {
+      if (!view.isActive) continue
+      bounds = unionRect(bounds, view.bandBounds)
+    }
+    return bounds
+  }
+
+  /**
+   * Zoom and pan so the active network's content fits the viewport.
+   * @param padding - CSS pixels kept clear on every side.
+   */
+  fitContent(padding = 24): void {
+    const bounds = this.contentBounds()
+    if (bounds === undefined) return
+    this.updateCamera(viewport => {
+      viewport.fitBounds(bounds, padding)
     })
   }
 
@@ -911,7 +946,10 @@ export function contentBounds(scene: GraphScene): Rect | undefined {
     bounds = unionRect(bounds, nodeBounds(node))
   }
   for (const group of scene.groups.values()) {
-    bounds = unionRect(bounds, groupBounds(group))
+    // Expanded auto-fit bands follow member positions, not the declared x/y/w/h.
+    bounds = unionRect(bounds, group.expanded === true
+      ? computeGroupBandBounds(scene, group)
+      : groupBounds(group))
   }
   return bounds
 }

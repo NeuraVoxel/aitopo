@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState, type RefObject } from 'react'
 import {
   Network,
   PatchHistory,
-  contentBounds,
   parseDocument,
   type GraphPatch,
 } from '../../src/index.ts'
@@ -40,12 +39,7 @@ const CREATE_NODE_H = 48
 const CREATE_CLICK_DRAG_PX = 4
 
 function fitNetwork(network: Network): void {
-  const bounds = contentBounds(network.scene)
-  if (bounds !== undefined) {
-    network.updateCamera(viewport => {
-      viewport.fitBounds(bounds, 32)
-    })
-  }
+  network.fitContent(32)
 }
 
 function wrapApplyWithHistory(

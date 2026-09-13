@@ -14,7 +14,7 @@ export const helloWorldDocument: GraphDocument = {
 
 export const helloWorldSample: DemoSample = {
   id: 'hello-world',
-  title: 'Hello world',
+  title: 'Hello',
   group: 'getting-started',
   description: 'Two nodes and one edge.',
   document: helloWorldDocument,
