@@ -115,6 +115,8 @@ const graphEdgeSchema = z.object({
   to: z.string().min(1),
   kind: z.string().optional(),
   waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+  fromAnchor: z.enum(['top', 'bottom', 'left', 'right']).optional(),
+  toAnchor: z.enum(['top', 'bottom', 'left', 'right']).optional(),
   label: z.string().optional(),
   label2: z.string().optional(),
   tooltip: z.string().optional(),

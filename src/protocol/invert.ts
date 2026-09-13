@@ -153,6 +153,8 @@ function invertEdgePatch(edge: GraphEdge, patch: UpdateEdgePatch): UpdateEdgePat
       ? edge.waypoints.map(p => ({ x: p.x, y: p.y }))
       : []
   }
+  if (patch.fromAnchor !== undefined && edge.fromAnchor !== undefined) inv.fromAnchor = edge.fromAnchor
+  if (patch.toAnchor !== undefined && edge.toAnchor !== undefined) inv.toAnchor = edge.toAnchor
   if (patch.label !== undefined && edge.label !== undefined) inv.label = edge.label
   if (patch.label2 !== undefined && edge.label2 !== undefined) inv.label2 = edge.label2
   if (patch.tooltip !== undefined && edge.tooltip !== undefined) inv.tooltip = edge.tooltip

@@ -183,6 +183,14 @@ export interface GraphEdge {
    * Absent or empty → orthogonal auto-route from node boxes.
    */
   readonly waypoints?: readonly { readonly x: number; readonly y: number }[]
+  /**
+   * Pin the source anchor side. Omitted → auto from relative box position.
+   */
+  readonly fromAnchor?: 'top' | 'bottom' | 'left' | 'right'
+  /**
+   * Pin the target anchor side. Omitted → auto from relative box position.
+   */
+  readonly toAnchor?: 'top' | 'bottom' | 'left' | 'right'
   /** Primary label along the path (EdgeLabelAttachment). */
   readonly label?: string
   /** Secondary label along the path (EdgeLabel2Attachment). */

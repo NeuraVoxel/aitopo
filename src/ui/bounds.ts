@@ -39,18 +39,41 @@ export function groupBounds(group: GraphGroup): Rect {
 }
 
 /**
+ * Explicit endpoint side override. Omitted → auto from relative box position.
+ */
+export type EdgeAnchorSide = 'top' | 'bottom' | 'left' | 'right'
+
+/** Per-edge anchor side hints (GraphEdge `fromAnchor` / `toAnchor`). */
+export interface EdgeAnchorHints {
+  readonly from?: EdgeAnchorSide | undefined
+  readonly to?: EdgeAnchorSide | undefined
+}
+
+function anchorPoint(side: EdgeAnchorSide, box: Rect): Point {
+  switch (side) {
+    case 'top': return { x: box.x + box.width / 2, y: box.y }
+    case 'bottom': return { x: box.x + box.width / 2, y: box.y + box.height }
+    case 'left': return { x: box.x, y: box.y + box.height / 2 }
+    case 'right': return { x: box.x + box.width, y: box.y + box.height / 2 }
+  }
+}
+
+/**
  * Edge endpoint anchors and route points (twaver Link orthogonal/flexional ideas).
  * Prefer left↔right when boxes sit side-by-side (Model → Tools fan-out), then
  * top↔bottom for stacked bands (Join → next Step).
  * When `waypoints` is non-empty, polyline is `[fromAnchor, ...waypoints, toAnchor]`.
+ * Anchor `hints` pin the endpoint sides over the relative-position heuristic.
  * @param from - source node.
  * @param to - target node.
  * @param waypoints - optional intermediate bend points.
+ * @param hints - optional explicit endpoint sides.
  */
 export function edgeAnchors(
   from: GraphNode,
   to: GraphNode,
   waypoints?: readonly { readonly x: number; readonly y: number }[],
+  hints?: EdgeAnchorHints,
 ): {
   from: Point
   to: Point
@@ -59,7 +82,7 @@ export function edgeAnchors(
   /** Polyline points including endpoints (orthogonal.H.V / V.H style). */
   points: readonly Point[]
 } {
-  return edgeAnchorsFromRects(nodeBounds(from), nodeBounds(to), waypoints)
+  return edgeAnchorsFromRects(nodeBounds(from), nodeBounds(to), waypoints, hints)
 }
 
 /**
@@ -67,11 +90,13 @@ export function edgeAnchors(
  * @param fromBox - source AABB.
  * @param toBox - target AABB.
  * @param waypoints - optional intermediate bend points.
+ * @param hints - optional explicit endpoint sides.
  */
 export function edgeAnchorsFromRects(
   fromBox: Rect,
   toBox: Rect,
   waypoints?: readonly { readonly x: number; readonly y: number }[],
+  hints?: EdgeAnchorHints,
 ): {
   from: Point
   to: Point
@@ -80,21 +105,39 @@ export function edgeAnchorsFromRects(
   points: readonly Point[]
 } {
   const auto = edgeAnchorsAutoFromRects(fromBox, toBox)
-  if (waypoints === undefined || waypoints.length === 0) return auto
+  if (waypoints === undefined || waypoints.length === 0) {
+    if (hints?.from === undefined && hints?.to === undefined) return auto
+  }
+  const fromPt = hints?.from === undefined ? auto.from : anchorPoint(hints.from, fromBox)
+  const toPt = hints?.to === undefined ? auto.to : anchorPoint(hints.to, toBox)
+  const fromVertical = hints?.from === 'top' || hints?.from === 'bottom'
+  const toVertical = hints?.to === 'top' || hints?.to === 'bottom'
+  const orientation: 'horizontal' | 'vertical' = hints === undefined || (hints.from === undefined && hints.to === undefined)
+    ? auto.orientation
+    : fromVertical || (!toVertical && auto.orientation === 'vertical')
+      ? 'vertical'
+      : 'horizontal'
   const points: Point[] = [
-    auto.from,
-    ...waypoints.map(p => ({ x: p.x, y: p.y })),
-    auto.to,
+    fromPt,
+    ...waypoints?.map(p => ({ x: p.x, y: p.y })) ?? [],
+    toPt,
   ]
+  if (waypoints === undefined || waypoints.length === 0) {
+    // Hints without bends still route orthogonally between the pinned sides.
+    const mid = orientation === 'vertical'
+      ? orthogonalVH(fromPt, toPt)
+      : orthogonalHV(fromPt, toPt)
+    points.splice(1, 0, ...mid.slice(1, -1))
+  }
   let bounds: Rect | undefined
   for (const point of points) {
     bounds = unionPoint(bounds, point)
   }
   return {
-    from: auto.from,
-    to: auto.to,
-    bounds: bounds ?? { x: auto.from.x, y: auto.from.y, width: 1, height: 1 },
-    orientation: auto.orientation,
+    from: fromPt,
+    to: toPt,
+    bounds: bounds ?? { x: fromPt.x, y: fromPt.y, width: 1, height: 1 },
+    orientation,
     points,
   }
 }

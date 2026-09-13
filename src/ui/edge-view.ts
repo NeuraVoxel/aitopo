@@ -118,9 +118,10 @@ export class EdgeView {
     const toBox = toCollapsed !== undefined
       ? computeGroupBandBounds(scene, toCollapsed)
       : nodeBounds(to)
+    const hints = { from: edge.fromAnchor, to: edge.toAnchor }
     const anchors = (fromCollapsed !== undefined || toCollapsed !== undefined)
-      ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints)
-      : edgeAnchors(from, to, edge.waypoints)
+      ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints, hints)
+      : edgeAnchors(from, to, edge.waypoints, hints)
     this.active = true
     this.fromPt = anchors.from
     this.toPt = anchors.to
