@@ -19,6 +19,7 @@ export function App() {
         setDebug={demo.setDebug}
         undo={demo.undo}
         redo={demo.redo}
+        fitContent={demo.fitContent}
       />
       <div className="app-body">
         <SampleNav
