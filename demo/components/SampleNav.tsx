@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { DemoSample, DemoSampleGroupId } from '../samples/types.ts'
 
 export interface SampleNavProps {
@@ -22,44 +23,66 @@ const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
   business: 'Business (soon)',
 }
 
-/** Grouped sample catalog. Reserved rows stay clickable so the hook can set status. */
+/** Grouped sample catalog with collapsible sections (all collapsed by default). */
 export function SampleNav({ samples, activeId, onSelect }: SampleNavProps) {
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<DemoSampleGroupId>>(new Set())
+  const toggle = (groupId: DemoSampleGroupId): void => {
+    setOpenGroups(previous => {
+      const next = new Set(previous)
+      if (next.has(groupId)) next.delete(groupId)
+      else next.add(groupId)
+      return next
+    })
+  }
   return (
     <nav className="sample-nav" aria-label="Samples">
       {GROUP_ORDER.map(groupId => {
         const items = samples.filter(sample => sample.group === groupId)
         if (items.length === 0) return null
+        const open = openGroups.has(groupId)
         return (
           <section key={groupId} className="sample-nav-group">
-            <h2 className="sample-nav-heading">{GROUP_LABEL[groupId]}</h2>
-            <ul className="sample-nav-list">
-              {items.map(sample => {
-                const reserved = sample.reserved === true
-                const active = sample.id === activeId
-                return (
-                  <li
-                    key={sample.id}
-                    className="sample-nav-row"
-                    onClick={() => onSelect(sample.id)}
-                  >
-                    <button
-                      type="button"
-                      className={[
-                        'sample-nav-item',
-                        active ? 'is-active' : '',
-                        reserved ? 'disabled' : '',
-                      ].filter(Boolean).join(' ')}
-                      disabled={reserved}
-                      aria-disabled={reserved}
-                      aria-current={active ? 'true' : undefined}
-                      title={sample.description}
+            <button
+              type="button"
+              className="sample-nav-heading"
+              aria-expanded={open}
+              onClick={() => toggle(groupId)}
+            >
+              <span className="sample-nav-caret" aria-hidden="true">
+                {open ? '▾' : '▸'}
+              </span>
+              {GROUP_LABEL[groupId]}
+            </button>
+            {open && (
+              <ul className="sample-nav-list">
+                {items.map(sample => {
+                  const reserved = sample.reserved === true
+                  const active = sample.id === activeId
+                  return (
+                    <li
+                      key={sample.id}
+                      className="sample-nav-row"
+                      onClick={() => onSelect(sample.id)}
                     >
-                      {sample.title}
-                    </button>
-                  </li>
-                )
-              })}
-            </ul>
+                      <button
+                        type="button"
+                        className={[
+                          'sample-nav-item',
+                          active ? 'is-active' : '',
+                          reserved ? 'disabled' : '',
+                        ].filter(Boolean).join(' ')}
+                        disabled={reserved}
+                        aria-disabled={reserved}
+                        aria-current={active ? 'true' : undefined}
+                        title={sample.description}
+                      >
+                        {sample.title}
+                      </button>
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
           </section>
         )
       })}

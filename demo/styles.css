@@ -80,12 +80,28 @@ body {
 }
 
 .sample-nav-heading {
+  display: flex;
+  width: calc(100% - 16px);
+  align-items: center;
+  gap: 4px;
   margin: 12px 8px 4px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
   font-size: 11px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #64748b;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sample-nav-caret {
+  width: 10px;
+  flex: none;
 }
 
 .sample-nav-list {
