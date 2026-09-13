@@ -13,7 +13,7 @@ export const dshBootDocument: GraphDocument = {
       "id": "phase:compose",
       "type": "phase",
       "label": "Compose profile",
-      "label2": "1ms",
+      "label2": "0ms",
       "tooltip": "patch layers + attribution for profile \"web\"",
       "icon": "router",
       "x": 120,
@@ -21,7 +21,7 @@ export const dshBootDocument: GraphDocument = {
       "networkId": "network:compose",
       "data": {
         "phase": "compose",
-        "durationMs": 1,
+        "durationMs": 0,
         "durationBucket": "fast",
         "fill": "#2e7d32",
         "stroke": "#2e7d32",
@@ -32,14 +32,14 @@ export const dshBootDocument: GraphDocument = {
       "id": "phase:prepare",
       "type": "phase",
       "label": "Host prepare",
-      "label2": "10ms",
+      "label2": "7ms",
       "tooltip": "recorder subscribed; launch env + cmdline provided",
       "icon": "node",
       "x": 380,
       "y": 120,
       "data": {
         "phase": "prepare",
-        "durationMs": 10,
+        "durationMs": 7,
         "durationBucket": "fast",
         "fill": "#2e7d32",
         "stroke": "#2e7d32",
@@ -50,32 +50,32 @@ export const dshBootDocument: GraphDocument = {
       "id": "phase:mount",
       "type": "phase",
       "label": "Mount plugin tree",
-      "label2": "5157ms",
-      "tooltip": "186 fibers constructed",
+      "label2": "5275ms",
+      "tooltip": "190 fibers constructed",
       "icon": "node",
       "x": 640,
       "y": 120,
       "data": {
         "phase": "mount",
-        "durationMs": 5157,
+        "durationMs": 5275,
         "durationBucket": "critical",
         "fill": "#b71c1c",
         "stroke": "#b71c1c",
-        "detail": "186 fibers constructed"
+        "detail": "190 fibers constructed"
       }
     },
     {
       "id": "phase:settle",
       "type": "phase",
       "label": "Settle",
-      "label2": "1501ms",
+      "label2": "1502ms",
       "tooltip": "1500ms grace after boot() returned",
       "icon": "node",
       "x": 900,
       "y": 120,
       "data": {
         "phase": "settle",
-        "durationMs": 1501,
+        "durationMs": 1502,
         "durationBucket": "slow",
         "fill": "#d84315",
         "stroke": "#d84315",
@@ -86,14 +86,14 @@ export const dshBootDocument: GraphDocument = {
       "id": "phase:ready",
       "type": "phase",
       "label": "Ready",
-      "label2": "1ms",
+      "label2": "3ms",
       "tooltip": "26 composed rows never activated",
       "icon": "node",
       "x": 1160,
       "y": 120,
       "data": {
         "phase": "ready",
-        "durationMs": 1,
+        "durationMs": 3,
         "durationBucket": "fast",
         "fill": "#2e7d32",
         "stroke": "#2e7d32",
@@ -239,13 +239,47 @@ export const dshBootDocument: GraphDocument = {
     {
       "id": "portal:layer:8",
       "type": "layer",
+      "label": "overlay:agent-observe",
+      "label2": "1 plugins",
+      "tooltip": "Double-click to enter — 1 plugins · third-party",
+      "icon": "router",
+      "x": 340,
+      "y": 800,
+      "networkId": "network:layer:8",
+      "data": {
+        "layer": "overlay:agent-observe",
+        "origin": "external",
+        "fill": "#d97b2f",
+        "stroke": "#d97b2f"
+      }
+    },
+    {
+      "id": "portal:layer:9",
+      "type": "layer",
+      "label": "overlay:agent-orchestrator",
+      "label2": "1 plugins",
+      "tooltip": "Double-click to enter — 1 plugins · third-party",
+      "icon": "router",
+      "x": 640,
+      "y": 800,
+      "networkId": "network:layer:9",
+      "data": {
+        "layer": "overlay:agent-orchestrator",
+        "origin": "external",
+        "fill": "#d97b2f",
+        "stroke": "#d97b2f"
+      }
+    },
+    {
+      "id": "portal:layer:10",
+      "type": "layer",
       "label": "runtime-mounted（动态挂载，无 yml 声明）",
       "label2": "3 plugins",
       "tooltip": "Double-click to enter — 3 plugins · runtime",
       "icon": "router",
-      "x": 640,
+      "x": 940,
       "y": 800,
-      "networkId": "network:layer:8",
+      "networkId": "network:layer:10",
       "data": {
         "layer": "runtime-mounted（动态挂载，无 yml 声明）",
         "origin": "external",
@@ -520,7 +554,57 @@ export const dshBootDocument: GraphDocument = {
           "y": 220
         },
         {
+          "x": 365,
+          "y": 220
+        }
+      ],
+      "style": {
+        "strokeDash": [
+          6,
+          4
+        ],
+        "alpha": 0.35
+      }
+    },
+    {
+      "id": "edge:mount-9",
+      "from": "phase:mount",
+      "to": "portal:layer:9",
+      "kind": "flow",
+      "fromAnchor": "bottom",
+      "toAnchor": "top",
+      "waypoints": [
+        {
           "x": 665,
+          "y": 220
+        },
+        {
+          "x": 665,
+          "y": 220
+        }
+      ],
+      "style": {
+        "strokeDash": [
+          6,
+          4
+        ],
+        "alpha": 0.35
+      }
+    },
+    {
+      "id": "edge:mount-10",
+      "from": "phase:mount",
+      "to": "portal:layer:10",
+      "kind": "flow",
+      "fromAnchor": "bottom",
+      "toAnchor": "top",
+      "waypoints": [
+        {
+          "x": 665,
+          "y": 220
+        },
+        {
+          "x": 965,
           "y": 220
         }
       ],
@@ -850,6 +934,36 @@ export const dshBootDocument: GraphDocument = {
           "data": {
             "rowIds": []
           }
+        },
+        {
+          "id": "layer:9",
+          "type": "layer",
+          "label": "overlay:agent-observe",
+          "label2": "1 rows",
+          "tooltip": "agent-observe",
+          "icon": "server",
+          "x": 120,
+          "y": 1360,
+          "data": {
+            "rowIds": [
+              "agent-observe"
+            ]
+          }
+        },
+        {
+          "id": "layer:10",
+          "type": "layer",
+          "label": "overlay:agent-orchestrator",
+          "label2": "1 rows",
+          "tooltip": "agent-orchestrator",
+          "icon": "server",
+          "x": 120,
+          "y": 1500,
+          "data": {
+            "rowIds": [
+              "agent-orchestrator"
+            ]
+          }
         }
       ],
       "edges": [
@@ -964,6 +1078,34 @@ export const dshBootDocument: GraphDocument = {
             ],
             "alpha": 0.35
           }
+        },
+        {
+          "id": "edge:layer-8",
+          "from": "layer:8",
+          "to": "layer:9",
+          "kind": "flow",
+          "label": "then",
+          "style": {
+            "strokeDash": [
+              6,
+              4
+            ],
+            "alpha": 0.35
+          }
+        },
+        {
+          "id": "edge:layer-9",
+          "from": "layer:9",
+          "to": "layer:10",
+          "kind": "flow",
+          "label": "then",
+          "style": {
+            "strokeDash": [
+              6,
+              4
+            ],
+            "alpha": 0.35
+          }
         }
       ],
       "groups": []
@@ -979,13 +1121,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/cordis-plugin-timer",
           "label2": "timer",
-          "tooltip": "+320ms",
+          "tooltip": "+177ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 320,
+            "atMs": 177,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 39
@@ -996,13 +1138,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-deepseek-llm-api-extensions",
           "label2": "deepseek-llm-api-extensions",
-          "tooltip": "+329ms",
+          "tooltip": "+186ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 100,
           "data": {
-            "atMs": 329,
+            "atMs": 186,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 40
@@ -1013,33 +1155,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-tool-call-timeout-policy",
           "label2": "timeout-policy",
-          "tooltip": "+421ms",
+          "tooltip": "+263ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 100,
           "data": {
-            "atMs": 421,
+            "atMs": 263,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 42
-          }
-        },
-        {
-          "id": "plugin:storage",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-storage",
-          "label2": "storage",
-          "tooltip": "+852ms",
-          "status": "running",
-          "icon": "node",
-          "x": 660,
-          "y": 100,
-          "data": {
-            "atMs": 852,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 47
+            "fiberUid": 44
           }
         },
         {
@@ -1047,16 +1172,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-plugin-package-inventory-deepseek",
           "label2": "plugin-package-inventory-deepseek",
-          "tooltip": "+852ms",
+          "tooltip": "+594ms",
+          "status": "running",
+          "icon": "node",
+          "x": 660,
+          "y": 100,
+          "data": {
+            "atMs": 594,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 47
+          }
+        },
+        {
+          "id": "plugin:storage",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-storage",
+          "label2": "storage",
+          "tooltip": "+635ms",
           "status": "running",
           "icon": "node",
           "x": 840,
           "y": 100,
           "data": {
-            "atMs": 852,
+            "atMs": 635,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 48
+            "fiberUid": 49
           }
         },
         {
@@ -1064,16 +1206,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-storage-domain",
           "label2": "storage-domain",
-          "tooltip": "+878ms",
+          "tooltip": "+637ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 100,
           "data": {
-            "atMs": 878,
+            "atMs": 637,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 52
+            "fiberUid": 51
           }
         },
         {
@@ -1081,13 +1223,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-typert-loader",
           "label2": "typert-loader",
-          "tooltip": "+879ms",
+          "tooltip": "+638ms",
           "status": "running",
           "icon": "node",
           "x": 1200,
           "y": 100,
           "data": {
-            "atMs": 879,
+            "atMs": 638,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 53
@@ -1098,13 +1240,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-llm-retry",
           "label2": "llm-retry",
-          "tooltip": "+879ms",
+          "tooltip": "+638ms",
           "status": "running",
           "icon": "node",
           "x": 1380,
           "y": 100,
           "data": {
-            "atMs": 879,
+            "atMs": 638,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 55
@@ -1115,13 +1257,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-spill-policy",
           "label2": "spill-policy",
-          "tooltip": "+880ms",
+          "tooltip": "+638ms",
           "status": "running",
           "icon": "node",
           "x": 1560,
           "y": 100,
           "data": {
-            "atMs": 880,
+            "atMs": 638,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 56
@@ -1132,16 +1274,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-typert-registry",
           "label2": "typert",
-          "tooltip": "+1366ms",
+          "tooltip": "+1093ms",
           "status": "running",
           "icon": "node",
           "x": 1740,
           "y": 100,
           "data": {
-            "atMs": 1366,
+            "atMs": 1093,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 67
+            "fiberUid": 69
           }
         },
         {
@@ -1149,16 +1291,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-goal-round-driver",
           "label2": "goal-round-driver",
-          "tooltip": "+1707ms",
+          "tooltip": "+1572ms",
           "status": "running",
           "icon": "node",
           "x": 1920,
           "y": 100,
           "data": {
-            "atMs": 1707,
+            "atMs": 1572,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 71
+            "fiberUid": 74
           }
         },
         {
@@ -1166,16 +1308,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-agent-default-model",
           "label2": "agent-default-model",
-          "tooltip": "+1708ms",
+          "tooltip": "+1573ms",
           "status": "running",
           "icon": "node",
           "x": 2100,
           "y": 100,
           "data": {
-            "atMs": 1708,
+            "atMs": 1573,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 72
+            "fiberUid": 75
           }
         },
         {
@@ -1183,30 +1325,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-web",
           "label2": "web",
-          "tooltip": "+1709ms",
+          "tooltip": "+1574ms",
           "status": "running",
           "icon": "node",
           "x": 2280,
           "y": 100,
           "data": {
-            "atMs": 1709,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 74
-          }
-        },
-        {
-          "id": "plugin:spill-local",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-spill-local",
-          "label2": "spill-local",
-          "tooltip": "+1710ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2460,
-          "y": 100,
-          "data": {
-            "atMs": 1710,
+            "atMs": 1574,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 76
@@ -1217,16 +1342,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-llm",
           "label2": "llm",
-          "tooltip": "+1710ms",
+          "tooltip": "+1575ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2460,
+          "y": 100,
+          "data": {
+            "atMs": 1575,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 79
+          }
+        },
+        {
+          "id": "plugin:spill-local",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-spill-local",
+          "label2": "spill-local",
+          "tooltip": "+1778ms",
           "status": "running",
           "icon": "node",
           "x": 2640,
           "y": 100,
           "data": {
-            "atMs": 1710,
+            "atMs": 1778,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 77
+            "fiberUid": 81
           }
         },
         {
@@ -1234,16 +1376,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-repeat-tool-reminder",
           "label2": "repeat-tool-reminder",
-          "tooltip": "+1928ms",
+          "tooltip": "+1779ms",
           "status": "running",
           "icon": "node",
           "x": 2820,
           "y": 100,
           "data": {
-            "atMs": 1928,
+            "atMs": 1779,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 80
+            "fiberUid": 82
           }
         },
         {
@@ -1251,16 +1393,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-web-search-deepseek",
           "label2": "web-search-deepseek",
-          "tooltip": "+2139ms",
+          "tooltip": "+1998ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 200,
           "data": {
-            "atMs": 2139,
+            "atMs": 1998,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 85
+            "fiberUid": 87
           }
         },
         {
@@ -1268,13 +1410,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-user-questions",
           "label2": "user-questions",
-          "tooltip": "+2743ms",
+          "tooltip": "+2354ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 200,
           "data": {
-            "atMs": 2743,
+            "atMs": 2354,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 91
@@ -1285,33 +1427,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-skill",
           "label2": "skill",
-          "tooltip": "+2743ms",
+          "tooltip": "+2354ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 200,
           "data": {
-            "atMs": 2743,
+            "atMs": 2354,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 92
-          }
-        },
-        {
-          "id": "plugin:agent",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-agent",
-          "label2": "agent",
-          "tooltip": "+2986ms",
-          "status": "running",
-          "icon": "node",
-          "x": 660,
-          "y": 200,
-          "data": {
-            "atMs": 2986,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 100
           }
         },
         {
@@ -1319,16 +1444,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session",
           "label2": "session",
-          "tooltip": "+2986ms",
+          "tooltip": "+2580ms",
+          "status": "running",
+          "icon": "node",
+          "x": 660,
+          "y": 200,
+          "data": {
+            "atMs": 2580,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 101
+          }
+        },
+        {
+          "id": "plugin:agent",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-agent",
+          "label2": "agent",
+          "tooltip": "+2580ms",
           "status": "running",
           "icon": "node",
           "x": 840,
           "y": 200,
           "data": {
-            "atMs": 2986,
+            "atMs": 2580,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 101
+            "fiberUid": 102
           }
         },
         {
@@ -1336,16 +1478,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-user-approval",
           "label2": "approval",
-          "tooltip": "+2986ms",
+          "tooltip": "+2580ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 200,
           "data": {
-            "atMs": 2986,
+            "atMs": 2580,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 102
+            "fiberUid": 103
           }
         },
         {
@@ -1353,67 +1495,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-projection",
           "label2": "session-projection",
-          "tooltip": "+2987ms",
+          "tooltip": "+2581ms",
           "status": "running",
           "icon": "node",
           "x": 1200,
           "y": 200,
           "data": {
-            "atMs": 2987,
+            "atMs": 2581,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 103
-          }
-        },
-        {
-          "id": "plugin:session-log-deepseek",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-session-log-deepseek",
-          "label2": "session-log-deepseek",
-          "tooltip": "+2988ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1380,
-          "y": 200,
-          "data": {
-            "atMs": 2988,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 105
-          }
-        },
-        {
-          "id": "plugin:session-title",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-session-title",
-          "label2": "session-title",
-          "tooltip": "+2988ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1560,
-          "y": 200,
-          "data": {
-            "atMs": 2988,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 106
-          }
-        },
-        {
-          "id": "plugin:session-projection-cache",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-session-projection-cache",
-          "label2": "session-projection-cache",
-          "tooltip": "+2988ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1740,
-          "y": 200,
-          "data": {
-            "atMs": 2988,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 107
+            "fiberUid": 104
           }
         },
         {
@@ -1421,50 +1512,50 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-telemetry-otel",
           "label2": "session-telemetry-otel",
-          "tooltip": "+2988ms",
+          "tooltip": "+2581ms",
           "status": "running",
           "icon": "node",
-          "x": 1920,
+          "x": 1380,
           "y": 200,
           "data": {
-            "atMs": 2988,
+            "atMs": 2581,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 108
+            "fiberUid": 105
           }
         },
         {
-          "id": "plugin:goal",
+          "id": "plugin:session-log-deepseek",
           "type": "plugin",
-          "label": "@deepseek-ai/dsh-goal",
-          "label2": "goal",
-          "tooltip": "+2988ms",
+          "label": "@deepseek-ai/dsh-session-log-deepseek",
+          "label2": "session-log-deepseek",
+          "tooltip": "+2581ms",
           "status": "running",
           "icon": "node",
-          "x": 2100,
+          "x": 1560,
           "y": 200,
           "data": {
-            "atMs": 2988,
+            "atMs": 2581,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 109
+            "fiberUid": 106
           }
         },
         {
-          "id": "plugin:token-meter",
+          "id": "plugin:session-title",
           "type": "plugin",
-          "label": "@deepseek-ai/dsh-token-meter",
-          "label2": "token-meter",
-          "tooltip": "+2988ms",
+          "label": "@deepseek-ai/dsh-session-title",
+          "label2": "session-title",
+          "tooltip": "+2581ms",
           "status": "running",
           "icon": "node",
-          "x": 2280,
+          "x": 1740,
           "y": 200,
           "data": {
-            "atMs": 2988,
+            "atMs": 2581,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 110
+            "fiberUid": 107
           }
         },
         {
@@ -1472,30 +1563,81 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-checkpoint-policy",
           "label2": "session-checkpoint-policy",
-          "tooltip": "+2988ms",
+          "tooltip": "+2581ms",
           "status": "running",
           "icon": "node",
-          "x": 2460,
+          "x": 1920,
           "y": 200,
           "data": {
-            "atMs": 2988,
+            "atMs": 2581,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 109
+          }
+        },
+        {
+          "id": "plugin:goal",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-goal",
+          "label2": "goal",
+          "tooltip": "+2581ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2100,
+          "y": 200,
+          "data": {
+            "atMs": 2581,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 110
+          }
+        },
+        {
+          "id": "plugin:token-meter",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-token-meter",
+          "label2": "token-meter",
+          "tooltip": "+2581ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2280,
+          "y": 200,
+          "data": {
+            "atMs": 2581,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 111
           }
         },
         {
-          "id": "plugin:storage-json",
+          "id": "plugin:session-projection-cache",
           "type": "plugin",
-          "label": "@deepseek-ai/dsh-storage-json",
-          "label2": "storage-json",
-          "tooltip": "+2988ms",
+          "label": "@deepseek-ai/dsh-session-projection-cache",
+          "label2": "session-projection-cache",
+          "tooltip": "+2581ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2460,
+          "y": 200,
+          "data": {
+            "atMs": 2581,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 112
+          }
+        },
+        {
+          "id": "plugin:settings",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-settings-file",
+          "label2": "settings",
+          "tooltip": "+2582ms",
           "status": "running",
           "icon": "node",
           "x": 2640,
           "y": 200,
           "data": {
-            "atMs": 2988,
+            "atMs": 2582,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 114
@@ -1506,33 +1648,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-credentials-local",
           "label2": "credentials",
-          "tooltip": "+2988ms",
+          "tooltip": "+2582ms",
           "status": "running",
           "icon": "node",
           "x": 2820,
           "y": 200,
           "data": {
-            "atMs": 2988,
+            "atMs": 2582,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
             "fiberUid": 115
-          }
-        },
-        {
-          "id": "plugin:settings",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-settings-file",
-          "label2": "settings",
-          "tooltip": "+2988ms",
-          "status": "running",
-          "icon": "node",
-          "x": 120,
-          "y": 300,
-          "data": {
-            "atMs": 2988,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 116
           }
         },
         {
@@ -1540,16 +1665,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-commands",
           "label2": "commands",
-          "tooltip": "+2988ms",
+          "tooltip": "+2589ms",
+          "status": "running",
+          "icon": "node",
+          "x": 120,
+          "y": 300,
+          "data": {
+            "atMs": 2589,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 122
+          }
+        },
+        {
+          "id": "plugin:storage-json",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-storage-json",
+          "label2": "storage-json",
+          "tooltip": "+2590ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 300,
           "data": {
-            "atMs": 2988,
+            "atMs": 2590,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 118
+            "fiberUid": 124
           }
         },
         {
@@ -1557,33 +1699,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-sandbox-policy",
           "label2": "sandbox-policy",
-          "tooltip": "+3008ms",
+          "tooltip": "+2597ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 300,
           "data": {
-            "atMs": 3008,
+            "atMs": 2597,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 127
-          }
-        },
-        {
-          "id": "plugin:command-feedback",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-command-feedback",
-          "label2": "command-feedback",
-          "tooltip": "+3258ms",
-          "status": "running",
-          "icon": "node",
-          "x": 660,
-          "y": 300,
-          "data": {
-            "atMs": 3258,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 130
+            "fiberUid": 128
           }
         },
         {
@@ -1591,16 +1716,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-title-first-prompt-llm",
           "label2": "session-title-llm",
-          "tooltip": "+3259ms",
+          "tooltip": "+2599ms",
+          "status": "running",
+          "icon": "node",
+          "x": 660,
+          "y": 300,
+          "data": {
+            "atMs": 2599,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 131
+          }
+        },
+        {
+          "id": "plugin:command-feedback",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-command-feedback",
+          "label2": "command-feedback",
+          "tooltip": "+2599ms",
           "status": "running",
           "icon": "node",
           "x": 840,
           "y": 300,
           "data": {
-            "atMs": 3259,
+            "atMs": 2599,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 131
+            "fiberUid": 132
           }
         },
         {
@@ -1608,16 +1750,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-agent-loop",
           "label2": "agent-loop",
-          "tooltip": "+3261ms",
+          "tooltip": "+2828ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 300,
           "data": {
-            "atMs": 3261,
+            "atMs": 2828,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 132
+            "fiberUid": 134
           }
         },
         {
@@ -1625,16 +1767,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-fs-observation-policy",
           "label2": "fs-observation-policy",
-          "tooltip": "+3264ms",
+          "tooltip": "+2829ms",
           "status": "running",
           "icon": "node",
           "x": 1200,
           "y": 300,
           "data": {
-            "atMs": 3264,
+            "atMs": 2829,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 133
+            "fiberUid": 135
           }
         },
         {
@@ -1642,16 +1784,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-shell-env",
           "label2": "shell-env",
-          "tooltip": "+3266ms",
+          "tooltip": "+2830ms",
           "status": "running",
           "icon": "node",
           "x": 1380,
           "y": 300,
           "data": {
-            "atMs": 3266,
+            "atMs": 2830,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 134
+            "fiberUid": 136
           }
         },
         {
@@ -1659,16 +1801,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-jobs-local",
           "label2": "jobs",
-          "tooltip": "+3314ms",
+          "tooltip": "+2869ms",
           "status": "running",
           "icon": "node",
           "x": 1560,
           "y": 300,
           "data": {
-            "atMs": 3314,
+            "atMs": 2869,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 137
+            "fiberUid": 140
           }
         },
         {
@@ -1676,16 +1818,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-web-fetch-http",
           "label2": "web-fetch-http",
-          "tooltip": "+3314ms",
+          "tooltip": "+2869ms",
           "status": "running",
           "icon": "node",
           "x": 1740,
           "y": 300,
           "data": {
-            "atMs": 3314,
+            "atMs": 2869,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 139
+            "fiberUid": 141
           }
         },
         {
@@ -1693,16 +1835,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-api-gateway",
           "label2": "typert-gateway",
-          "tooltip": "+3582ms",
+          "tooltip": "+3120ms",
           "status": "running",
           "icon": "node",
           "x": 1920,
           "y": 300,
           "data": {
-            "atMs": 3582,
+            "atMs": 3120,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 144
+            "fiberUid": 146
           }
         },
         {
@@ -1710,16 +1852,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-fs-sandbox",
           "label2": "fs-sandbox",
-          "tooltip": "+3620ms",
+          "tooltip": "+3458ms",
           "status": "running",
           "icon": "node",
           "x": 2100,
           "y": 300,
           "data": {
-            "atMs": 3620,
+            "atMs": 3458,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 151
+            "fiberUid": 154
           }
         },
         {
@@ -1727,16 +1869,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-subagent",
           "label2": "subagent",
-          "tooltip": "+3893ms",
+          "tooltip": "+3709ms",
           "status": "running",
           "icon": "node",
           "x": 2280,
           "y": 300,
           "data": {
-            "atMs": 3893,
+            "atMs": 3709,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 154
+            "fiberUid": 158
           }
         },
         {
@@ -1744,16 +1886,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-subagent-spawn-in-process",
           "label2": "subagent-spawn-in-process",
-          "tooltip": "+3894ms",
+          "tooltip": "+3710ms",
           "status": "running",
           "icon": "node",
           "x": 2460,
           "y": 300,
           "data": {
-            "atMs": 3894,
+            "atMs": 3710,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 156
+            "fiberUid": 161
           }
         },
         {
@@ -1761,16 +1903,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-subagent-fork-in-process",
           "label2": "subagent-fork-in-process",
-          "tooltip": "+3894ms",
+          "tooltip": "+3710ms",
           "status": "running",
           "icon": "node",
           "x": 2640,
           "y": 300,
           "data": {
-            "atMs": 3894,
+            "atMs": 3710,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 157
+            "fiberUid": 162
           }
         },
         {
@@ -1778,16 +1920,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-llm-deepseek",
           "label2": "llm-deepseek",
-          "tooltip": "+3995ms",
+          "tooltip": "+4038ms",
           "status": "running",
           "icon": "node",
           "x": 2820,
           "y": 300,
           "data": {
-            "atMs": 3995,
+            "atMs": 4038,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 159
+            "fiberUid": 166
           }
         },
         {
@@ -1795,16 +1937,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-attachment-local",
           "label2": "attachment-local",
-          "tooltip": "+4433ms",
+          "tooltip": "+4440ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 400,
           "data": {
-            "atMs": 4433,
+            "atMs": 4440,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 165
+            "fiberUid": 171
           }
         },
         {
@@ -1812,16 +1954,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-subprocess-local",
           "label2": "subprocess",
-          "tooltip": "+4737ms",
+          "tooltip": "+4792ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 400,
           "data": {
-            "atMs": 4737,
+            "atMs": 4792,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 170
+            "fiberUid": 174
           }
         },
         {
@@ -1829,50 +1971,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-sandbox-local",
           "label2": "sandbox",
-          "tooltip": "+4737ms",
+          "tooltip": "+4793ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 400,
           "data": {
-            "atMs": 4737,
+            "atMs": 4793,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 171
-          }
-        },
-        {
-          "id": "plugin:bash-sandbox",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-bash-sandbox",
-          "label2": "bash-sandbox",
-          "tooltip": "+4740ms",
-          "status": "running",
-          "icon": "node",
-          "x": 660,
-          "y": 400,
-          "data": {
-            "atMs": 4740,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 172
-          }
-        },
-        {
-          "id": "plugin:permission",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-permission-presets",
-          "label2": "permission",
-          "tooltip": "+4742ms",
-          "status": "running",
-          "icon": "node",
-          "x": 840,
-          "y": 400,
-          "data": {
-            "atMs": 4742,
-            "layer": "@deepseek-ai/dsh-base",
-            "inject": [],
-            "fiberUid": 174
+            "fiberUid": 175
           }
         },
         {
@@ -1880,16 +1988,50 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-persistence-jsonl",
           "label2": "session-persistence-jsonl",
-          "tooltip": "+4772ms",
+          "tooltip": "+4793ms",
+          "status": "running",
+          "icon": "node",
+          "x": 660,
+          "y": 400,
+          "data": {
+            "atMs": 4793,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 176
+          }
+        },
+        {
+          "id": "plugin:bash-sandbox",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-bash-sandbox",
+          "label2": "bash-sandbox",
+          "tooltip": "+4816ms",
+          "status": "running",
+          "icon": "node",
+          "x": 840,
+          "y": 400,
+          "data": {
+            "atMs": 4816,
+            "layer": "@deepseek-ai/dsh-base",
+            "inject": [],
+            "fiberUid": 177
+          }
+        },
+        {
+          "id": "plugin:permission",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-permission-presets",
+          "label2": "permission",
+          "tooltip": "+4837ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 400,
           "data": {
-            "atMs": 4772,
+            "atMs": 4837,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 175
+            "fiberUid": 179
           }
         },
         {
@@ -1897,16 +2039,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-llm-pi-ai",
           "label2": "llm-pi-ai",
-          "tooltip": "+5301ms",
+          "tooltip": "+5324ms",
           "status": "running",
           "icon": "node",
           "x": 1200,
           "y": 400,
           "data": {
-            "atMs": 5301,
+            "atMs": 5324,
             "layer": "@deepseek-ai/dsh-base",
             "inject": [],
-            "fiberUid": 182
+            "fiberUid": 186
           }
         },
         {
@@ -1950,513 +2092,20 @@ export const dshBootDocument: GraphDocument = {
       },
       "nodes": [
         {
-          "id": "plugin:ui-open-in-app",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-open-in-app",
-          "label2": "ui-open-in-app",
-          "tooltip": "+232ms",
-          "status": "running",
-          "icon": "node",
-          "x": 120,
-          "y": 100,
-          "data": {
-            "atMs": 232,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 4
-          }
-        },
-        {
-          "id": "plugin:ui-settings",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-settings",
-          "label2": "ui-settings",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 300,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 5
-          }
-        },
-        {
-          "id": "plugin:ui-settings-models",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-settings-models",
-          "label2": "ui-settings-models",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 480,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 6
-          }
-        },
-        {
-          "id": "plugin:ui-settings-plugin-inventory",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-settings-plugin-inventory",
-          "label2": "ui-settings-plugin-inventory",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 660,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 7
-          }
-        },
-        {
-          "id": "plugin:ui-approval",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-approval",
-          "label2": "ui-approval",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 840,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 8
-          }
-        },
-        {
-          "id": "plugin:ui-brand-official",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-brand-official",
-          "label2": "ui-brand-official",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1020,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 9
-          }
-        },
-        {
-          "id": "plugin:ui-attachment",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-attachment",
-          "label2": "ui-attachment",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1200,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 10
-          }
-        },
-        {
-          "id": "plugin:ui-tool",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-tool",
-          "label2": "ui-tool",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1380,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 11
-          }
-        },
-        {
-          "id": "plugin:ui-cordis",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-cordis",
-          "label2": "ui-cordis",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1560,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 12
-          }
-        },
-        {
-          "id": "plugin:cordis-client-runner",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-cordis-client-runner",
-          "label2": "cordis-client-runner",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1740,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 13
-          }
-        },
-        {
-          "id": "plugin:ui-layout",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-layout",
-          "label2": "ui-layout",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1920,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 14
-          }
-        },
-        {
-          "id": "plugin:ui-renderer",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-renderer",
-          "label2": "ui-renderer",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2100,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 15
-          }
-        },
-        {
-          "id": "plugin:ui-session",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-session",
-          "label2": "ui-session",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2280,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 16
-          }
-        },
-        {
-          "id": "plugin:resources",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-resources",
-          "label2": "resources",
-          "tooltip": "+243ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2460,
-          "y": 100,
-          "data": {
-            "atMs": 243,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 17
-          }
-        },
-        {
-          "id": "plugin:ui-sidebar",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-sidebar",
-          "label2": "ui-sidebar",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2640,
-          "y": 100,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 18
-          }
-        },
-        {
-          "id": "plugin:ui-sidebar-right",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-sidebar-right",
-          "label2": "ui-sidebar-right",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2820,
-          "y": 100,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 19
-          }
-        },
-        {
-          "id": "plugin:ui-sidebar-documentpreview",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
-          "label2": "ui-sidebar-documentpreview",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 120,
-          "y": 200,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 20
-          }
-        },
-        {
-          "id": "plugin:ui-sidebar-files",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-sidebar-files",
-          "label2": "ui-sidebar-files",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 300,
-          "y": 200,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 21
-          }
-        },
-        {
-          "id": "plugin:ui-workflow-run",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-workflow-run",
-          "label2": "ui-workflow-run",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 480,
-          "y": 200,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 22
-          }
-        },
-        {
-          "id": "plugin:ui-workspace",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-workspace",
-          "label2": "ui-workspace",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 660,
-          "y": 200,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 23
-          }
-        },
-        {
-          "id": "plugin:ui-input-trigger",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-input-trigger",
-          "label2": "ui-input-trigger",
-          "tooltip": "+244ms",
-          "status": "running",
-          "icon": "node",
-          "x": 840,
-          "y": 200,
-          "data": {
-            "atMs": 244,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 24
-          }
-        },
-        {
-          "id": "plugin:ui-reference",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-reference",
-          "label2": "ui-reference",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1020,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 25
-          }
-        },
-        {
-          "id": "plugin:ui-jobs",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-jobs",
-          "label2": "ui-jobs",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1200,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 26
-          }
-        },
-        {
-          "id": "plugin:ui-goal",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-goal",
-          "label2": "ui-goal",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1380,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 27
-          }
-        },
-        {
-          "id": "plugin:ui-message-feedback",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-message-feedback",
-          "label2": "ui-message-feedback",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1560,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 28
-          }
-        },
-        {
-          "id": "plugin:ui-commands",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-commands",
-          "label2": "ui-commands",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1740,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 29
-          }
-        },
-        {
-          "id": "plugin:ui-skill",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-skill",
-          "label2": "ui-skill",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1920,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 30
-          }
-        },
-        {
-          "id": "plugin:ui-subagent",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-subagent",
-          "label2": "ui-subagent",
-          "tooltip": "+254ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2100,
-          "y": 200,
-          "data": {
-            "atMs": 254,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 31
-          }
-        },
-        {
-          "id": "plugin:ui-model-selection",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-model-selection",
-          "label2": "ui-model-selection",
-          "tooltip": "+255ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2280,
-          "y": 200,
-          "data": {
-            "atMs": 255,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 32
-          }
-        },
-        {
           "id": "plugin:ui-permission",
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-permission-presets",
           "label2": "ui-permission",
-          "tooltip": "+255ms",
+          "tooltip": "+119ms",
           "status": "running",
           "icon": "node",
-          "x": 2460,
-          "y": 200,
+          "x": 120,
+          "y": 100,
           "data": {
-            "atMs": 255,
+            "atMs": 119,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 33
+            "fiberUid": 4
           }
         },
         {
@@ -2464,16 +2113,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-agent-preset",
           "label2": "ui-agent-preset",
-          "tooltip": "+255ms",
+          "tooltip": "+119ms",
           "status": "running",
           "icon": "node",
-          "x": 2640,
-          "y": 200,
+          "x": 300,
+          "y": 100,
           "data": {
-            "atMs": 255,
+            "atMs": 119,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 34
+            "fiberUid": 5
           }
         },
         {
@@ -2481,13 +2130,506 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-settings-plugins",
           "label2": "ui-settings-plugins",
-          "tooltip": "+255ms",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 480,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 6
+          }
+        },
+        {
+          "id": "plugin:ui-open-in-app",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-open-in-app",
+          "label2": "ui-open-in-app",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 660,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 7
+          }
+        },
+        {
+          "id": "plugin:ui-sidebar",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-sidebar",
+          "label2": "ui-sidebar",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 840,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 8
+          }
+        },
+        {
+          "id": "plugin:cordis-client-runner",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-cordis-client-runner",
+          "label2": "cordis-client-runner",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1020,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 9
+          }
+        },
+        {
+          "id": "plugin:ui-layout",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-layout",
+          "label2": "ui-layout",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1200,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 10
+          }
+        },
+        {
+          "id": "plugin:ui-renderer",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-renderer",
+          "label2": "ui-renderer",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1380,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 11
+          }
+        },
+        {
+          "id": "plugin:ui-session",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-session",
+          "label2": "ui-session",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1560,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 12
+          }
+        },
+        {
+          "id": "plugin:resources",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-resources",
+          "label2": "resources",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1740,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 13
+          }
+        },
+        {
+          "id": "plugin:ui-sidebar-right",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-sidebar-right",
+          "label2": "ui-sidebar-right",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1920,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 14
+          }
+        },
+        {
+          "id": "plugin:ui-sidebar-documentpreview",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-sidebar-documentpreview",
+          "label2": "ui-sidebar-documentpreview",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2100,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 15
+          }
+        },
+        {
+          "id": "plugin:ui-sidebar-files",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-sidebar-files",
+          "label2": "ui-sidebar-files",
+          "tooltip": "+119ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2280,
+          "y": 100,
+          "data": {
+            "atMs": 119,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 16
+          }
+        },
+        {
+          "id": "plugin:ui-settings",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-settings",
+          "label2": "ui-settings",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2460,
+          "y": 100,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 17
+          }
+        },
+        {
+          "id": "plugin:ui-settings-models",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-settings-models",
+          "label2": "ui-settings-models",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2640,
+          "y": 100,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 18
+          }
+        },
+        {
+          "id": "plugin:ui-settings-plugin-inventory",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-settings-plugin-inventory",
+          "label2": "ui-settings-plugin-inventory",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2820,
+          "y": 100,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 19
+          }
+        },
+        {
+          "id": "plugin:ui-approval",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-approval",
+          "label2": "ui-approval",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 120,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 20
+          }
+        },
+        {
+          "id": "plugin:ui-brand-official",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-brand-official",
+          "label2": "ui-brand-official",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 300,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 21
+          }
+        },
+        {
+          "id": "plugin:ui-attachment",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-attachment",
+          "label2": "ui-attachment",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 480,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 22
+          }
+        },
+        {
+          "id": "plugin:ui-tool",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-tool",
+          "label2": "ui-tool",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 660,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 23
+          }
+        },
+        {
+          "id": "plugin:ui-cordis",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-cordis",
+          "label2": "ui-cordis",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 840,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 24
+          }
+        },
+        {
+          "id": "plugin:ui-workflow-run",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-workflow-run",
+          "label2": "ui-workflow-run",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1020,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 25
+          }
+        },
+        {
+          "id": "plugin:ui-workspace",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-workspace",
+          "label2": "ui-workspace",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1200,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 26
+          }
+        },
+        {
+          "id": "plugin:ui-input-trigger",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-input-trigger",
+          "label2": "ui-input-trigger",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1380,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 27
+          }
+        },
+        {
+          "id": "plugin:ui-commands",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-commands",
+          "label2": "ui-commands",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1560,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 28
+          }
+        },
+        {
+          "id": "plugin:ui-skill",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-skill",
+          "label2": "ui-skill",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1740,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 29
+          }
+        },
+        {
+          "id": "plugin:ui-subagent",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-subagent",
+          "label2": "ui-subagent",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1920,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 30
+          }
+        },
+        {
+          "id": "plugin:ui-reference",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-reference",
+          "label2": "ui-reference",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2100,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 31
+          }
+        },
+        {
+          "id": "plugin:ui-jobs",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-jobs",
+          "label2": "ui-jobs",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2280,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 32
+          }
+        },
+        {
+          "id": "plugin:ui-goal",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-goal",
+          "label2": "ui-goal",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2460,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 33
+          }
+        },
+        {
+          "id": "plugin:ui-message-feedback",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-message-feedback",
+          "label2": "ui-message-feedback",
+          "tooltip": "+120ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2640,
+          "y": 200,
+          "data": {
+            "atMs": 120,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 34
+          }
+        },
+        {
+          "id": "plugin:ui-model-selection",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-model-selection",
+          "label2": "ui-model-selection",
+          "tooltip": "+120ms",
           "status": "running",
           "icon": "node",
           "x": 2820,
           "y": 200,
           "data": {
-            "atMs": 255,
+            "atMs": 120,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 35
@@ -2498,13 +2640,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-plan",
           "label2": "ui-plan",
-          "tooltip": "+255ms",
+          "tooltip": "+120ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 300,
           "data": {
-            "atMs": 255,
+            "atMs": 120,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 36
@@ -2515,13 +2657,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-user-questions",
           "label2": "ui-user-questions",
-          "tooltip": "+320ms",
+          "tooltip": "+120ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 300,
           "data": {
-            "atMs": 320,
+            "atMs": 120,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 37
@@ -2532,13 +2674,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-trajectory",
           "label2": "ui-trajectory",
-          "tooltip": "+320ms",
+          "tooltip": "+120ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 300,
           "data": {
-            "atMs": 320,
+            "atMs": 120,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 38
@@ -2549,13 +2691,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-modules",
           "label2": "modules",
-          "tooltip": "+818ms",
+          "tooltip": "+566ms",
           "status": "running",
           "icon": "node",
           "x": 660,
           "y": 300,
           "data": {
-            "atMs": 818,
+            "atMs": 566,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 46
@@ -2566,18 +2708,18 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-host-webserver",
           "label2": "webserver",
-          "tooltip": "+852ms · inject: webStartup",
+          "tooltip": "+594ms · inject: webStartup",
           "status": "running",
           "icon": "node",
           "x": 840,
           "y": 300,
           "data": {
-            "atMs": 852,
+            "atMs": 594,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [
               "webStartup"
             ],
-            "fiberUid": 49
+            "fiberUid": 48
           }
         },
         {
@@ -2585,16 +2727,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-host-directory-picker-auto",
           "label2": "directory-picker",
-          "tooltip": "+877ms",
+          "tooltip": "+637ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 300,
           "data": {
-            "atMs": 877,
+            "atMs": 637,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 51
+            "fiberUid": 52
           }
         },
         {
@@ -2602,13 +2744,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-hmr",
           "label2": "client-hmr",
-          "tooltip": "+880ms",
+          "tooltip": "+638ms",
           "status": "running",
           "icon": "node",
           "x": 1200,
           "y": 300,
           "data": {
-            "atMs": 880,
+            "atMs": 638,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 57
@@ -2619,30 +2761,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-settings-general",
           "label2": "ui-settings-general",
-          "tooltip": "+1093ms",
+          "tooltip": "+851ms",
           "status": "running",
           "icon": "node",
           "x": 1380,
           "y": 300,
           "data": {
-            "atMs": 1093,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 58
-          }
-        },
-        {
-          "id": "plugin:code-runtime",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-code-runtime-worker-thread",
-          "label2": "code-runtime",
-          "tooltip": "+1094ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1560,
-          "y": 300,
-          "data": {
-            "atMs": 1094,
+            "atMs": 851,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 59
@@ -2653,135 +2778,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-file-reference-local",
           "label2": "file-reference-local",
-          "tooltip": "+1094ms",
+          "tooltip": "+851ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1560,
+          "y": 300,
+          "data": {
+            "atMs": 851,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 61
+          }
+        },
+        {
+          "id": "plugin:code-runtime",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-code-runtime-worker-thread",
+          "label2": "code-runtime",
+          "tooltip": "+851ms",
           "status": "running",
           "icon": "node",
           "x": 1740,
           "y": 300,
           "data": {
-            "atMs": 1094,
+            "atMs": 851,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 62
-          }
-        },
-        {
-          "id": "plugin:ui-conversation",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-conversation",
-          "label2": "ui-conversation",
-          "tooltip": "+1366ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1920,
-          "y": 300,
-          "data": {
-            "atMs": 1366,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 64
-          }
-        },
-        {
-          "id": "plugin:ui-chat",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-chat",
-          "label2": "ui-chat",
-          "tooltip": "+1366ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2100,
-          "y": 300,
-          "data": {
-            "atMs": 1366,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 65
-          }
-        },
-        {
-          "id": "plugin:ui-theme",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-client-ui-theme",
-          "label2": "ui-theme",
-          "tooltip": "+1366ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2280,
-          "y": 300,
-          "data": {
-            "atMs": 1366,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 66
-          }
-        },
-        {
-          "id": "plugin:workspace",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-workspace",
-          "label2": "workspace",
-          "tooltip": "+1366ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2460,
-          "y": 300,
-          "data": {
-            "atMs": 1366,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 68
-          }
-        },
-        {
-          "id": "plugin:message-feedback",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-message-feedback",
-          "label2": "message-feedback",
-          "tooltip": "+1705ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2640,
-          "y": 300,
-          "data": {
-            "atMs": 1705,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 69
-          }
-        },
-        {
-          "id": "plugin:subagent-model-selection-settings",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-tool-subagent/model-selection-settings",
-          "label2": "subagent-model-selection-settings",
-          "tooltip": "+1710ms",
-          "status": "running",
-          "icon": "node",
-          "x": 2820,
-          "y": 300,
-          "data": {
-            "atMs": 1710,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 75
-          }
-        },
-        {
-          "id": "plugin:plugin-inventory",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-host-plugin-inventory",
-          "label2": "plugin-inventory",
-          "tooltip": "+1929ms",
-          "status": "running",
-          "icon": "node",
-          "x": 120,
-          "y": 400,
-          "data": {
-            "atMs": 1929,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 83
+            "fiberUid": 63
           }
         },
         {
@@ -2789,16 +2812,135 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-locale",
           "label2": "locale",
-          "tooltip": "+2139ms",
+          "tooltip": "+1092ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1920,
+          "y": 300,
+          "data": {
+            "atMs": 1092,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 66
+          }
+        },
+        {
+          "id": "plugin:ui-conversation",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-conversation",
+          "label2": "ui-conversation",
+          "tooltip": "+1092ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2100,
+          "y": 300,
+          "data": {
+            "atMs": 1092,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 67
+          }
+        },
+        {
+          "id": "plugin:ui-chat",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-chat",
+          "label2": "ui-chat",
+          "tooltip": "+1092ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2280,
+          "y": 300,
+          "data": {
+            "atMs": 1092,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 68
+          }
+        },
+        {
+          "id": "plugin:workspace",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-workspace",
+          "label2": "workspace",
+          "tooltip": "+1093ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2460,
+          "y": 300,
+          "data": {
+            "atMs": 1093,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 70
+          }
+        },
+        {
+          "id": "plugin:message-feedback",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-message-feedback",
+          "label2": "message-feedback",
+          "tooltip": "+1343ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2640,
+          "y": 300,
+          "data": {
+            "atMs": 1343,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 71
+          }
+        },
+        {
+          "id": "plugin:subagent-model-selection-settings",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-tool-subagent/model-selection-settings",
+          "label2": "subagent-model-selection-settings",
+          "tooltip": "+1575ms",
+          "status": "running",
+          "icon": "node",
+          "x": 2820,
+          "y": 300,
+          "data": {
+            "atMs": 1575,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 78
+          }
+        },
+        {
+          "id": "plugin:plugin-inventory",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-host-plugin-inventory",
+          "label2": "plugin-inventory",
+          "tooltip": "+1779ms",
+          "status": "running",
+          "icon": "node",
+          "x": 120,
+          "y": 400,
+          "data": {
+            "atMs": 1779,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 85
+          }
+        },
+        {
+          "id": "plugin:ui-theme",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-client-ui-theme",
+          "label2": "ui-theme",
+          "tooltip": "+1998ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 400,
           "data": {
-            "atMs": 2139,
+            "atMs": 1998,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 86
+            "fiberUid": 88
           }
         },
         {
@@ -2806,16 +2948,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-stats",
           "label2": "session-stats",
-          "tooltip": "+2140ms",
+          "tooltip": "+1999ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 400,
           "data": {
-            "atMs": 2140,
+            "atMs": 1999,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 87
+            "fiberUid": 89
           }
         },
         {
@@ -2823,16 +2965,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-deliverables",
           "label2": "ui-deliverables",
-          "tooltip": "+2358ms",
+          "tooltip": "+1999ms",
           "status": "running",
           "icon": "node",
           "x": 660,
           "y": 400,
           "data": {
-            "atMs": 2358,
+            "atMs": 1999,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 89
+            "fiberUid": 90
           }
         },
         {
@@ -2840,13 +2982,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-system-prompt",
           "label2": "system-prompt",
-          "tooltip": "+2743ms",
+          "tooltip": "+2354ms",
           "status": "running",
           "icon": "node",
           "x": 840,
           "y": 400,
           "data": {
-            "atMs": 2743,
+            "atMs": 2354,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 93
@@ -2857,16 +2999,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-tools",
           "label2": "tools",
-          "tooltip": "+2743ms",
+          "tooltip": "+2355ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 400,
           "data": {
-            "atMs": 2743,
+            "atMs": 2355,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 97
+            "fiberUid": 96
           }
         },
         {
@@ -2874,16 +3016,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-file-upload",
           "label2": "file-upload",
-          "tooltip": "+2743ms",
+          "tooltip": "+2355ms",
           "status": "running",
           "icon": "node",
           "x": 1200,
           "y": 400,
           "data": {
-            "atMs": 2743,
+            "atMs": 2355,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 98
+            "fiberUid": 97
           }
         },
         {
@@ -2891,16 +3033,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-api-remotes",
           "label2": "api-remotes",
-          "tooltip": "+2743ms",
+          "tooltip": "+2355ms",
           "status": "running",
           "icon": "node",
           "x": 1380,
           "y": 400,
           "data": {
-            "atMs": 2743,
+            "atMs": 2355,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 99
+            "fiberUid": 98
           }
         },
         {
@@ -2908,16 +3050,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-cordis-host-runner",
           "label2": "cordis-host-runner",
-          "tooltip": "+2988ms",
+          "tooltip": "+2581ms",
           "status": "running",
           "icon": "node",
           "x": 1560,
           "y": 400,
           "data": {
-            "atMs": 2988,
+            "atMs": 2581,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 112
+            "fiberUid": 113
           }
         },
         {
@@ -2925,33 +3067,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-query-sqlite",
           "label2": "session-query-sqlite",
-          "tooltip": "+2997ms",
+          "tooltip": "+2589ms",
           "status": "running",
           "icon": "node",
           "x": 1740,
           "y": 400,
           "data": {
-            "atMs": 2997,
+            "atMs": 2589,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
             "fiberUid": 121
-          }
-        },
-        {
-          "id": "plugin:settings-controller",
-          "type": "plugin",
-          "label": "@deepseek-ai/dsh-api-settings-controller",
-          "label2": "settings-controller",
-          "tooltip": "+2999ms",
-          "status": "running",
-          "icon": "node",
-          "x": 1920,
-          "y": 400,
-          "data": {
-            "atMs": 2999,
-            "layer": "@deepseek-ai/dsh-web-app",
-            "inject": [],
-            "fiberUid": 123
           }
         },
         {
@@ -2959,16 +3084,33 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-turn-outline",
           "label2": "session-turn-outline",
-          "tooltip": "+3001ms",
+          "tooltip": "+2592ms",
+          "status": "running",
+          "icon": "node",
+          "x": 1920,
+          "y": 400,
+          "data": {
+            "atMs": 2592,
+            "layer": "@deepseek-ai/dsh-web-app",
+            "inject": [],
+            "fiberUid": 125
+          }
+        },
+        {
+          "id": "plugin:settings-controller",
+          "type": "plugin",
+          "label": "@deepseek-ai/dsh-api-settings-controller",
+          "label2": "settings-controller",
+          "tooltip": "+2592ms",
           "status": "running",
           "icon": "node",
           "x": 2100,
           "y": 400,
           "data": {
-            "atMs": 3001,
+            "atMs": 2592,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 124
+            "fiberUid": 126
           }
         },
         {
@@ -2976,16 +3118,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-host-open-in-app",
           "label2": "open-in-app",
-          "tooltip": "+3002ms",
+          "tooltip": "+2598ms",
           "status": "running",
           "icon": "node",
           "x": 2280,
           "y": 400,
           "data": {
-            "atMs": 3002,
+            "atMs": 2598,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 125
+            "fiberUid": 130
           }
         },
         {
@@ -2993,16 +3135,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-reference",
           "label2": "session-reference",
-          "tooltip": "+3314ms",
+          "tooltip": "+2869ms",
           "status": "running",
           "icon": "node",
           "x": 2460,
           "y": 400,
           "data": {
-            "atMs": 3314,
+            "atMs": 2869,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 140
+            "fiberUid": 142
           }
         },
         {
@@ -3010,16 +3152,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-web-app/startup",
           "label2": "web-startup",
-          "tooltip": "+3314ms",
+          "tooltip": "+2869ms",
           "status": "running",
           "icon": "node",
           "x": 2640,
           "y": 400,
           "data": {
-            "atMs": 3314,
+            "atMs": 2869,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 141
+            "fiberUid": 143
           }
         },
         {
@@ -3027,16 +3169,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-agent-presets",
           "label2": "agent-presets",
-          "tooltip": "+3582ms",
+          "tooltip": "+3119ms",
           "status": "running",
           "icon": "node",
           "x": 2820,
           "y": 400,
           "data": {
-            "atMs": 3582,
+            "atMs": 3119,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 142
+            "fiberUid": 144
           }
         },
         {
@@ -3044,18 +3186,18 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-web-app",
           "label2": "web-runtime",
-          "tooltip": "+3592ms · inject: webStartup",
+          "tooltip": "+3129ms · inject: webStartup",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 500,
           "data": {
-            "atMs": 3592,
+            "atMs": 3129,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [
               "webStartup"
             ],
-            "fiberUid": 148
+            "fiberUid": 150
           }
         },
         {
@@ -3063,16 +3205,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-session-log-export",
           "label2": "session-log-download",
-          "tooltip": "+3619ms",
+          "tooltip": "+3458ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 500,
           "data": {
-            "atMs": 3619,
+            "atMs": 3458,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 149
+            "fiberUid": 153
           }
         },
         {
@@ -3080,16 +3222,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-api-workspace-files",
           "label2": "workspace-files",
-          "tooltip": "+3893ms",
+          "tooltip": "+3709ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 500,
           "data": {
-            "atMs": 3893,
+            "atMs": 3709,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 155
+            "fiberUid": 159
           }
         },
         {
@@ -3097,18 +3239,18 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-connection",
           "label2": "connection",
-          "tooltip": "+5238ms · inject: webRuntime",
+          "tooltip": "+5295ms · inject: webRuntime",
           "status": "running",
           "icon": "node",
           "x": 660,
           "y": 500,
           "data": {
-            "atMs": 5238,
+            "atMs": 5295,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [
               "webRuntime"
             ],
-            "fiberUid": 179
+            "fiberUid": 183
           }
         },
         {
@@ -3116,16 +3258,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-api-workspace-controller",
           "label2": "workspace-controller",
-          "tooltip": "+5315ms",
+          "tooltip": "+5338ms",
           "status": "running",
           "icon": "node",
           "x": 840,
           "y": 500,
           "data": {
-            "atMs": 5315,
+            "atMs": 5338,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 183
+            "fiberUid": 187
           }
         },
         {
@@ -3133,16 +3275,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/dsh-api-session-controller",
           "label2": "session-controller",
-          "tooltip": "+5316ms",
+          "tooltip": "+5339ms",
           "status": "running",
           "icon": "node",
           "x": 1020,
           "y": 500,
           "data": {
-            "atMs": 5316,
+            "atMs": 5339,
             "layer": "@deepseek-ai/dsh-web-app",
             "inject": [],
-            "fiberUid": 188
+            "fiberUid": 192
           }
         },
         {
@@ -3520,16 +3662,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "dshmarket",
           "label2": "dsh-market",
-          "tooltip": "+4282ms",
+          "tooltip": "+3973ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 4282,
+            "atMs": 3973,
             "layer": "dshmarket",
             "inject": [],
-            "fiberUid": 162
+            "fiberUid": 164
           }
         }
       ],
@@ -3547,16 +3689,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "dsh-context",
           "label2": "dsh-context",
-          "tooltip": "+4731ms",
+          "tooltip": "+4375ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 4731,
+            "atMs": 4375,
             "layer": "dsh-context",
             "inject": [],
-            "fiberUid": 167
+            "fiberUid": 169
           }
         }
       ],
@@ -3574,16 +3716,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@vectorize-io/hindsight-coding-agents/dsh",
           "label2": "hindsight",
-          "tooltip": "+2989ms",
+          "tooltip": "+2589ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 2989,
+            "atMs": 2589,
             "layer": "@vectorize-io/hindsight-coding-agents",
             "inject": [],
-            "fiberUid": 119
+            "fiberUid": 118
           }
         }
       ],
@@ -3601,13 +3743,13 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@linxin666/dsh-client-ui-skill-explorer",
           "label2": "ui-skill-explorer",
-          "tooltip": "+398ms",
+          "tooltip": "+249ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 398,
+            "atMs": 249,
             "layer": "@linxin666/dsh-client-ui-skill-explorer",
             "inject": [],
             "fiberUid": 41
@@ -3628,16 +3770,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "dsh-cost-meter",
           "label2": "cost-meter",
-          "tooltip": "+4736ms",
+          "tooltip": "+4727ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 4736,
+            "atMs": 4727,
             "layer": "dsh-cost-meter",
             "inject": [],
-            "fiberUid": 169
+            "fiberUid": 173
           }
         }
       ],
@@ -3655,16 +3797,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "file:///Users/macff/.dsh/profiles/web/plugins/repo-command/src/index.ts",
           "label2": "repo-command",
-          "tooltip": "+446ms",
+          "tooltip": "+263ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 446,
+            "atMs": 263,
             "layer": "profile:cordis.patch.yml",
             "inject": [],
-            "fiberUid": 44
+            "fiberUid": 43
           }
         },
         {
@@ -3672,16 +3814,16 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "@deepseek-ai/cordis-plugin-hmr",
           "label2": "hmr",
-          "tooltip": "+2988ms",
+          "tooltip": "+2582ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 100,
           "data": {
-            "atMs": 2988,
+            "atMs": 2582,
             "layer": "profile:cordis.patch.yml",
             "inject": [],
-            "fiberUid": 117
+            "fiberUid": 116
           }
         }
       ],
@@ -3689,6 +3831,60 @@ export const dshBootDocument: GraphDocument = {
       "groups": []
     },
     "network:layer:8": {
+      "version": 1,
+      "meta": {
+        "title": "overlay:agent-observe (1 activated, 0 inactive)"
+      },
+      "nodes": [
+        {
+          "id": "plugin:agent-observe",
+          "type": "plugin",
+          "label": "file:///Users/macff/Documents/AI/coding-agents/deepseek-harness/plugins/agent-observe/src/index.ts",
+          "label2": "agent-observe",
+          "tooltip": "+2589ms",
+          "status": "running",
+          "icon": "node",
+          "x": 120,
+          "y": 100,
+          "data": {
+            "atMs": 2589,
+            "layer": "overlay:agent-observe",
+            "inject": [],
+            "fiberUid": 119
+          }
+        }
+      ],
+      "edges": [],
+      "groups": []
+    },
+    "network:layer:9": {
+      "version": 1,
+      "meta": {
+        "title": "overlay:agent-orchestrator (1 activated, 0 inactive)"
+      },
+      "nodes": [
+        {
+          "id": "plugin:agent-orchestrator",
+          "type": "plugin",
+          "label": "file:///Users/macff/Documents/AI/coding-agents/deepseek-harness/plugins/agent-orchestrator/src/index.ts",
+          "label2": "agent-orchestrator",
+          "tooltip": "+3458ms",
+          "status": "running",
+          "icon": "node",
+          "x": 120,
+          "y": 100,
+          "data": {
+            "atMs": 3458,
+            "layer": "overlay:agent-orchestrator",
+            "inject": [],
+            "fiberUid": 152
+          }
+        }
+      ],
+      "edges": [],
+      "groups": []
+    },
+    "network:layer:10": {
       "version": 1,
       "meta": {
         "title": "runtime-mounted（动态挂载，无 yml 声明） (3 activated, 0 inactive)"
@@ -3699,50 +3895,50 @@ export const dshBootDocument: GraphDocument = {
           "type": "plugin",
           "label": "cordis:include",
           "label2": "include",
-          "tooltip": "+162ms",
+          "tooltip": "+67ms",
           "status": "running",
           "icon": "node",
           "x": 120,
           "y": 100,
           "data": {
-            "atMs": 162,
+            "atMs": 67,
             "layer": "runtime-mounted（动态挂载，无 yml 声明）",
             "inject": [],
             "fiberUid": 3
           }
         },
         {
-          "id": "plugin:2da1c32b",
+          "id": "plugin:6bc8e70a",
           "type": "plugin",
           "label": "@deepseek-ai/dsh-host-directory-picker-native",
-          "label2": "2da1c32b",
-          "tooltip": "+4819ms",
+          "label2": "6bc8e70a",
+          "tooltip": "+4905ms",
           "status": "running",
           "icon": "node",
           "x": 300,
           "y": 100,
           "data": {
-            "atMs": 4819,
+            "atMs": 4905,
             "layer": "runtime-mounted（动态挂载，无 yml 声明）",
             "inject": [],
-            "fiberUid": 176
+            "fiberUid": 180
           }
         },
         {
-          "id": "plugin:18ef9a75",
+          "id": "plugin:5a27da82",
           "type": "plugin",
           "label": "@deepseek-ai/dsh-client-ui-directory-picker-native",
-          "label2": "18ef9a75",
-          "tooltip": "+4853ms",
+          "label2": "5a27da82",
+          "tooltip": "+4970ms",
           "status": "running",
           "icon": "node",
           "x": 480,
           "y": 100,
           "data": {
-            "atMs": 4853,
+            "atMs": 4970,
             "layer": "runtime-mounted（动态挂载，无 yml 声明）",
             "inject": [],
-            "fiberUid": 177
+            "fiberUid": 181
           }
         }
       ],
