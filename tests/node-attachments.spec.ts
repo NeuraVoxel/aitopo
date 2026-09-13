@@ -67,6 +67,40 @@ describe('Node attachments', () => {
     expect(icons && 'iconKey' in icons && icons.iconKey).toBe('server')
   })
 
+  it('defaults networkId nodes to the subnetwork icon; explicit icon wins', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'sub', type: 'team', label: 'Sub', networkId: 'net', x: 0, y: 0, w: 100, h: 40 },
+        {
+          id: 'named',
+          type: 'team',
+          label: 'Named',
+          networkId: 'net',
+          icon: 'server',
+          x: 200,
+          y: 0,
+          w: 100,
+          h: 40,
+        },
+        { id: 'plain', type: 'unit', label: 'Plain', x: 400, y: 0, w: 100, h: 40 },
+      ],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const iconKeyOf = (id: string): string | undefined => {
+      const icons = views.getNode(id)!.toPaintView(false, false).attachments
+        .find(op => op.kind === 'icons')
+      return icons && 'iconKey' in icons ? icons.iconKey : undefined
+    }
+    expect(iconKeyOf('sub')).toBe('subnetwork')
+    expect(iconKeyOf('named')).toBe('server')
+    expect(iconKeyOf('plain')).toBe('node')
+  })
+
   it('does not truncate node labels by default; honors style.label.maxChars', () => {
     const scene = new GraphScene()
     scene.load({

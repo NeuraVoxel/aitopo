@@ -23,9 +23,12 @@ export class IconsAttachment extends Attachment {
     if (isGroupAttachmentCtx(ctx)) {
       const resolved = getIcon(ctx.group.icon ?? 'group', 'group')
       this.iconKey = resolved.key
+    } else if (ctx.node.icon !== undefined) {
+      // Explicit key wins; unknown keys fall back to `node` (registry default).
+      this.iconKey = getIcon(ctx.node.icon).key
     } else {
-      const resolved = getIcon(ctx.node.icon)
-      this.iconKey = resolved.key
+      // Enterable nodes advertise their nested network.
+      this.iconKey = getIcon(ctx.node.networkId !== undefined ? 'subnetwork' : 'node').key
     }
     const size = Math.min(ctx.body.width, ctx.body.height) * SIZE_FACTOR
     this.cachedBounds = placeAttachment(ctx.body, 'center', size, size)

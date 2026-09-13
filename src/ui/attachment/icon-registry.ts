@@ -87,6 +87,24 @@ registerBuiltin({
 })
 
 registerBuiltin({
+  key: 'subnetwork',
+  draw(ctx, size, color) {
+    const pad = size * 0.16
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    ctx.lineWidth = Math.max(1, size * 0.08)
+    // Node-family square; a nested inner square with a core dot marks an enterable network.
+    ctx.strokeRect(pad, pad, size - pad * 2, size - pad * 2)
+    const inner = size * 0.3
+    const at = (size - inner) / 2
+    ctx.strokeRect(at, at, inner, inner)
+    ctx.beginPath()
+    ctx.arc(size * 0.5, size * 0.5, size * 0.07, 0, Math.PI * 2)
+    ctx.fill()
+  },
+})
+
+registerBuiltin({
   key: 'agent',
   draw(ctx, size, color) {
     ctx.strokeStyle = color

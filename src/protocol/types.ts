@@ -103,7 +103,7 @@ export interface GraphNode {
   readonly label: string
   /** Secondary label (Label2Attachment); not derived from `status`. */
   readonly label2?: string
-  /** IconRegistry key for IconsAttachment; omitted → default `node`. Unknown keys fall back to `node`. */
+  /** IconRegistry key for IconsAttachment; omitted → default `node`, or `subnetwork` when `networkId` is set. Unknown keys fall back to `node`. */
   readonly icon?: string
   /** TooltipAttachment text when set. */
   readonly tooltip?: string
