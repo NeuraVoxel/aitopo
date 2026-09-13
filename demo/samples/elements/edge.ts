@@ -17,7 +17,6 @@ export const edgeDocument: GraphDocument = {
       to: 'n2',
       kind: 'data',
       label: 'ortho',
-      style: { stroke: '#2563eb', lineWidth: 2 },
     },
     {
       id: 'e-both',
@@ -25,7 +24,7 @@ export const edgeDocument: GraphDocument = {
       to: 'n4',
       kind: 'control',
       label: 'both arrows',
-      style: { stroke: '#7c3aed', arrowFrom: true, arrowTo: true },
+      style: { arrowFrom: true, arrowTo: true },
     },
     {
       id: 'e-dash',
@@ -34,7 +33,7 @@ export const edgeDocument: GraphDocument = {
       kind: 'depends',
       label: 'dashed',
       label2: 'secondary',
-      style: { stroke: '#64748b', strokeDash: [8, 4], lineWidth: 1.5 },
+      style: { strokeDash: [8, 4] },
     },
     {
       id: 'e-bend',
@@ -43,7 +42,7 @@ export const edgeDocument: GraphDocument = {
       kind: 'data',
       label: 'waypoints',
       waypoints: [{ x: 180, y: 270 }],
-      style: { stroke: '#16a34a', arrowTo: true },
+      style: { arrowTo: true },
     },
   ],
   groups: [],

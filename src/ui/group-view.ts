@@ -17,8 +17,9 @@ import {
 } from './attachment/index.ts'
 import { computeGroupBandBounds, isGroupExpanded } from './group-state.ts'
 
-const COLLAPSED_FILL = '#64748b'
-const COLLAPSED_STROKE = '#475569'
+// Collapsed groups paint as nodes: match the default node body (statusFill/statusStroke).
+const COLLAPSED_FILL = '#1a1d24'
+const COLLAPSED_STROKE = '#334155'
 const EXPANDED_FILL = 'rgba(90, 100, 120, 0.08)'
 const EXPANDED_STROKE = '#5a6478'
 

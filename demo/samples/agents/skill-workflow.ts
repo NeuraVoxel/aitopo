@@ -131,7 +131,6 @@ function stageNodes(stages: readonly Stage[], row: 0 | 1): GraphDocument['nodes'
     type: 'agent',
     label: stage.label,
     label2: stage.label2,
-    icon: 'skill',
     status: stage.status,
     tooltip: stage.tooltip,
     data: { skill: row === 0 ? 'brainstorming' : 'speckit', step: index + 1 },
@@ -172,7 +171,7 @@ export const skillWorkflowDocument: GraphDocument = {
 
 export const skillWorkflowSample: DemoSample = {
   id: 'skill-workflow',
-  title: 'Skill Workflow',
+  title: 'Skill',
   group: 'agents',
   description: 'Brainstorming and Spec Kit skill stages as grouped agent pipelines.',
   document: skillWorkflowDocument,

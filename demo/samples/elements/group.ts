@@ -21,10 +21,6 @@ export const groupDocument: GraphDocument = {
     // h: 140,
     style: {
       labelPosition: 'top',
-      stroke: '#2563eb',
-      strokeWidth: 1.5,
-      fill: 'rgba(37, 99, 235, 0.08)',
-      padding: 16,
     },
   }],
 }

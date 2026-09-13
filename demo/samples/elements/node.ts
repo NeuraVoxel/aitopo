@@ -28,7 +28,6 @@ export const nodeDocument: GraphDocument = {
       type: 'unit',
       label: 'Locked',
       locked: true,
-      icon: 'node',
       x: 60,
       y: 200,
     },

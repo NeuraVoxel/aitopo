@@ -55,20 +55,20 @@ describe('demo sample registry', () => {
 
     const codeAgents = parseDocument(groupSamples[0]!.document)
     expect(codeAgents.nodes.filter(n => n.type === 'agent').length).toBeGreaterThanOrEqual(5)
-    expect(codeAgents.nodes.every(n => n.icon === 'agent')).toBe(true)
+    expect(codeAgents.nodes.every(n => n.icon === undefined)).toBe(true)
     expect(codeAgents.nodes.length).toBeLessThanOrEqual(15)
 
     const subDoc = parseDocument(groupSamples[1]!.document)
     expect(subDoc.nodes.length + subDoc.edges.length).toBeLessThanOrEqual(15)
     const subAgent = subDoc.nodes.find(n => n.type === 'subagent')
     expect(subAgent?.networkId).toBe('agent-fleet')
-    expect(subDoc.nodes.filter(n => n.type === 'agent').every(n => n.icon === 'agent')).toBe(true)
+    expect(subDoc.nodes.filter(n => n.type === 'agent').every(n => n.icon === undefined)).toBe(true)
     const fleet = subDoc.networks?.['agent-fleet']
     expect(fleet).toBeDefined()
     expect(fleet!.nodes.filter(n => n.type === 'agent')).toHaveLength(6)
 
     const workflow = parseDocument(groupSamples[2]!.document)
-    expect(workflow.nodes.every(n => n.icon === 'skill')).toBe(true)
+    expect(workflow.nodes.every(n => n.icon === undefined)).toBe(true)
     // Two skill pipelines, each group chaining its own stages in member order.
     const groups = workflow.groups ?? []
     expect(groups.map(g => g.label)).toEqual(['Brainstorming', 'Spec Kit'])
@@ -101,6 +101,6 @@ describe('demo sample registry', () => {
     // The context mounts every core plugin; the loop drives the event edges.
     const mounts = doc.edges.filter(e => e.label === 'mount').map(e => e.to)
     expect(mounts).toEqual(['agent-loop', 'llm-adapter', 'tool-registry', 'session-log'])
-    expect(doc.nodes.every(n => n.icon !== undefined)).toBe(true)
+    expect(doc.nodes.every(n => n.icon === undefined)).toBe(true)
   })
 })

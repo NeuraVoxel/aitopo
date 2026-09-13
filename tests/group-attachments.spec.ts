@@ -60,6 +60,9 @@ describe('Group attachments and expand/collapse', () => {
     const paint = group.toPaintView(false, false)
     expect(paint.attachments.some(op => op.kind === 'icons')).toBe(true)
     expect(paint.attachments.some(op => op.kind === 'label')).toBe(true)
+    // Collapsed body matches the default node look: near-black fill, slate stroke.
+    expect(paint.fill).toBe('#1a1d24')
+    expect(paint.stroke).toBe('#334155')
   })
 
   it('does not truncate group labels by default; honors style.label.maxChars', () => {

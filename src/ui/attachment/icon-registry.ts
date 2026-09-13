@@ -71,13 +71,18 @@ registerBuiltin({
 registerBuiltin({
   key: 'group',
   draw(ctx, size, color) {
-    const pad = size * 0.18
+    const pad = size * 0.16
+    const off = size * 0.12
+    const edge = size - pad * 2 - off
     ctx.strokeStyle = color
     ctx.fillStyle = color
     ctx.lineWidth = Math.max(1, size * 0.08)
-    // Stacked rounded cards — collapsed Group body (twaver IMAGE_GROUP idea).
-    ctx.strokeRect(pad + size * 0.08, pad, size - pad * 2 - size * 0.08, size * 0.42)
-    ctx.strokeRect(pad, pad + size * 0.28, size - pad * 2 - size * 0.08, size * 0.42)
+    // Node-style card (square + center dot); a back card peeking bottom-right marks the group.
+    ctx.strokeRect(pad + off, pad + off, edge, edge)
+    ctx.strokeRect(pad, pad, edge, edge)
+    ctx.beginPath()
+    ctx.arc(pad + edge / 2, pad + edge / 2, size * 0.1, 0, Math.PI * 2)
+    ctx.fill()
   },
 })
 
