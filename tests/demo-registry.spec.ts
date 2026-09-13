@@ -19,7 +19,7 @@ describe('demo sample registry', () => {
 
   it('registers element showcases', () => {
     const ids = new Set(listSamples().map(s => s.id))
-    for (const id of ['node', 'edge', 'group', 'alarm', 'subnetwork']) {
+    for (const id of ['node', 'edge', 'group', 'alarm', 'subnetwork', 'agents']) {
       expect(ids.has(id)).toBe(true)
       const sample = getSample(id)
       expect(sample?.group).toBe('elements')
@@ -36,5 +36,15 @@ describe('demo sample registry', () => {
     const sub = parseDocument(getSample('subnetwork')!.document)
     expect(sub.nodes.some(n => n.networkId === 'team-a')).toBe(true)
     expect(sub.networks?.['team-a']).toBeDefined()
+  })
+
+  it('registers agents showcase with an enterable fleet', () => {
+    const agents = parseDocument(getSample('agents')!.document)
+    const subAgent = agents.nodes.find(n => n.type === 'subagent')
+    expect(subAgent?.networkId).toBe('agent-fleet')
+    expect(agents.nodes.filter(n => n.type === 'agent').every(n => n.icon === 'agent')).toBe(true)
+    const fleet = agents.networks?.['agent-fleet']
+    expect(fleet).toBeDefined()
+    expect(fleet!.nodes.filter(n => n.type === 'agent')).toHaveLength(6)
   })
 })

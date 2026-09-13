@@ -1,4 +1,5 @@
 import { alarmSample } from './elements/alarm.ts'
+import { agentsSample } from './elements/agents.ts'
 import { edgeSample } from './elements/edge.ts'
 import { groupSample } from './elements/group.ts'
 import { nodeSample } from './elements/node.ts'
@@ -18,6 +19,7 @@ const SAMPLES: readonly DemoSample[] = [
   groupSample,
   alarmSample,
   subnetworkSample,
+  agentsSample,
   ...businessPlaceholders,
 ]
 

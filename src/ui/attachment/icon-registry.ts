@@ -81,6 +81,29 @@ registerBuiltin({
   },
 })
 
+registerBuiltin({
+  key: 'agent',
+  draw(ctx, size, color) {
+    ctx.strokeStyle = color
+    ctx.fillStyle = color
+    ctx.lineWidth = Math.max(1, size * 0.08)
+    // Robot head: antenna ball + squared face + two eyes.
+    ctx.beginPath()
+    ctx.moveTo(size * 0.5, size * 0.34)
+    ctx.lineTo(size * 0.5, size * 0.18)
+    ctx.stroke()
+    ctx.beginPath()
+    ctx.arc(size * 0.5, size * 0.14, size * 0.06, 0, Math.PI * 2)
+    ctx.fill()
+    ctx.strokeRect(size * 0.2, size * 0.34, size * 0.6, size * 0.46)
+    for (const eye of [0.36, 0.64]) {
+      ctx.beginPath()
+      ctx.arc(size * eye, size * 0.54, size * 0.06, 0, Math.PI * 2)
+      ctx.fill()
+    }
+  },
+})
+
 /**
  * Register or replace an icon definition.
  * @param definition - icon to store.
