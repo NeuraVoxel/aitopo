@@ -11,6 +11,13 @@ import { groupBounds, nodeBounds } from './bounds.ts'
 export const DEFAULT_GROUP_PADDING = 16
 
 /**
+ * Paint-extent bounds per member node (body ∪ attachments). Scene-only
+ * callers omit it and unions fall back to bare bodies.
+ * @param node - member node.
+ */
+export type MemberBoundsResolver = (node: GraphNode) => Rect
+
+/**
  * Whether a group paints as an expanded band.
  * Omitted `expanded` is collapsed (`false`).
  * @param group - graph element.
@@ -90,14 +97,21 @@ export function rectCenter(rect: Rect): Point {
 }
 
 /**
- * Member body union (no padding), or undefined when empty.
+ * Member union (no padding), or undefined when empty. With a resolver the
+ * union covers member paint extents (attachments included); without it,
+ * bare bodies.
  * @param scene - live scene.
  * @param group - group element.
+ * @param memberBoundsOf - optional paint-extent resolver.
  */
-export function memberUnionBounds(scene: GraphScene, group: GraphGroup): Rect | undefined {
+export function memberUnionBounds(
+  scene: GraphScene,
+  group: GraphGroup,
+  memberBoundsOf: MemberBoundsResolver = nodeBounds,
+): Rect | undefined {
   let union: Rect | undefined
   for (const node of listGroupMembers(scene, group)) {
-    union = unionRect(union, nodeBounds(node))
+    union = unionRect(union, memberBoundsOf(node))
   }
   return union
 }
@@ -106,9 +120,14 @@ export function memberUnionBounds(scene: GraphScene, group: GraphGroup): Rect | 
  * Expanded auto-fit band from current member positions (ignores `expanded` flag).
  * @param scene - live scene.
  * @param group - group element.
+ * @param memberBoundsOf - optional paint-extent resolver.
  */
-export function computeExpandedBandBounds(scene: GraphScene, group: GraphGroup): Rect {
-  const union = memberUnionBounds(scene, group)
+export function computeExpandedBandBounds(
+  scene: GraphScene,
+  group: GraphGroup,
+  memberBoundsOf?: MemberBoundsResolver,
+): Rect {
+  const union = memberUnionBounds(scene, group, memberBoundsOf)
   if (union === undefined) return groupBounds(group)
   const padding = group.style?.padding ?? DEFAULT_GROUP_PADDING
   return growRect(union, padding)
@@ -116,16 +135,21 @@ export function computeExpandedBandBounds(scene: GraphScene, group: GraphGroup):
 
 /**
  * Band body rectangle: document geometry when collapsed or `autoFit: false`;
- * otherwise member body union + padding (fallback to document when empty).
+ * otherwise member union + padding (fallback to document when empty).
  * @param scene - live scene.
  * @param group - group element.
+ * @param memberBoundsOf - optional paint-extent resolver.
  */
-export function computeGroupBandBounds(scene: GraphScene, group: GraphGroup): Rect {
+export function computeGroupBandBounds(
+  scene: GraphScene,
+  group: GraphGroup,
+  memberBoundsOf?: MemberBoundsResolver,
+): Rect {
   const autoFit = group.style?.autoFit !== false
   if (!isGroupExpanded(group) || !autoFit) {
     return groupBounds(group)
   }
-  return computeExpandedBandBounds(scene, group)
+  return computeExpandedBandBounds(scene, group, memberBoundsOf)
 }
 
 /**
@@ -148,11 +172,13 @@ export function collapsedOriginForCenter(group: GraphGroup, center: Point): Poin
  * @param scene - live scene.
  * @param group - group before toggle.
  * @param nextExpanded - target expanded flag.
+ * @param memberBoundsOf - optional paint-extent resolver (must match the painted band).
  */
 export function expandCollapseCenterPatches(
   scene: GraphScene,
   group: GraphGroup,
   nextExpanded: boolean,
+  memberBoundsOf?: MemberBoundsResolver,
 ): {
   readonly groupPatch: { expanded: boolean; x?: number; y?: number }
   readonly memberMoves: readonly {
@@ -162,7 +188,7 @@ export function expandCollapseCenterPatches(
   }[]
 } {
   if (!nextExpanded) {
-    const band = computeExpandedBandBounds(scene, group)
+    const band = computeExpandedBandBounds(scene, group, memberBoundsOf)
     const origin = collapsedOriginForCenter(group, rectCenter(band))
     return {
       groupPatch: { expanded: false, x: origin.x, y: origin.y },
@@ -171,7 +197,7 @@ export function expandCollapseCenterPatches(
   }
 
   const center = rectCenter(groupBounds(group))
-  const band = computeExpandedBandBounds(scene, group)
+  const band = computeExpandedBandBounds(scene, group, memberBoundsOf)
   const current = rectCenter(band)
   const dx = center.x - current.x
   const dy = center.y - current.y

@@ -25,6 +25,7 @@ export {
   isGroupExpanded,
   isNodeVisibleInScene,
   listGroupMembers,
+  type MemberBoundsResolver,
   memberUnionBounds,
   rectCenter,
 } from './group-state.ts'

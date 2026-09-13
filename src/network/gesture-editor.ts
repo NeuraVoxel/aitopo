@@ -251,16 +251,20 @@ export class GestureEditor {
    * Toggle group expand/collapse via `updateGroup` (no-op when missing or locked).
    * Preserves the shared center: collapse parks the node at the band center;
    * expand translates members so the auto-fit band recenters on the node.
+   * Band extents come from the validated views so collapse centers on the
+   * painted band (member attachments included), not the body-only union.
    * @param groupId - group id.
    */
   toggleGroupExpanded(groupId: string): void {
     const group = this.deps.scene.groups.get(groupId)
     if (group === undefined || group.locked === true) return
     const nextExpanded = group.expanded !== true
+    this.deps.views.validateDirty(this.deps.scene)
     const { groupPatch, memberMoves } = expandCollapseCenterPatches(
       this.deps.scene,
       group,
       nextExpanded,
+      node => this.deps.views.nodeUnionBounds(node),
     )
     const ops: GraphPatch['ops'] = [
       { op: 'updateGroup', id: groupId, patch: groupPatch },

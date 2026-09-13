@@ -15,7 +15,7 @@ import {
   TooltipAttachment,
   type AttachmentPaintOp,
 } from './attachment/index.ts'
-import { computeGroupBandBounds, isGroupExpanded } from './group-state.ts'
+import { computeGroupBandBounds, isGroupExpanded, type MemberBoundsResolver } from './group-state.ts'
 
 // Collapsed groups paint as nodes: match the default node body (statusFill/statusStroke).
 const COLLAPSED_FILL = '#1a1d24'
@@ -77,8 +77,9 @@ export class GroupView {
   /**
    * Recompute body, attachments, and union when dirty.
    * @param scene - active graph scene.
+   * @param memberBoundsOf - optional paint-extent resolver for auto-fit bands.
    */
-  validate(scene: GraphScene): void {
+  validate(scene: GraphScene, memberBoundsOf?: MemberBoundsResolver): void {
     if (!this.dirty) return
     const group = scene.groups.get(this.id)
     if (group === undefined) {
@@ -87,7 +88,7 @@ export class GroupView {
     }
     this.active = true
     this.expanded = isGroupExpanded(group)
-    this.band = computeGroupBandBounds(scene, group)
+    this.band = computeGroupBandBounds(scene, group, memberBoundsOf)
     const style = group.style
     this.alpha = clampAlpha(style?.alpha)
     if (this.expanded) {

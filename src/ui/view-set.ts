@@ -2,7 +2,10 @@
  * Owns Node/Edge/Group Views synced to GraphScene membership.
  */
 
+import type { Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
+import type { GraphNode } from '../protocol/types.ts'
+import { nodeBounds } from './bounds.ts'
 import { EdgeView } from './edge-view.ts'
 import { GroupView } from './group-view.ts'
 import { NodeView } from './node-view.ts'
@@ -82,15 +85,26 @@ export class ViewSet {
   }
 
   /**
-   * Validate every dirty View against the live scene.
+   * Validate every dirty View against the live scene. Groups auto-fit from
+   * member paint extents (body ∪ attachments), so nodes validate first.
    * @param scene - active graph scene.
    */
   validateDirty(scene: GraphScene): void {
     const opts = { showNodeIconsDefault: this.showNodeIconsDefault }
-    // Nodes first (member bodies), then groups (auto-fit), then edges (agent remap).
+    // Nodes first (member unions), then groups (auto-fit), then edges (agent remap).
     for (const view of this.nodes.values()) view.validate(scene, opts)
-    for (const view of this.groups.values()) view.validate(scene)
+    for (const view of this.groups.values()) view.validate(scene, n => this.nodeUnionBounds(n))
     for (const view of this.edges.values()) view.validate(scene)
+  }
+
+  /**
+   * Attachment-inclusive paint extents of a node from its validated View.
+   * Falls back to the bare body only before `sync`/`rebuild` has seen the node.
+   * @param node - member node.
+   */
+  nodeUnionBounds(node: GraphNode): Rect {
+    const view = this.nodes.get(node.id)
+    return view === undefined ? nodeBounds(node) : view.unionBounds
   }
 
   /**

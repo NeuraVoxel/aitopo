@@ -7,6 +7,7 @@ import { GraphScene } from '../src/model/scene.ts'
 import { groupBounds } from '../src/ui/bounds.ts'
 import {
   computeExpandedBandBounds,
+  DEFAULT_GROUP_PADDING,
   expandCollapseCenterPatches,
   rectCenter,
 } from '../src/ui/group-state.ts'
@@ -145,6 +146,55 @@ describe('Group attachments and expand/collapse', () => {
     expect(band.y).toBeLessThanOrEqual(100)
     expect(band.x + band.width).toBeGreaterThanOrEqual(250)
     expect(band.y + band.height).toBeGreaterThanOrEqual(150)
+  })
+
+  it('auto-fit band wraps member paint extents (labels below bodies), not bare bodies', () => {
+    const { views } = loadGroupDoc({ expanded: true })
+    const nodeA = views.getNode('a')!
+    // Label 'A' hangs below the body, so the paint union is taller than the body.
+    expect(nodeA.unionBounds.y + nodeA.unionBounds.height)
+      .toBeGreaterThan(nodeA.bodyBounds.y + nodeA.bodyBounds.height)
+    const band = views.getGroup('g1')!.bandBounds
+    // The band is the member paint union grown by the default padding.
+    expect(band.y).toBeLessThanOrEqual(nodeA.unionBounds.y - DEFAULT_GROUP_PADDING)
+    expect(band.y + band.height)
+      .toBeGreaterThanOrEqual(nodeA.unionBounds.y + nodeA.unionBounds.height + DEFAULT_GROUP_PADDING)
+    // Body-only band would stop at body bottom + padding (150 + 16).
+    expect(band.y + band.height).toBeGreaterThan(150 + DEFAULT_GROUP_PADDING)
+  })
+
+  it('scene-only band helpers stay body-only; a member-bounds resolver widens to paint extents', () => {
+    const { scene, views } = loadGroupDoc({ expanded: true })
+    const group = scene.groups.get('g1')!
+    const bodyOnly = computeExpandedBandBounds(scene, group)
+    const painted = computeExpandedBandBounds(scene, group, n => views.nodeUnionBounds(n))
+    // Bare bodies: 100..150 vertically, plus padding both sides.
+    expect(bodyOnly.y).toBe(100 - DEFAULT_GROUP_PADDING)
+    expect(bodyOnly.y + bodyOnly.height).toBe(150 + DEFAULT_GROUP_PADDING)
+    expect(painted.height).toBeGreaterThan(bodyOnly.height)
+    expect(painted.y + painted.height).toBe(views.getGroup('g1')!.bandBounds.y + views.getGroup('g1')!.bandBounds.height)
+  })
+
+  it('collapse parks the body at the painted band center (attachments included)', () => {
+    const { scene, views } = loadGroupDoc({ expanded: true })
+    const group = scene.groups.get('g1')!
+    const paintedBand = views.getGroup('g1')!.bandBounds
+    const collapse = expandCollapseCenterPatches(
+      scene,
+      group,
+      false,
+      n => views.nodeUnionBounds(n),
+    )
+    const parked = rectCenter(groupBounds({
+      ...group,
+      x: collapse.groupPatch.x,
+      y: collapse.groupPatch.y,
+    }))
+    expect(parked.x).toBeCloseTo(rectCenter(paintedBand).x)
+    expect(parked.y).toBeCloseTo(rectCenter(paintedBand).y)
+    // Body-only collapse would park higher: labels hang below, shifting the center down.
+    const bodyOnly = expandCollapseCenterPatches(scene, group, false)
+    expect(parked.y).toBeGreaterThan(bodyOnly.groupPatch.y!)
   })
 
   it('emits label/label2/alarm attachment ops and dual bounds', () => {
