@@ -23,9 +23,11 @@ const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
   business: 'Business (soon)',
 }
 
-/** Grouped sample catalog with collapsible sections (all collapsed by default). */
+/** Grouped sample catalog with collapsible sections (all expanded by default). */
 export function SampleNav({ samples, activeId, onSelect }: SampleNavProps) {
-  const [openGroups, setOpenGroups] = useState<ReadonlySet<DemoSampleGroupId>>(new Set())
+  const [openGroups, setOpenGroups] = useState<ReadonlySet<DemoSampleGroupId>>(
+    new Set(GROUP_ORDER),
+  )
   const toggle = (groupId: DemoSampleGroupId): void => {
     setOpenGroups(previous => {
       const next = new Set(previous)
