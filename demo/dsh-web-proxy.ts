@@ -1,5 +1,6 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Connect, Plugin, ViteDevServer } from 'vite'
+import WebSocket from 'ws'
 import { parseDshWebUrl } from './lib/dsh-sessions.ts'
 
 /**
@@ -79,6 +80,46 @@ async function callSessionList(target: { origin: string; cookie: string }): Prom
   }
 }
 
+/**
+ * Reads the archived-session set from the `workspace/follow` baseline frame.
+ * Streams only ride the gateway's WebSocket mux (`/api/remote.mux`), so this
+ * opens one short-lived socket, takes the first baseline item, and cancels.
+ * Archive state is cosmetic for the demo: any failure degrades to `[]`.
+ */
+function fetchArchivedSessionIds(target: { origin: string; cookie: string }): Promise<readonly string[]> {
+  return new Promise(resolve => {
+    const muxUrl = new URL('api/remote.mux', target.origin)
+    muxUrl.protocol = muxUrl.protocol === 'https:' ? 'wss:' : 'ws:'
+    const socket = new WebSocket(muxUrl, { headers: { cookie: target.cookie } })
+    const streamId = 'aitopo-demo'
+    const finish = (value: readonly string[]): void => {
+      socket.terminate()
+      resolve(value)
+    }
+    const timer = setTimeout(() => finish([]), REQUEST_TIMEOUT_MS)
+    socket.on('open', () => {
+      socket.send(JSON.stringify({ type: 'open', streamId, endpoint: 'workspace/follow', payload: { args: {} } }))
+    })
+    socket.on('message', (data: WebSocket.RawData) => {
+      let frame: unknown
+      try {
+        frame = JSON.parse(data.toString()) as unknown
+      } catch {
+        return
+      }
+      const item = frame as { type?: string; streamId?: string; value?: { type?: string; value?: { archivedSessionIds?: unknown } } }
+      if (item.type !== 'item' || item.streamId !== streamId) return
+      clearTimeout(timer)
+      const archived = item.value?.type === 'baseline' ? item.value.value?.archivedSessionIds : undefined
+      finish(Array.isArray(archived) ? archived.filter((id): id is string => typeof id === 'string') : [])
+    })
+    socket.on('error', () => {
+      clearTimeout(timer)
+      finish([])
+    })
+  })
+}
+
 function registerMiddleware(server: ViteDevServer): void {
   server.middlewares.use(DSH_SESSIONS_PROXY_PATH, (req: IncomingMessage, res: ServerResponse, next: Connect.NextFunction) => {
     if (req.method !== 'POST') {
@@ -98,8 +139,11 @@ function registerMiddleware(server: ViteDevServer): void {
           return
         }
         const cookie = await mintAuthCookie(target)
-        const envelope = await callSessionList({ origin: target.origin, cookie })
-        sendJson(res, 200, envelope as Record<string, unknown>)
+        const [envelope, archivedSessionIds] = await Promise.all([
+          callSessionList({ origin: target.origin, cookie }),
+          fetchArchivedSessionIds({ origin: target.origin, cookie }),
+        ])
+        sendJson(res, 200, { sessionList: envelope, archivedSessionIds })
       } catch (error) {
         sendJson(res, 502, { error: error instanceof Error ? error.message : String(error) })
       }

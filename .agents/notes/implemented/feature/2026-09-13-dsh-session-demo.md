@@ -18,25 +18,30 @@ carry no CORS headers.
 The `dsh` demo group gains a `dsh-session` sample that loads live data from a
 user-supplied dsh web URL (e.g. `dsh web: http://127.0.0.1:3081/?token=…`).
 
-**Data source.** One RPC call covers the whole feature:
-`POST /api/session/list` with the browser-client envelope
-`{type:'client-request', rpcId, method:'session/list', payload:{args:{_request:{}}}}`.
-Each returned `SessionSummary` carries `cwd` (the workspace grouping key — the
-same key the session store and the web UI use to group sessions), the `title`
-and `sessionStats` projections (`turns`, `steps`), `running`, `blank`, and
-`parentSessionId`/`origin` for subagent sessions. No stream endpoint
-(`workspace/follow`, `session/follow`) is used; those ride a WebSocket mux that
-would be disproportionate for a demo.
+**Data source.** Two reads cover the whole feature. `POST /api/session/list`
+with the browser-client envelope
+`{type:'client-request', rpcId, method:'session/list', payload:{args:{_request:{}}}}`
+returns every session with `cwd` (the workspace grouping key — the same key the
+session store and the web UI use to group sessions), the `title` and
+`sessionStats` projections (`turns`, `steps`), `running`, `blank`, and
+`parentSessionId`/`origin` for subagent sessions. The archived-session set
+lives only in the `workspace/follow` stream baseline, so the dev-server proxy
+additionally opens the gateway's WebSocket mux (`/api/remote.mux`, `ws` dev
+dependency) with the minted cookie, reads the first baseline frame's
+`archivedSessionIds`, and cancels; any mux failure degrades to an empty set —
+archive rendering is cosmetic and a missing set can only under-report, never
+mis-gray.
 
 **Transport.** The demo's Vite dev server exposes `POST /dsh-web/sessions`
 (`demo/dsh-web-proxy.ts`, wired in `demo/vite.config.ts`). The browser posts
 `{url}`; server-side Node code parses the URL (tolerantly — a `dsh web: `
 prefix or bare origin is accepted), exchanges `?token=` for the auth cookie via
-`GET /?token=…`, then calls `session/list` with that cookie and relays the JSON
-envelope. Server-side requests carry no `Origin`/`Sec-Fetch-Site` headers, so
-they pass the trust fence; the proxy is dev-server-only code and never ships in
-the library. The token is used only for the one-time cookie mint and is not
-logged.
+`GET /?token=…`, then calls `session/list` with that cookie and reads the mux
+baseline (see Data source), answering the browser with
+`{sessionList, archivedSessionIds}`. Server-side requests carry no
+`Origin`/`Sec-Fetch-Site` headers, so they pass the trust fence; the proxy is
+dev-server-only code and never ships in the library. The token is used only
+for the one-time cookie mint and is not logged.
 
 **Live samples.** `DemoSample` gains an optional `live` marker
 (`'dsh-sessions'` today). The static `document` is the pre-load placeholder
@@ -56,11 +61,12 @@ it, tooltip = full path), one node per session (label = title projection or
 bare number — only sessions with at least one turn carry the badge; the engine
 badge caps at three characters, the tooltip spells
 out `turns/steps`; status `running`/`idle`/`done` mapped from `running`/
-`blank`), and `parent → child` edges for subagent sessions. Bands tile two per
-row and sessions inside a band tile in their own ≤3-wide matrix (constants in
-`demo/lib/dsh-sessions.ts`); workspaces sort by most recent activity; sessions
-without `cwd` land in a `(no workspace)` group; an empty store renders a
-single explanatory node.
+`blank`), and `parent → child` edges for subagent sessions. Archived sessions
+render muted: `cold` fill plus 0.55 alpha and an `archived` tooltip line. Bands
+tile two per row and sessions inside a band tile in their own ≤3-wide matrix
+(constants in `demo/lib/dsh-sessions.ts`); workspaces sort by most recent
+activity; sessions without `cwd` land in a `(no workspace)` group; an empty
+store renders a single explanatory node.
 
 ## Alternatives considered
 

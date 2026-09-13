@@ -137,6 +137,26 @@ describe('buildSessionDocument', () => {
     expect(doc.edges[0]).toMatchObject({ from: 'parent', to: 'child' })
   })
 
+  it('renders archived sessions muted and counts them in the summary', () => {
+    const doc = parseDocument(buildSessionDocument([
+      session({ sessionId: 'live', running: true }),
+      session({ sessionId: 'boxed' }),
+    ], ['boxed']))
+    const live = doc.nodes.find(node => node.id === 'live')
+    expect(live?.status).toBe('running')
+    expect(live?.style).toBeUndefined()
+    expect(live?.tooltip).not.toContain('archived')
+    // Archived: gray cold fill, dimmed, tooltip says so.
+    const boxed = doc.nodes.find(node => node.id === 'boxed')
+    expect(boxed?.status).toBe('cold')
+    expect(boxed?.style?.alpha).toBe(0.55)
+    expect(boxed?.tooltip).toContain('archived')
+    expect(summarizeSessions([
+      session({ sessionId: 'live' }),
+      session({ sessionId: 'boxed' }),
+    ], ['boxed'])).toBe('1 workspace · 2 sessions · 6 turns total · 1 archived')
+  })
+
   it('parks sessions without a cwd in a labeled fallback band', () => {
     const doc = parseDocument(buildSessionDocument([
       session({ sessionId: 'adrift', cwd: undefined }),

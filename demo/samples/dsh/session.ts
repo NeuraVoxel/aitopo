@@ -39,7 +39,7 @@ export const dshSessionPlaceholderDocument: GraphDocument = {
 
 export const dshSessionSample: DemoSample = {
   id: 'dsh-session',
-  title: 'Session',
+  title: 'Workspace',
   group: 'dsh',
   description: 'Live DSH sessions from dsh web, grouped by workspace with turn counts.',
   live: 'dsh-sessions',

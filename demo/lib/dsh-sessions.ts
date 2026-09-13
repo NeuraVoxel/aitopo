@@ -63,8 +63,15 @@ interface DshListEnvelope {
   }
 }
 
-/** Fetches the live session list through the demo dev-server proxy. */
-export async function fetchDshSessions(url: string): Promise<readonly DshSessionSummary[]> {
+/** Live workspace data returned by the demo dev-server proxy. */
+export interface DshWorkspaceData {
+  readonly sessions: readonly DshSessionSummary[]
+  /** Sessions archived out of workspace grouping; render muted. */
+  readonly archivedSessionIds: readonly string[]
+}
+
+/** Fetches the live session list (and archived set) through the demo proxy. */
+export async function fetchDshSessions(url: string): Promise<DshWorkspaceData> {
   const response = await fetch('/dsh-web/sessions', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -76,12 +83,20 @@ export async function fetchDshSessions(url: string): Promise<readonly DshSession
   } catch {
     throw new Error(`dsh web proxy returned ${response.status} (non-JSON)`)
   }
-  const envelope = payload as { error?: string } & DshListEnvelope
-  if (envelope.error !== undefined) throw new Error(envelope.error)
-  if (envelope.result?.ok !== true) {
-    throw new Error(envelope.result?.error?.message ?? 'dsh web gateway rejected session/list')
+  const wrapped = payload as {
+    error?: string
+    sessionList?: DshListEnvelope
+    archivedSessionIds?: readonly unknown[]
   }
-  return envelope.result.value?.items ?? []
+  if (wrapped.error !== undefined) throw new Error(wrapped.error)
+  const result = wrapped.sessionList?.result
+  if (result?.ok !== true) {
+    throw new Error(result?.error?.message ?? 'dsh web gateway rejected session/list')
+  }
+  return {
+    sessions: result.value?.items ?? [],
+    archivedSessionIds: (wrapped.archivedSessionIds ?? []).filter((id): id is string => typeof id === 'string'),
+  }
 }
 
 function workspaceLabel(cwd: string | undefined): string {
@@ -110,7 +125,7 @@ function sessionTitle(session: DshSessionSummary): string {
   return title === undefined || title === null || title === '' ? '(untitled)' : title
 }
 
-function sessionTooltip(session: DshSessionSummary): string {
+function sessionTooltip(session: DshSessionSummary, archived: boolean): string {
   const stats = session.projections?.values?.sessionStats
   const updated = session.updatedAt === undefined
     ? 'unknown'
@@ -120,6 +135,7 @@ function sessionTooltip(session: DshSessionSummary): string {
     session.cwd ?? '(no cwd)',
     `updated: ${updated}`,
     `turns: ${sessionTurns(session)} · steps: ${stats?.steps ?? 0}`,
+    ...(archived ? ['archived'] : []),
   ].join('\n')
 }
 
@@ -162,9 +178,13 @@ function workspaceGroups(sessions: readonly DshSessionSummary[]): Map<string, Ds
 /**
  * Folds live `session/list` items into one document: an expanded group band
  * per workspace cwd, one node per session (label2 carries the turn count), and
- * parent→child edges for subagent sessions.
+ * parent→child edges for subagent sessions. Archived sessions render muted
+ * (`cold` fill, reduced alpha).
  */
-export function buildSessionDocument(sessions: readonly DshSessionSummary[]): GraphDocument {
+export function buildSessionDocument(
+  sessions: readonly DshSessionSummary[],
+  archivedSessionIds: readonly string[] = [],
+): GraphDocument {
   if (sessions.length === 0) {
     return {
       version: 1,
@@ -185,6 +205,7 @@ export function buildSessionDocument(sessions: readonly DshSessionSummary[]): Gr
   }
 
   const byId = new Map(sessions.map(session => [session.sessionId, session]))
+  const archived = new Set(archivedSessionIds)
   const nodes: GraphNode[] = []
   const edges: GraphEdge[] = []
   const groups: GraphGroup[] = []
@@ -198,16 +219,19 @@ export function buildSessionDocument(sessions: readonly DshSessionSummary[]): Gr
     nodes.push(...members.map((session, index) => {
       const subagent = session.origin === 'subagent' || session.parentSessionId !== undefined
       const turns = sessionTurns(session)
+      const isArchived = archived.has(session.sessionId)
       return {
         id: session.sessionId,
         type: subagent ? 'subagent' : 'session',
         label: sessionTitle(session),
-        status: sessionStatus(session),
-        tooltip: sessionTooltip(session),
+        status: isArchived ? 'cold' : sessionStatus(session),
+        tooltip: sessionTooltip(session, isArchived),
         // Warm alarm badge carries the turn count (badge text caps at 3 chars,
         // so the message is the bare number; the tooltip spells it out).
         // Zero-turn sessions stay badge-free.
         ...(turns > 0 ? { alarms: [{ id: 'turns', level: 'warn' as const, message: String(turns) }] } : {}),
+        // Archived sessions sink into the background: gray `cold` fill + dim.
+        ...(isArchived ? { style: { alpha: 0.55 } } : {}),
         groupId,
         data: {
           sessionId: session.sessionId,
@@ -267,11 +291,16 @@ export function buildSessionDocument(sessions: readonly DshSessionSummary[]): Gr
   }
 }
 
-/** Session/turn totals for the source bar status line. */
-export function summarizeSessions(sessions: readonly DshSessionSummary[]): string {
+/** Session/turn/archive totals for the source bar status line. */
+export function summarizeSessions(
+  sessions: readonly DshSessionSummary[],
+  archivedSessionIds: readonly string[] = [],
+): string {
   const workspaces = new Set(sessions.map(session => session.cwd ?? '')).size
   const turns = sessions.reduce((sum, session) => sum + sessionTurns(session), 0)
+  const archivedShown = sessions.filter(session => archivedSessionIds.includes(session.sessionId)).length
   return `${workspaces} ${workspaces === 1 ? 'workspace' : 'workspaces'} · `
     + `${sessions.length} ${sessions.length === 1 ? 'session' : 'sessions'} · `
     + `${turns} turns total`
+    + (archivedShown > 0 ? ` · ${archivedShown} archived` : '')
 }

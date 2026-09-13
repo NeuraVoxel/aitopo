@@ -42,11 +42,11 @@ export function SessionSourceBar({ mode, onLoadDocument }: SessionSourceBarProps
   const load = useCallback(async (target: string) => {
     setState({ kind: 'loading' })
     try {
-      const sessions = await fetchDshSessions(target)
+      const data = await fetchDshSessions(target)
       if (!mountedRef.current) return
       localStorage.setItem(STORAGE_KEY, target)
-      onLoadDocument(buildSessionDocument(sessions))
-      setState({ kind: 'ok', message: summarizeSessions(sessions) })
+      onLoadDocument(buildSessionDocument(data.sessions, data.archivedSessionIds))
+      setState({ kind: 'ok', message: summarizeSessions(data.sessions, data.archivedSessionIds) })
     } catch (error) {
       if (!mountedRef.current) return
       setState({ kind: 'error', message: error instanceof Error ? error.message : String(error) })
