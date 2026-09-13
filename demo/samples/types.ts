@@ -16,4 +16,9 @@ export interface DemoSample {
   readonly reserved?: boolean
   readonly defaultLayout?: 'grid' | 'flow'
   readonly document: GraphDocument
+  /**
+   * Live sample kind: the static `document` is a pre-load placeholder and the
+   * host renders a data source bar that replaces it with fetched content.
+   */
+  readonly live?: 'dsh-sessions'
 }

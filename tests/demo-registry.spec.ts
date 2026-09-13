@@ -82,9 +82,9 @@ describe('demo sample registry', () => {
     }
   })
 
-  it('registers the DSH event topology in its own group', () => {
+  it('registers the DSH event topology and live session sample in its own group', () => {
     const dshSamples = listSamples().filter(s => s.group === 'dsh')
-    expect(dshSamples.map(s => s.id)).toEqual(['dsh-boot', 'dsh-event-topo'])
+    expect(dshSamples.map(s => s.id)).toEqual(['dsh-boot', 'dsh-event-topo', 'dsh-session'])
 
     const boot = parseDocument(dshSamples[0]!.document)
     expect(boot.meta.kind).toBe('topology')
@@ -106,5 +106,14 @@ describe('demo sample registry', () => {
       ['agent-loop', 'llm-adapter', 'session-log', 'tool-registry'].sort(),
     )
     expect(doc.nodes.every(n => n.icon === undefined)).toBe(true)
+  })
+
+  it('registers the live DSH session sample with a parseable placeholder', () => {
+    const sample = getSample('dsh-session')
+    expect(sample?.live).toBe('dsh-sessions')
+    const doc = parseDocument(sample!.document)
+    expect(doc.meta.kind).toBe('topology')
+    expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
+    expect(doc.nodes.some(n => n.label === 'No dsh web connected')).toBe(true)
   })
 })

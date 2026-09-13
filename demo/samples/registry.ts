@@ -9,6 +9,7 @@ import { nodeSample } from './elements/node.ts'
 import { subnetworkSample } from './elements/subnetwork.ts'
 import { businessPlaceholders } from './business/placeholders.ts'
 import { dshEventTopoSample } from './dsh/event-topo.ts'
+import { dshSessionSample } from './dsh/session.ts'
 import { helloWorldSample } from './hello-world.ts'
 import type { DemoSample } from './types.ts'
 
@@ -28,6 +29,7 @@ const SAMPLES: readonly DemoSample[] = [
   skillWorkflowSample,
   dshBootSample,
   dshEventTopoSample,
+  dshSessionSample,
   ...businessPlaceholders,
 ]
 

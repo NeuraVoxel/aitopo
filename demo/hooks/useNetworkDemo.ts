@@ -3,6 +3,7 @@ import {
   Network,
   PatchHistory,
   parseDocument,
+  type GraphDocument,
   type GraphPatch,
 } from '../../src/index.ts'
 import { DEFAULT_SAMPLE_ID, getSample } from '../samples/registry.ts'
@@ -29,6 +30,8 @@ export interface NetworkDemoApi {
   undo: () => void
   redo: () => void
   applyPatch: (patch: GraphPatch) => void
+  /** Replaces the current network's document in place (live samples); no remount. */
+  loadDocument: (doc: GraphDocument) => void
   fitContent: () => void
   /** Latest Network instance for property reads (null before mount). */
   getNetwork: () => Network | null
@@ -295,6 +298,14 @@ export function useNetworkDemo(): NetworkDemoApi {
     networkRef.current?.apply(patch)
   }, [])
 
+  const loadDocument = useCallback((doc: GraphDocument) => {
+    const network = networkRef.current
+    if (network === null) return
+    network.load(parseDocument(doc))
+    setSelectedIds([...network.getSelectedIds()])
+    fitNetwork(network)
+  }, [])
+
   const fitContent = useCallback(() => {
     const network = networkRef.current
     if (network === null) return
@@ -318,6 +329,7 @@ export function useNetworkDemo(): NetworkDemoApi {
     undo,
     redo,
     applyPatch,
+    loadDocument,
     fitContent,
     getNetwork,
   }
