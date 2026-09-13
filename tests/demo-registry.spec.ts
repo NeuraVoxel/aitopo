@@ -88,9 +88,11 @@ describe('demo sample registry', () => {
 
     const boot = parseDocument(dshSamples[0]!.document)
     expect(boot.meta.kind).toBe('topology')
-    expect(boot.nodes).toHaveLength(5)
+    expect(boot.nodes.filter(n => n.id.startsWith('phase:')).length).toBeGreaterThanOrEqual(4)
     expect(boot.networks?.['network:compose']).toBeDefined()
-    expect(boot.networks?.['network:mount']).toBeDefined()
+    expect(
+      Object.keys(boot.networks ?? {}).some(key => key.startsWith('network:layer:')),
+    ).toBe(true)
 
     const sample = getSample('dsh-event-topo')
     expect(sample?.reserved).toBeUndefined()
@@ -100,7 +102,9 @@ describe('demo sample registry', () => {
     expect(doc.edges.filter(e => e.kind === 'event')).toHaveLength(4)
     // The context mounts every core plugin; the loop drives the event edges.
     const mounts = doc.edges.filter(e => e.label === 'mount').map(e => e.to)
-    expect(mounts).toEqual(['agent-loop', 'llm-adapter', 'tool-registry', 'session-log'])
+    expect([...mounts].sort()).toEqual(
+      ['agent-loop', 'llm-adapter', 'session-log', 'tool-registry'].sort(),
+    )
     expect(doc.nodes.every(n => n.icon === undefined)).toBe(true)
   })
 })
