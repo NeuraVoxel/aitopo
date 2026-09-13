@@ -125,7 +125,7 @@ export const dshEventTopoDocument: GraphDocument = {
 
 export const dshEventTopoSample: DemoSample = {
   id: 'dsh-event-topo',
-  title: 'Event Topology',
+  title: 'Event',
   group: 'dsh',
   description: 'DeepSeek Harness turn flow: profile composition, plugin mounts, and agent-loop events.',
   document: dshEventTopoDocument,
