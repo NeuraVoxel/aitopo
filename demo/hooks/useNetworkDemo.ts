@@ -131,6 +131,12 @@ export function useNetworkDemo(): NetworkDemoApi {
       if (event.type === 'selectionChanged' || event.type === 'documentChanged') {
         setSelectedIds([...network.getSelectedIds()])
       }
+      if (event.type === 'nodeActivated' && event.detail === 'dblclick') {
+        // Generic drill-in: any node carrying a networkId enters its child
+        // document (samples like DSH boot key phases to sub-networks).
+        const target = network.getNode(event.nodeId)
+        if (target?.networkId !== undefined) network.enterSubNetwork(target.networkId)
+      }
       if (event.type === 'subNetworkChanged') {
         const selected = resetDemoOnSubNetworkChanged({
           history: historyRef.current,
@@ -141,6 +147,13 @@ export function useNetworkDemo(): NetworkDemoApi {
         clearHistoryFlags()
       }
     })
+
+    // Escape is the matching generic exit for the dblclick drill-in above.
+    const onKeyDown = (event: KeyboardEvent): void => {
+      if (event.key !== 'Escape') return
+      if (network.currentNetworkId !== null) network.exitSubNetwork()
+    }
+    window.addEventListener('keydown', onKeyDown)
 
     network.load(parseDocument(sample.document))
     if (sample.defaultLayout !== undefined) {
@@ -168,6 +181,7 @@ export function useNetworkDemo(): NetworkDemoApi {
     return () => {
       cancelAnimationFrame(frame)
       resize.disconnect()
+      window.removeEventListener('keydown', onKeyDown)
       unsub()
       network.destroy()
       networkRef.current = null
