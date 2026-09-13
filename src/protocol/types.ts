@@ -51,7 +51,7 @@ export interface GraphTextStyle {
   readonly fontSize?: number
   /**
    * Max characters before ellipsis. `0` = never truncate.
-   * Omitted → host default (nodes/edges `18`; groups `0`).
+   * Omitted → host default (nodes/groups `0`, i.e. unlimited; edges `18`).
    */
   readonly maxChars?: number
 }

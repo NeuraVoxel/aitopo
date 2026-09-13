@@ -79,7 +79,7 @@ describe('ViewSet', () => {
     views.validateDirty(scene)
     const paint = views.getNode('a')!.toPaintView(false, false)
     const label = paint.attachments.find(op => op.kind === 'label')
-    expect(label && 'text' in label && label.text.endsWith('…')).toBe(true)
+    expect(label && 'text' in label && label.text).toBe('VeryLongAgentLabelXYZ')
     expect(paint.attachments.some(op => op.kind === 'alarm')).toBe(true)
     expect(paint.circular).toBe(false)
     // status is not auto-mapped to label2

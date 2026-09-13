@@ -14,8 +14,11 @@ import type { AttachmentPaintOp } from './types.ts'
 
 const DEFAULT_COLOR = '#000000'
 const DEFAULT_FONT = 12
-/** Default maxChars for GraphNode labels when style.maxChars is omitted. */
-const DEFAULT_NODE_MAX_CHARS = 18
+/**
+ * Default maxChars for GraphNode labels when style.maxChars is omitted.
+ * `0` = no truncate; opt in per element via `style.label.maxChars`.
+ */
+const DEFAULT_NODE_MAX_CHARS = 0
 /** Default maxChars for GraphGroup labels when style.maxChars is omitted (`0` = no truncate). */
 const DEFAULT_GROUP_MAX_CHARS = 0
 

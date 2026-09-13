@@ -62,12 +62,12 @@ describe('Node attachments', () => {
     expect(kinds).toContain('label')
     expect(kinds).toContain('label2')
     const label = paint.attachments.find(op => op.kind === 'label')
-    expect(label && 'text' in label && label.text.endsWith('…')).toBe(true)
+    expect(label && 'text' in label && label.text).toBe('VeryLongAgentLabelXYZ')
     const icons = paint.attachments.find(op => op.kind === 'icons')
     expect(icons && 'iconKey' in icons && icons.iconKey).toBe('server')
   })
 
-  it('honors style.label.maxChars including 0 for no truncate', () => {
+  it('does not truncate node labels by default; honors style.label.maxChars', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,
@@ -75,7 +75,7 @@ describe('Node attachments', () => {
         id: 'a',
         type: 'agent',
         label: 'VeryLongAgentLabelXYZ',
-        style: { label: { maxChars: 0 }, showIcon: false },
+        style: { showIcon: false },
         x: 0,
         y: 0,
         w: 100,
