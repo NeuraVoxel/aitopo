@@ -104,6 +104,27 @@ registerBuiltin({
   },
 })
 
+registerBuiltin({
+  key: 'skill',
+  draw(ctx, size, color) {
+    ctx.strokeStyle = color
+    ctx.lineWidth = Math.max(1, size * 0.07)
+    ctx.lineJoin = 'round'
+    // Four-point spark — a capability, not an actor.
+    ctx.beginPath()
+    ctx.moveTo(size * 0.5, size * 0.12)
+    ctx.lineTo(size * 0.62, size * 0.38)
+    ctx.lineTo(size * 0.88, size * 0.5)
+    ctx.lineTo(size * 0.62, size * 0.62)
+    ctx.lineTo(size * 0.5, size * 0.88)
+    ctx.lineTo(size * 0.38, size * 0.62)
+    ctx.lineTo(size * 0.12, size * 0.5)
+    ctx.lineTo(size * 0.38, size * 0.38)
+    ctx.closePath()
+    ctx.stroke()
+  },
+})
+
 /**
  * Register or replace an icon definition.
  * @param definition - icon to store.

@@ -1,6 +1,11 @@
 import type { GraphDocument } from '../../src/protocol/types.ts'
 
-export type DemoSampleGroupId = 'getting-started' | 'elements' | 'business'
+export type DemoSampleGroupId =
+  | 'getting-started'
+  | 'elements'
+  | 'agents'
+  | 'dsh'
+  | 'business'
 
 export interface DemoSample {
   readonly id: string

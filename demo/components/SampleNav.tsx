@@ -9,12 +9,16 @@ export interface SampleNavProps {
 const GROUP_ORDER: readonly DemoSampleGroupId[] = [
   'getting-started',
   'elements',
+  'agents',
+  'dsh',
   'business',
 ]
 
 const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
   'getting-started': 'Getting started',
   elements: 'Elements',
+  agents: 'Agents',
+  dsh: 'DeepSeek Harness',
   business: 'Business (soon)',
 }
 

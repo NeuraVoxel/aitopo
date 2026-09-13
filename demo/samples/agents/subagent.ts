@@ -1,9 +1,9 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
 import type { DemoSample } from '../types.ts'
 
-export const agentsDocument: GraphDocument = {
+export const subagentDocument: GraphDocument = {
   version: 1,
-  meta: { title: 'Agents', kind: 'custom' },
+  meta: { title: 'SubAgent', kind: 'custom' },
   nodes: [
     {
       id: 'a-planner',
@@ -134,10 +134,10 @@ export const agentsDocument: GraphDocument = {
   },
 }
 
-export const agentsSample: DemoSample = {
-  id: 'agents',
-  title: 'Agents',
-  group: 'elements',
+export const subagentSample: DemoSample = {
+  id: 'subagent',
+  title: 'SubAgent',
+  group: 'agents',
   description: 'Agent nodes with robot icons; double-click the SubAgent to enter its fleet.',
-  document: agentsDocument,
+  document: subagentDocument,
 }

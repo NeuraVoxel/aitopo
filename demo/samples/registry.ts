@@ -1,10 +1,14 @@
 import { alarmSample } from './elements/alarm.ts'
-import { agentsSample } from './elements/agents.ts'
+import { codeAgentsSample } from './agents/code-agents.ts'
+import { skillWorkflowSample } from './agents/skill-workflow.ts'
+import { dshBootSample } from './dsh/boot.ts'
+import { subagentSample } from './agents/subagent.ts'
 import { edgeSample } from './elements/edge.ts'
 import { groupSample } from './elements/group.ts'
 import { nodeSample } from './elements/node.ts'
 import { subnetworkSample } from './elements/subnetwork.ts'
 import { businessPlaceholders } from './business/placeholders.ts'
+import { dshEventTopoSample } from './dsh/event-topo.ts'
 import { helloWorldSample } from './hello-world.ts'
 import type { DemoSample } from './types.ts'
 
@@ -19,11 +23,15 @@ const SAMPLES: readonly DemoSample[] = [
   groupSample,
   alarmSample,
   subnetworkSample,
-  agentsSample,
+  codeAgentsSample,
+  subagentSample,
+  skillWorkflowSample,
+  dshBootSample,
+  dshEventTopoSample,
   ...businessPlaceholders,
 ]
 
-/** Ordered demo catalog: getting-started, elements, then reserved business rows. */
+/** Ordered demo catalog: getting-started, elements, agents, DSH, then business rows. */
 export function listSamples(): readonly DemoSample[] {
   return SAMPLES
 }

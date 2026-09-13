@@ -1,0 +1,106 @@
+import type { GraphDocument } from '../../../src/protocol/types.ts'
+import type { DemoSample } from '../types.ts'
+
+/**
+ * DeepSeek Harness turn-flow topology (see deepseek-harness docs/architecture.md):
+ * the CLI composes a Cordis plugin tree, plugins mount into the shared context,
+ * and the agent loop drives request/stream/tool events over the session log.
+ */
+export const dshEventTopoDocument: GraphDocument = {
+  version: 1,
+  meta: { title: 'DSH Event Topology', kind: 'topology' },
+  nodes: [
+    {
+      id: 'dsh-cli',
+      type: 'client',
+      label: 'dsh CLI',
+      label2: 'profile: web',
+      icon: 'node',
+      status: 'idle',
+      tooltip: 'Launcher composes the profile bundle stack',
+      data: { layer: 'launcher' },
+      x: 80,
+      y: 210,
+    },
+    {
+      id: 'cordis-ctx',
+      type: 'runtime',
+      label: 'Cordis Context',
+      label2: 'plugin tree',
+      icon: 'group',
+      status: 'active',
+      tooltip: 'Shared context: plugins contribute services, events, and effects',
+      data: { layer: 'composition' },
+      x: 300,
+      y: 210,
+    },
+    {
+      id: 'agent-loop',
+      type: 'plugin',
+      label: 'Agent Loop',
+      label2: 'core/agent-loop',
+      icon: 'agent',
+      status: 'running',
+      tooltip: 'Drives steps: model request, tool calls, turn close',
+      data: { layer: 'core', ctx: 'ctx.agentLoop' },
+      x: 560,
+      y: 90,
+    },
+    {
+      id: 'llm-adapter',
+      type: 'plugin',
+      label: 'LLM Adapter',
+      label2: 'llm/llm',
+      icon: 'server',
+      status: 'running',
+      tooltip: 'Message and stream vocabulary behind the adapter seam',
+      data: { layer: 'core', ctx: 'ctx.llm' },
+      x: 560,
+      y: 230,
+    },
+    {
+      id: 'tool-registry',
+      type: 'plugin',
+      label: 'Tool Registry',
+      label2: 'core/tools',
+      icon: 'server',
+      status: 'active',
+      tooltip: 'Scoped tool registry with guarded execution pipeline',
+      data: { layer: 'core', ctx: 'ctx.tools' },
+      x: 560,
+      y: 370,
+    },
+    {
+      id: 'session-log',
+      type: 'plugin',
+      label: 'Session Log',
+      label2: 'core/session',
+      icon: 'node',
+      status: 'running',
+      tooltip: 'Append-only SessionEvent log broadcast as session/event',
+      data: { layer: 'core', ctx: 'ctx.sessions' },
+      x: 820,
+      y: 90,
+    },
+  ],
+  edges: [
+    { id: 'e-compose', from: 'dsh-cli', to: 'cordis-ctx', kind: 'lifecycle', label: 'compose' },
+    { id: 'm-loop', from: 'cordis-ctx', to: 'agent-loop', kind: 'lifecycle', label: 'mount' },
+    { id: 'm-llm', from: 'cordis-ctx', to: 'llm-adapter', kind: 'lifecycle', label: 'mount' },
+    { id: 'm-tools', from: 'cordis-ctx', to: 'tool-registry', kind: 'lifecycle', label: 'mount' },
+    { id: 'm-session', from: 'cordis-ctx', to: 'session-log', kind: 'lifecycle', label: 'mount' },
+    { id: 'ev-request', from: 'agent-loop', to: 'llm-adapter', kind: 'event', label: 'agent/request' },
+    { id: 'ev-stream', from: 'llm-adapter', to: 'agent-loop', kind: 'event', label: 'llm/stream' },
+    { id: 'ev-tool', from: 'agent-loop', to: 'tool-registry', kind: 'event', label: 'tool/call' },
+    { id: 'ev-session', from: 'agent-loop', to: 'session-log', kind: 'event', label: 'session/event' },
+  ],
+  groups: [],
+}
+
+export const dshEventTopoSample: DemoSample = {
+  id: 'dsh-event-topo',
+  title: 'Event',
+  group: 'dsh',
+  description: 'DeepSeek Harness turn flow: profile composition, plugin mounts, and agent-loop events.',
+  document: dshEventTopoDocument,
+}
