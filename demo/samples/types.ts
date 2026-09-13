@@ -1,7 +1,7 @@
 import type { GraphDocument } from '../../src/protocol/types.ts'
 
 export type DemoSampleGroupId =
-  | 'getting-started'
+  | 'started'
   | 'elements'
   | 'agents'
   | 'dsh'

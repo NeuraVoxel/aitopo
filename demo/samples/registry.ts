@@ -31,7 +31,7 @@ const SAMPLES: readonly DemoSample[] = [
   ...businessPlaceholders,
 ]
 
-/** Ordered demo catalog: getting-started, elements, agents, DSH, then business rows. */
+/** Ordered demo catalog: started, elements, agents, DSH, then business rows. */
 export function listSamples(): readonly DemoSample[] {
   return SAMPLES
 }

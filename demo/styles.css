@@ -80,13 +80,15 @@ body {
 }
 
 .sample-nav-heading {
+  box-sizing: border-box;
   display: flex;
   width: calc(100% - 16px);
   align-items: center;
   gap: 4px;
-  margin: 12px 8px 4px;
-  padding: 0;
+  margin: 14px 8px 2px;
+  padding: 3px 4px;
   border: 0;
+  border-radius: 4px;
   background: transparent;
   color: inherit;
   font: inherit;
@@ -99,14 +101,26 @@ body {
   cursor: pointer;
 }
 
+.sample-nav-heading:hover {
+  color: #334155;
+  background: #f1f5f9;
+}
+
 .sample-nav-caret {
-  width: 10px;
   flex: none;
+  display: inline-block;
+  width: 8px;
+  font-size: 9px;
+  transition: transform 0.15s ease;
+}
+
+.sample-nav-heading[aria-expanded='true'] .sample-nav-caret {
+  transform: rotate(90deg);
 }
 
 .sample-nav-list {
   margin: 0;
-  padding: 0;
+  padding: 2px 8px 6px 22px;
   list-style: none;
 }
 
@@ -117,8 +131,9 @@ body {
 .sample-nav-item {
   display: block;
   width: 100%;
+  box-sizing: border-box;
   margin: 0;
-  padding: 6px 8px;
+  padding: 5px 8px;
   border: 0;
   border-radius: 4px;
   background: transparent;
@@ -126,6 +141,10 @@ body {
   font: inherit;
   text-align: left;
   cursor: pointer;
+}
+
+.sample-nav-item:hover {
+  background: #f1f5f9;
 }
 
 .sample-nav-item.is-active {

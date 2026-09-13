@@ -11,13 +11,13 @@ describe('demo sample registry', () => {
     expect(doc.edges).toHaveLength(1)
   })
 
-  it('lists getting-started, elements, agents, dsh in order', () => {
+  it('lists started, elements, agents, dsh in order', () => {
     const samples = listSamples()
     expect(samples[0]?.id).toBe(DEFAULT_SAMPLE_ID)
     const groupIndexes = samples.map(s => s.group)
     const first = (group: string): number => groupIndexes.indexOf(group as never)
     const last = (group: string): number => groupIndexes.lastIndexOf(group as never)
-    expect(last('getting-started')).toBeLessThan(first('elements'))
+    expect(last('started')).toBeLessThan(first('elements'))
     expect(last('elements')).toBeLessThan(first('agents'))
     expect(last('agents')).toBeLessThan(first('dsh'))
     expect(samples.filter(s => s.group === 'business')).toEqual([])

@@ -8,7 +8,7 @@ export interface SampleNavProps {
 }
 
 const GROUP_ORDER: readonly DemoSampleGroupId[] = [
-  'getting-started',
+  'started',
   'elements',
   'agents',
   'dsh',
@@ -16,7 +16,7 @@ const GROUP_ORDER: readonly DemoSampleGroupId[] = [
 ]
 
 const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
-  'getting-started': 'Getting started',
+  started: 'Started',
   elements: 'Elements',
   agents: 'Agents',
   dsh: 'DeepSeek Harness',
@@ -48,9 +48,7 @@ export function SampleNav({ samples, activeId, onSelect }: SampleNavProps) {
               aria-expanded={open}
               onClick={() => toggle(groupId)}
             >
-              <span className="sample-nav-caret" aria-hidden="true">
-                {open ? '▾' : '▸'}
-              </span>
+              <span className="sample-nav-caret" aria-hidden="true">▸</span>
               {GROUP_LABEL[groupId]}
             </button>
             {open && (
