@@ -4,7 +4,7 @@
 Standing orders for AI-assisted work in this repository.
 
 - Non-trivial changes add or update an Agent Note under `.agents/notes/` in the same change ([format](.agents/notes/README.md)).
-- Design specs and brainstorming output land in `.agents/notes/proposed/` (Agent Note format), or `.agents/inbox/` then promote when the repo has an inbox — not under `docs/superpowers/specs/` and not as standing agent checklists under `docs/` ([placement](.agents/notes/README.md#design-drafts-and-checklists)).
+- Design specs and brainstorming output land in `.agents/notes/proposed/` (Agent Note format); capture raw sparks to `.agents/inbox/` first and promote when ready — not under `docs/superpowers/specs/` and not as standing agent checklists under `docs/` ([placement](.agents/notes/README.md#design-drafts-and-checklists)).
 - Registrations and durable decisions state contracts; do not leave reasoning transcripts in comments or docs.
 - Prefer explicit resolve/default steps at package boundaries over hidden `??` inside run paths.
 - Misconfiguration fails loud at the earliest resolvable point.
