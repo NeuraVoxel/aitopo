@@ -13,8 +13,8 @@ importers:
         version: 4.5.4
     devDependencies:
       '@neuravoxel/ai-eng':
-        specifier: github:NeuraVoxel/ai-eng-kit#v0.1.13
-        version: git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#c7db3a3bbf46475a38ba8e648a9d97265c517bc1
+        specifier: github:NeuraVoxel/ai-eng-kit#v0.1.14
+        version: git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#848f46bf1589ef667352df4e3437a3c271950db4
       '@types/node':
         specifier: ^22.13.10
         version: 22.20.1
@@ -318,9 +318,9 @@ packages:
     os: [linux]
     libc: [glibc]
 
-  '@neuravoxel/ai-eng@git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#c7db3a3bbf46475a38ba8e648a9d97265c517bc1':
-    resolution: {commit: c7db3a3bbf46475a38ba8e648a9d97265c517bc1, repo: git@github.com:NeuraVoxel/ai-eng-kit.git, type: git}
-    version: 0.1.13
+  '@neuravoxel/ai-eng@git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#848f46bf1589ef667352df4e3437a3c271950db4':
+    resolution: {commit: 848f46bf1589ef667352df4e3437a3c271950db4, repo: git@github.com:NeuraVoxel/ai-eng-kit.git, type: git}
+    version: 0.1.14
     engines: {node: ^22.19.0 || >=24.0.0}
     hasBin: true
 
@@ -1067,7 +1067,7 @@ snapshots:
   '@napi-rs/lzma-linux-x64-gnu@1.5.1':
     optional: true
 
-  '@neuravoxel/ai-eng@git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#c7db3a3bbf46475a38ba8e648a9d97265c517bc1': {}
+  '@neuravoxel/ai-eng@git+ssh://git@github.com/NeuraVoxel/ai-eng-kit.git#848f46bf1589ef667352df4e3437a3c271950db4': {}
 
   '@rolldown/pluginutils@1.0.0-beta.27': {}
 
