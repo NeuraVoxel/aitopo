@@ -1,0 +1,61 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "topo-diagram golden sample",
+    "kind": "topology"
+  },
+  "nodes": [
+    { "id": "a1", "type": "component", "label": "Ingest", "x": 80, "y": 100, "groupId": "alpha" },
+    { "id": "a2", "type": "component", "label": "Normalize", "x": 220, "y": 100, "groupId": "alpha" },
+    { "id": "b1", "type": "component", "label": "Index", "x": 420, "y": 100, "groupId": "beta" },
+    { "id": "b2", "type": "component", "label": "Query", "x": 560, "y": 100, "groupId": "beta" },
+    { "id": "gateway", "type": "component", "label": "Gateway", "x": 300, "y": 280 },
+    {
+      "id": "portal-detail",
+      "type": "portal",
+      "label": "Detail",
+      "x": 520,
+      "y": 280,
+      "networkId": "detail"
+    }
+  ],
+  "edges": [
+    { "id": "e-a", "from": "a1", "to": "a2", "kind": "flow", "label": "pipeline" },
+    { "id": "cross", "from": "a2", "to": "b1", "kind": "flow", "label": "hand-off" },
+    { "id": "e-b", "from": "b1", "to": "b2", "kind": "flow" },
+    { "id": "e-gw", "from": "gateway", "to": "a1", "kind": "flow" },
+    { "id": "e-portal", "from": "b2", "to": "portal-detail", "kind": "dep" }
+  ],
+  "groups": [
+    {
+      "id": "alpha",
+      "label": "Ingest band",
+      "memberIds": ["a1", "a2"],
+      "expanded": true,
+      "x": 40,
+      "y": 48
+    },
+    {
+      "id": "beta",
+      "label": "Serve band",
+      "memberIds": ["b1", "b2"],
+      "expanded": true,
+      "x": 380,
+      "y": 48
+    }
+  ],
+  "networks": {
+    "detail": {
+      "version": 1,
+      "meta": { "title": "Detail subnetwork" },
+      "nodes": [
+        { "id": "d1", "type": "component", "label": "Shard A", "x": 80, "y": 80 },
+        { "id": "d2", "type": "component", "label": "Shard B", "x": 240, "y": 80 }
+      ],
+      "edges": [
+        { "id": "d-e", "from": "d1", "to": "d2", "kind": "flow", "label": "replicate" }
+      ]
+    }
+  },
+  "viewport": { "x": 0, "y": 0, "zoom": 1 }
+}

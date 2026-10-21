@@ -28,6 +28,7 @@
     "build": "tsc -p tsconfig.json",
     "demo": "vite --config demo/vite.config.ts",
     "verify-notes": "ai-eng verify-notes .agents/notes",
+    "bundle:topo-diagram-skill": "node .agents/skills/topo-diagram/scripts/bundle-aitopo.mjs",
     "prepublishOnly": "pnpm run typecheck && pnpm run verify-notes && pnpm test && pnpm run build"
   },
   "engines": {
