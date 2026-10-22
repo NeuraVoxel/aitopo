@@ -2,14 +2,18 @@
 
 Authority for shapes: `@neuravoxel/aitopo` protocol (`version: 1`). This file is the **authoring** contract for agents.
 
-## Label principle (Node · Group · SubNetwork)
+Engine defaults stay demo-stable. **Skill look is opt-in via style fields** on each element (or shared patterns copied into emitted JSON). See `SKILL.md` Global principle.
 
-| Host | Title (`label`) | Subtitle (`label2`) |
-|---|---|---|
-| **Node** / SubNetwork member | Centered in body | Centered under title (fixed gap) |
-| **Group** | Inside top of band | Centered under title (fixed gap) |
+## Label principle (skill authoring)
 
-Primary `label` is **bold** by default (`style.label.fontWeight`, omit → bold). Engine defaults: nodes `labelPosition: "center"`; groups `labelPosition: "insideTop"`; both `label2Position: "insideBottom"` (resolved as under-title stack). Group auto-fit adds **extra top padding** so insideTop titles clear member nodes (`style.padding` / `style.paddingTop`). Override anchors only when needed. Prefer `label` (~13px ink, bold) + optional `label2` (~9–10px muted); topo host hides node icons by default.
+Set these styles explicitly on authored nodes/groups (including SubNetwork members):
+
+| Host | Title (`label`) | Subtitle (`label2`) | Extra |
+|---|---|---|---|
+| **Node** | `labelPosition: "center"`, `label.fontWeight: "bold"` | `label2Position: "insideBottom"` | Prefer `h` ≥ 64 when both lines set; host uses `showNodeIcons: false` |
+| **Group** | `labelPosition: "insideTop"`, `label.fontWeight: "bold"` | `label2Position: "insideBottom"` | Set `paddingTop` (e.g. ~32–40) so the title clears members; `padding` for other sides |
+
+When `labelPosition` is `center` / `insideTop*` and `label2Position` is `insideBottom`, the engine stacks the subtitle under the title with a fixed gap. Prefer `label` ~13px ink + optional `label2` ~9–10px muted.
 
 ## Nodes
 
@@ -17,7 +21,6 @@ Primary `label` is **bold** by default (`style.label.fontWeight`, omit → bold)
 - Small `type` set: `component`, `actor`, `state`, `layer`, `portal`, …
 - Business fields go in `data`, not new top-level keys.
 - Portal drill-down: set `networkId` to a key in `document.networks`.
-- Prefer node `h` ≥ 64 when both title and subtitle are set.
 
 ## Edges
 
@@ -35,19 +38,19 @@ Keep links **横平竖直** (axis-aligned). Prefer the engine’s built-in ortho
 | 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters; engine still routes orthogonally |
 | 3. Explicit bends | Add `waypoints` only as **axis-aligned elbows** (each segment horizontal or vertical) |
 
-Unsupported needs (named `linkType`, bus/bundle routing, obstacle avoidance, freeform/curve links, etc.) are **aitopo requirements**: propose → implement in engine with clean-room reference to `twaver.vector` Link ideas → rebundle. See `SKILL.md` Global principle.
+Unsupported needs (named `linkType`, bus/bundle routing, obstacle avoidance, freeform/curve links, etc.) are **aitopo requirements**: propose → implement in engine with clean-room reference to `twaver.vector` Link ideas → rebundle.
 
 ## Groups
 
 - Scope = `groups[]` + `memberIds` + member `groupId`.
 - Structure diagrams **must set `expanded: true`**. Engine default when omitted is **collapsed**.
 - Do not nest groups (deferred in engine). Use SubNetwork or sibling groups instead.
-- Title defaults to **inside top**; auto-fit top padding clears members (see Label principle).
+- Apply Group row of the Label principle (insideTop + `paddingTop`).
 
 ## SubNetwork
 
 - Single level: root ↔ one child via `networks[id]`.
-- Child document is a full `GraphDocument` (`version: 1`, nodes, edges, …) and inherits the same label principle.
+- Child document is a full `GraphDocument` (`version: 1`, nodes, edges, …); apply the same Node label styles inside.
 
 ## Layout
 
@@ -68,4 +71,4 @@ Protocol allows only `topology` | `flow` | `custom`. Put the diagram-design type
 | focal / accent | `fill` or `stroke: #bf4520` (1–2 nodes) | `stroke: #bf4520` |
 | group band | `fill: #eef0f3`, `stroke: #2d3142` | — |
 
-Do not emit arbitrary hex outside this table unless the project style-guide was customized.
+Do not emit arbitrary hex outside this table unless the project style-guide was customized. Map skill label/layout look through the Label principle table, not by changing engine defaults.

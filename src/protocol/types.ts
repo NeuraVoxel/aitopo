@@ -51,7 +51,7 @@ export type AttachmentPosition =
 export interface GraphTextStyle {
   readonly color?: string
   readonly fontSize?: number
-  /** Canvas font weight. Omitted → host default (primary node/group label: `bold`). */
+  /** Canvas font weight. Omitted → `normal`. */
   readonly fontWeight?: 'normal' | 'bold'
   /**
    * Max characters before ellipsis. `0` = never truncate.
@@ -222,8 +222,8 @@ export interface GraphGroupStyle {
   /** Uniform padding around member union when auto-fitting (world px). */
   readonly padding?: number
   /**
-   * Top padding when auto-fitting (world px). Omitted → at least enough for an
-   * insideTop title (and optional subtitle) so labels clear member nodes.
+   * Top padding when auto-fitting (world px). Omitted → same as `padding`.
+   * Set explicitly (e.g. skill insideTop titles) so labels clear members.
    */
   readonly paddingTop?: number
   /**

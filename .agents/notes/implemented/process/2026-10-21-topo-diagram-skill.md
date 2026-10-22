@@ -52,7 +52,7 @@ Ship an installable **topo-diagram** skill under `.agents/skills/topo-diagram/`:
 
 **Skill does not own:** engine features still deferred in aitopo (nested groups, multi-level SubNetwork stacks), full demo IDE / property panel, first-class PNG/SVG export APIs, or a complete port of all diagram-design visual grammars.
 
-**Engine gap rule (global):** topo-diagram **depends on aitopo source**. Unsupported topo behavior is an **aitopo requirement** — propose, implement in this repo with clean-room reference to `twaver.vector` (see `AGENTS.md` Design reference), then rebuild the skill IIFE. Do not fake engine features only in the skill tree or by hand-editing `assets/aitopo.iife.js`. SVG / defer routing stays for honest non-topo asks.
+**Skill vs engine (global):** Prefer **keeping aitopo source and demo defaults unchanged**. Apply skill look via supported params in dialect / host / emitted JSON. Unsupported capability → **aitopo requirement** (propose → implement with clean-room `twaver.vector` reference → rebundle). Do not change global engine defaults only to restyle the skill, fake features in the skill tree, or hand-edit `assets/aitopo.iife.js`. SVG / defer stays for honest non-topo asks.
 
 ### Type routing
 
@@ -74,7 +74,7 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 6. Layout: write `x`/`y` when known; else host calls `network.layout('grid' | 'flowColumns')` after load. Target density ~4/10; prefer ≤9 focal nodes or split / drill down.
 7. Styles map only style-guide semantic roles (focal / muted / accent) into `Graph*Style` — no ad-hoc hex in agent output.
 8. `meta.kind` is only `topology` | `flow` | `custom` (protocol enum).
-9. **Label principle:** Node title centered + bold; Group title inside top + bold with auto-fit **extra top padding** so titles clear members; subtitle under the title (fixed gap). Defaults: node `center`, group `insideTop`, both `label2` → under-title stack; `label.fontWeight` omit → bold. Protocol: `insideBottom`, `fontWeight`, `paddingTop`. Topo host sets `showNodeIcons: false`.
+9. **Label principle (skill styles):** authors set node `center` + bold, group `insideTop` + bold + `paddingTop`, subtitle `insideBottom` (engine stacks under title when those positions are set). Engine defaults remain demo-stable (node bottom / group top / label2 top; fontWeight omit → normal). Protocol supports `insideBottom`, `fontWeight`, `paddingTop`. Topo host sets `showNodeIcons: false`.
 10. **Link principle:** orthogonal (横平竖直) first — omit `waypoints` for aitopo auto-route; pin sides with anchors; explicit bends only as axis-aligned `waypoints`. No skill-side freeform/curve hacks; richer link types → aitopo requirement (+ twaver clean-room), then rebundle.
 
 ### Host page and light-edit API

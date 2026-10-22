@@ -137,8 +137,8 @@ export function computeExpandedBandBounds(
 }
 
 /**
- * Auto-fit insets: extra top room for an insideTop title (and optional subtitle)
- * so group labels do not cover member nodes.
+ * Auto-fit insets. Uniform `padding` on all sides unless `paddingTop` is set
+ * (skill/docs opt in for insideTop title clearance — engine does not invent it).
  * @param group - group element.
  */
 export function resolveGroupPadding(group: GraphGroup): {
@@ -148,15 +148,16 @@ export function resolveGroupPadding(group: GraphGroup): {
   left: number
 } {
   const base = group.style?.padding ?? DEFAULT_GROUP_PADDING
-  const top = group.style?.paddingTop ?? Math.max(base, defaultGroupTopPadding(group))
+  const top = group.style?.paddingTop ?? base
   return { top, right: base, bottom: base, left: base }
 }
 
 /**
- * Minimum top pad for the default insideTop title stack.
+ * Suggested top pad for an insideTop title stack (authors copy into `style.paddingTop`).
+ * Not applied automatically — keeps demo auto-fit unchanged unless opted in.
  * @param group - group element.
  */
-export function defaultGroupTopPadding(group: GraphGroup): number {
+export function suggestedGroupTopPadding(group: GraphGroup): number {
   const titleSize = group.style?.label?.fontSize ?? 12
   const titleH = titleSize * 1.2
   let need = GROUP_TITLE_INSET + titleH + GROUP_TITLE_MEMBER_GAP

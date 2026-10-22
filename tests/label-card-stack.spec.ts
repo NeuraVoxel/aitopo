@@ -1,5 +1,5 @@
 /**
- * Default label principle: centered title, subtitle under title (Node + Group).
+ * Opt-in card stack: center/insideTop + insideBottom stacks subtitle under title.
  */
 
 import { describe, expect, it } from 'vitest'
@@ -15,7 +15,9 @@ function nodeCtx(height: number): AttachmentValidateCtx {
       label: '湖仓底座',
       label2: 'Paimon ODS→ADS',
       style: {
-        label: { fontSize: 13 },
+        labelPosition: 'center',
+        label2Position: 'insideBottom',
+        label: { fontSize: 13, fontWeight: 'bold' },
         label2: { fontSize: 9 },
       },
     },
@@ -31,7 +33,9 @@ function groupCtx(height: number): AttachmentValidateCtx {
       label2: '9 platforms',
       memberIds: [],
       style: {
-        label: { fontSize: 13 },
+        labelPosition: 'insideTop',
+        label2Position: 'insideBottom',
+        label: { fontSize: 13, fontWeight: 'bold' },
         label2: { fontSize: 9 },
       },
     },
@@ -49,14 +53,14 @@ function gapBetween(ctx: AttachmentValidateCtx): number {
   return s.bounds.y - (t.bounds.y + t.bounds.height)
 }
 
-describe('default title / subtitle principle', () => {
-  it('stacks subtitle under title on nodes without explicit positions', () => {
+describe('opt-in title / subtitle stack', () => {
+  it('stacks subtitle under a centered node title', () => {
     const gap = gapBetween(nodeCtx(88))
     expect(gap).toBeGreaterThanOrEqual(0)
     expect(gap).toBeLessThanOrEqual(4)
   })
 
-  it('applies the same stack to groups', () => {
+  it('stacks subtitle under an insideTop group title', () => {
     const gap = gapBetween(groupCtx(120))
     expect(gap).toBeGreaterThanOrEqual(0)
     expect(gap).toBeLessThanOrEqual(4)

@@ -10,18 +10,17 @@ metadata:
 
 Dual-track diagram skill: **topo** (Canvas + `GraphDocument` + bundled `aitopo.iife.js`) and **svg** (self-contained HTML). Prefer topo when containment, cross-group links, or drill-down carry the meaning.
 
-## Global principle (engine dependency)
+## Global principle (skill vs aitopo)
 
-**topo-diagram depends on aitopo source** (this repository). The skill teaches routing, dialect, style, and host chrome; it does **not** invent engine capabilities in the skill tree or by hand-editing `assets/aitopo.iife.js`.
+**Prefer keeping aitopo source and demo behavior unchanged.** Skill look-and-feel is applied by **authoring parameters the engine already supports** (`Graph*Style`, anchors, waypoints, host options) in dialect, host template, and emitted `diagram.graph.json`.
 
-When a needed topo behavior is **not supported by aitopo**:
+| Situation | Action |
+|---|---|
+| Desired look fits existing protocol / `Network` options | Set those params in the skill (dialect + sample + generated docs / host). Do **not** change engine defaults. |
+| Need a capability aitopo does not support | Raise an **aitopo requirement** (`.agents/notes/proposed/` when non-trivial) → implement in aitopo with clean-room **`twaver.vector`** reference (see repo `AGENTS.md`) → `pnpm run bundle:topo-diagram-skill` → then teach it in the skill. |
+| Never | Hand-edit `assets/aitopo.iife.js`; invent dialect the engine cannot honor; change global engine defaults only to style this skill. |
 
-1. **Do not** fake it only inside the skill (host hacks, one-off IIFE edits, or dialect that the engine cannot honor).
-2. **Raise an aitopo requirement** (Agent Note under `.agents/notes/proposed/` when the gap is non-trivial).
-3. **Implement in aitopo**, clean-room against **`twaver.vector` ideas** (see repo `AGENTS.md` Design reference) — no SDK2D imports, no twaver public API names.
-4. **Rebuild** the skill bundle (`pnpm run bundle:topo-diagram-skill`) and update dialect / host contract if the pinned surface changes.
-
-SVG-track and explicit **defer** remain valid when the ask is statistical/geometric or honestly out of scope — that is routing, not an engine bypass.
+SVG-track and explicit **defer** remain valid for statistical/geometric or out-of-scope asks.
 
 ## Workflow
 
@@ -36,8 +35,8 @@ SVG-track and explicit **defer** remain valid when the ask is statistical/geomet
 
 ## Topo non-negotiables
 
-- **Labels:** Node title centered + bold; Group title **inside top** + bold (extra top pad so it clears members); subtitle under the title (see dialect).
-- **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; bends via axis-aligned `waypoints` / anchors only (see dialect). Missing link rules → aitopo requirement, not skill-side path hacks.
+- **Labels (skill styles, not engine defaults):** Node title `center` + bold; Group title `insideTop` + bold + `paddingTop` so it clears members; subtitle `insideBottom` under the title (see dialect).
+- **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; bends via axis-aligned `waypoints` / anchors only (see dialect). Missing link rules → aitopo requirement.
 - Structure diagrams set Group `expanded: true` (engine default is collapsed).
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
 - SubNetwork is single-level only; no nested groups.

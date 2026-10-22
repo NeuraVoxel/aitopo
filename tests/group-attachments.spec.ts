@@ -8,9 +8,9 @@ import { groupBounds } from '../src/ui/bounds.ts'
 import {
   computeExpandedBandBounds,
   DEFAULT_GROUP_PADDING,
-  defaultGroupTopPadding,
   expandCollapseCenterPatches,
   rectCenter,
+  suggestedGroupTopPadding,
 } from '../src/ui/group-state.ts'
 import { ViewSet } from '../src/ui/view-set.ts'
 
@@ -19,48 +19,14 @@ function loadGroupDoc(opts: {
   style?: Record<string, unknown>
   groupExtra?: Record<string, unknown>
   edge?: boolean
-  /** Hang member labels below bodies (for paint-extent auto-fit coverage). */
-  hangingNodeLabels?: boolean
 } = {}) {
-  const nodeLabelStyle = opts.hangingNodeLabels === true
-    ? { labelPosition: 'bottom' as const }
-    : undefined
   const scene = new GraphScene()
   scene.load({
     version: 1,
     nodes: [
-      {
-        id: 'a',
-        type: 'agent',
-        label: 'A',
-        x: 100,
-        y: 100,
-        w: 50,
-        h: 50,
-        groupId: 'g1',
-        ...(nodeLabelStyle !== undefined ? { style: nodeLabelStyle } : {}),
-      },
-      {
-        id: 'b',
-        type: 'agent',
-        label: 'B',
-        x: 200,
-        y: 100,
-        w: 50,
-        h: 50,
-        groupId: 'g1',
-        ...(nodeLabelStyle !== undefined ? { style: nodeLabelStyle } : {}),
-      },
-      {
-        id: 'c',
-        type: 'agent',
-        label: 'C',
-        x: 400,
-        y: 100,
-        w: 50,
-        h: 50,
-        ...(nodeLabelStyle !== undefined ? { style: nodeLabelStyle } : {}),
-      },
+      { id: 'a', type: 'agent', label: 'A', x: 100, y: 100, w: 50, h: 50, groupId: 'g1' },
+      { id: 'b', type: 'agent', label: 'B', x: 200, y: 100, w: 50, h: 50, groupId: 'g1' },
+      { id: 'c', type: 'agent', label: 'C', x: 400, y: 100, w: 50, h: 50 },
     ],
     edges: opts.edge === false
       ? []
@@ -123,7 +89,7 @@ describe('Group attachments and expand/collapse', () => {
     expect(label && 'text' in label && label.text).toBe('VeryLongG…')
   })
 
-  it('defaults label to insideTop inside the band body when collapsed and expanded', () => {
+  it('defaults label to top outside the body when collapsed and expanded', () => {
     for (const expanded of [false, true] as const) {
       const { views } = loadGroupDoc({ expanded })
       const view = views.getGroup('g1')!
@@ -131,9 +97,7 @@ describe('Group attachments and expand/collapse', () => {
       const label = paint.attachments.find(op => op.kind === 'label')
       expect(label && 'bounds' in label).toBe(true)
       if (label === undefined || !('bounds' in label)) return
-      expect(label.bounds.y).toBeGreaterThanOrEqual(view.bandBounds.y)
-      expect(label.bounds.y + label.bounds.height)
-        .toBeLessThanOrEqual(view.bandBounds.y + view.bandBounds.height)
+      expect(label.bounds.y + label.bounds.height).toBeLessThanOrEqual(view.bandBounds.y)
     }
   })
 
@@ -186,16 +150,14 @@ describe('Group attachments and expand/collapse', () => {
   })
 
   it('auto-fit band wraps member paint extents (labels below bodies), not bare bodies', () => {
-    const { scene, views } = loadGroupDoc({ expanded: true, hangingNodeLabels: true })
-    const group = scene.groups.get('g1')!
-    const topPad = defaultGroupTopPadding(group)
+    const { views } = loadGroupDoc({ expanded: true })
     const nodeA = views.getNode('a')!
     // Label 'A' hangs below the body, so the paint union is taller than the body.
     expect(nodeA.unionBounds.y + nodeA.unionBounds.height)
       .toBeGreaterThan(nodeA.bodyBounds.y + nodeA.bodyBounds.height)
     const band = views.getGroup('g1')!.bandBounds
-    // Top pad clears insideTop title; other sides use default padding.
-    expect(band.y).toBeLessThanOrEqual(nodeA.unionBounds.y - topPad)
+    // The band is the member paint union grown by the default padding.
+    expect(band.y).toBeLessThanOrEqual(nodeA.unionBounds.y - DEFAULT_GROUP_PADDING)
     expect(band.y + band.height)
       .toBeGreaterThanOrEqual(nodeA.unionBounds.y + nodeA.unionBounds.height + DEFAULT_GROUP_PADDING)
     // Body-only band would stop at body bottom + padding (150 + 16).
@@ -203,25 +165,27 @@ describe('Group attachments and expand/collapse', () => {
   })
 
   it('scene-only band helpers stay body-only; a member-bounds resolver widens to paint extents', () => {
-    const { scene, views } = loadGroupDoc({ expanded: true, hangingNodeLabels: true })
+    const { scene, views } = loadGroupDoc({ expanded: true })
     const group = scene.groups.get('g1')!
-    const topPad = defaultGroupTopPadding(group)
     const bodyOnly = computeExpandedBandBounds(scene, group)
     const painted = computeExpandedBandBounds(scene, group, n => views.nodeUnionBounds(n))
-    // Bare bodies: 100..150 vertically; extra top pad for insideTop title.
-    expect(bodyOnly.y).toBe(100 - topPad)
+    // Bare bodies: 100..150 vertically, plus padding both sides.
+    expect(bodyOnly.y).toBe(100 - DEFAULT_GROUP_PADDING)
     expect(bodyOnly.y + bodyOnly.height).toBe(150 + DEFAULT_GROUP_PADDING)
     expect(painted.height).toBeGreaterThan(bodyOnly.height)
     expect(painted.y + painted.height).toBe(views.getGroup('g1')!.bandBounds.y + views.getGroup('g1')!.bandBounds.height)
   })
 
-  it('reserves more top pad than side pad so insideTop titles clear members', () => {
-    const { scene } = loadGroupDoc({ expanded: true })
+  it('honors explicit paddingTop without changing the uniform padding default', () => {
+    const { scene } = loadGroupDoc({
+      expanded: true,
+      style: { paddingTop: 40 },
+    })
     const group = scene.groups.get('g1')!
-    const topPad = defaultGroupTopPadding(group)
-    expect(topPad).toBeGreaterThan(DEFAULT_GROUP_PADDING)
+    expect(suggestedGroupTopPadding(group)).toBeGreaterThan(DEFAULT_GROUP_PADDING)
     const band = computeExpandedBandBounds(scene, group)
-    expect(band.y).toBe(100 - topPad)
+    expect(band.y).toBe(100 - 40)
+    expect(band.y + band.height).toBe(150 + DEFAULT_GROUP_PADDING)
   })
 
   it('collapse parks the body at the painted band center (attachments included)', () => {

@@ -17,13 +17,17 @@
       "w": 100,
       "h": 64,
       "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
         "label": {
-          "color": "#2d3142",
-          "fontSize": 13
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "color": "#2d3142"
         },
+        "showIcon": false,
         "label2": {
-          "color": "#6b7280",
-          "fontSize": 9
+          "fontSize": 9,
+          "color": "#6b7280"
         }
       }
     },
@@ -33,7 +37,18 @@
       "label": "Normalize",
       "x": 220,
       "y": 100,
-      "groupId": "alpha"
+      "groupId": "alpha",
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": {
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "color": "#2d3142"
+        },
+        "showIcon": false
+      },
+      "h": 64
     },
     {
       "id": "b1",
@@ -41,7 +56,18 @@
       "label": "Index",
       "x": 420,
       "y": 100,
-      "groupId": "beta"
+      "groupId": "beta",
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": {
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "color": "#2d3142"
+        },
+        "showIcon": false
+      },
+      "h": 64
     },
     {
       "id": "b2",
@@ -49,7 +75,18 @@
       "label": "Query",
       "x": 560,
       "y": 100,
-      "groupId": "beta"
+      "groupId": "beta",
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": {
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "color": "#2d3142"
+        },
+        "showIcon": false
+      },
+      "h": 64
     },
     {
       "id": "gateway",
@@ -61,13 +98,17 @@
       "w": 110,
       "h": 64,
       "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
         "label": {
-          "color": "#2d3142",
-          "fontSize": 13
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "color": "#2d3142"
         },
+        "showIcon": false,
         "label2": {
-          "color": "#6b7280",
-          "fontSize": 9
+          "fontSize": 9,
+          "color": "#6b7280"
         }
       }
     },
@@ -82,13 +123,17 @@
       "w": 100,
       "h": 64,
       "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
         "label": {
-          "color": "#2d3142",
-          "fontSize": 13
+          "fontSize": 13,
+          "fontWeight": "bold",
+          "color": "#2d3142"
         },
+        "showIcon": false,
         "label2": {
-          "color": "#6b7280",
-          "fontSize": 9
+          "fontSize": 9,
+          "color": "#6b7280"
         }
       }
     }
@@ -137,7 +182,15 @@
       ],
       "expanded": true,
       "x": 40,
-      "y": 48
+      "y": 48,
+      "style": {
+        "labelPosition": "insideTop",
+        "label": {
+          "fontSize": 12,
+          "fontWeight": "bold"
+        },
+        "paddingTop": 36
+      }
     },
     {
       "id": "beta",
@@ -148,7 +201,15 @@
       ],
       "expanded": true,
       "x": 380,
-      "y": 48
+      "y": 48,
+      "style": {
+        "labelPosition": "insideTop",
+        "label": {
+          "fontSize": 12,
+          "fontWeight": "bold"
+        },
+        "paddingTop": 36
+      }
     }
   ],
   "networks": {

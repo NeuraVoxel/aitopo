@@ -1,8 +1,9 @@
 /**
  * Primary / secondary labels for nodes and groups.
  *
- * Default principle: title centered in the body; subtitle centered under the title
- * (fixed gap). Applies to Node, Group, and SubNetwork document elements alike.
+ * Engine defaults stay demo-stable (node label bottom, group label top, label2 top).
+ * Skill look-and-feel is applied via explicit Graph*Style in authored documents.
+ * When authors set center/insideTop + insideBottom, subtitle stacks under the title.
  */
 
 import type { AttachmentPosition, GraphTextStyle } from '../../protocol/types.ts'
@@ -26,22 +27,16 @@ const DEFAULT_FONT = 12
 const DEFAULT_NODE_MAX_CHARS = 0
 /** Default maxChars for GraphGroup labels when style.maxChars is omitted (`0` = no truncate). */
 const DEFAULT_GROUP_MAX_CHARS = 0
-/** World px between title bottom and subtitle top. */
+/** World px between title bottom and subtitle top (center/insideTop + insideBottom). */
 const TITLE_SUBTITLE_GAP = 2
-/** Default title anchor for Node / SubNetwork member nodes. */
-const DEFAULT_NODE_LABEL_POSITION: AttachmentPosition = 'center'
-/** Default title anchor for Group bands — inside top, clear of members via top padding. */
-const DEFAULT_GROUP_LABEL_POSITION: AttachmentPosition = 'insideTop'
-/** Default subtitle anchor — fixed-gap under title when paired with center / insideTop. */
-const DEFAULT_LABEL2_POSITION: AttachmentPosition = 'insideBottom'
 
-/** LabelAttachment — GraphNode.label / GraphGroup.label (title; bold by default). */
+/** LabelAttachment — GraphNode.label / GraphGroup.label. */
 export class LabelAttachment extends Attachment {
   private text = ''
   private color = DEFAULT_COLOR
   private fontSize = DEFAULT_FONT
-  private fontWeight: 'normal' | 'bold' = 'bold'
-  private position: AttachmentPosition = DEFAULT_NODE_LABEL_POSITION
+  private fontWeight: 'normal' | 'bold' = 'normal'
+  private position: AttachmentPosition = 'bottom'
 
   validate(ctx: AttachmentValidateCtx): void {
     if (!isBoxAttachmentCtx(ctx)) return
@@ -49,20 +44,20 @@ export class LabelAttachment extends Attachment {
     const style = isGroup ? ctx.group.style : ctx.node.style
     const label = isGroup ? ctx.group.label : ctx.node.label
     const label2 = isGroup ? ctx.group.label2 : ctx.node.label2
-    this.position = style?.labelPosition
-      ?? (isGroup ? DEFAULT_GROUP_LABEL_POSITION : DEFAULT_NODE_LABEL_POSITION)
+    // Demo-stable defaults: node bottom, group top (outside).
+    this.position = style?.labelPosition ?? (isGroup ? 'top' : 'bottom')
     this.color = style?.label?.color ?? DEFAULT_COLOR
     this.fontSize = style?.label?.fontSize ?? DEFAULT_FONT
-    this.fontWeight = style?.label?.fontWeight ?? 'bold'
+    this.fontWeight = style?.label?.fontWeight ?? 'normal'
     this.text = truncateText(
       label,
       resolveMaxChars(style?.label, isGroup ? DEFAULT_GROUP_MAX_CHARS : DEFAULT_NODE_MAX_CHARS),
     )
     const size = estimateTextSize(this.text, this.fontSize, this.fontWeight)
     let box = placeAttachment(ctx.body, this.position, size.width, size.height)
-    // Only the centered node card stack nudges the title up; group insideTop stays put.
     if (
       !isGroup
+      && this.position === 'center'
       && usesTitleSubtitleStack(this.position, label2, style?.label2Position)
     ) {
       box = nudgeTitleForSubtitle(box, ctx.body.height)
@@ -79,7 +74,7 @@ export class LabelAttachment extends Attachment {
       text: this.text,
       color: this.color,
       fontSize: this.fontSize,
-      fontWeight: this.fontWeight,
+      ...(this.fontWeight === 'bold' ? { fontWeight: 'bold' as const } : {}),
     }
   }
 }
@@ -89,7 +84,7 @@ export class Label2Attachment extends Attachment {
   private text = ''
   private color = '#374151'
   private fontSize = 10
-  private position: AttachmentPosition = DEFAULT_LABEL2_POSITION
+  private position: AttachmentPosition = 'top'
 
   validate(ctx: AttachmentValidateCtx): void {
     if (!isBoxAttachmentCtx(ctx)) return
@@ -97,7 +92,7 @@ export class Label2Attachment extends Attachment {
     const style = isGroup ? ctx.group.style : ctx.node.style
     const label = isGroup ? ctx.group.label : ctx.node.label
     const label2 = isGroup ? ctx.group.label2 : ctx.node.label2
-    this.position = style?.label2Position ?? DEFAULT_LABEL2_POSITION
+    this.position = style?.label2Position ?? 'top'
     this.color = style?.label2?.color ?? '#374151'
     this.fontSize = style?.label2?.fontSize ?? 10
     this.text = truncateText(
@@ -105,8 +100,7 @@ export class Label2Attachment extends Attachment {
       resolveMaxChars(style?.label2, isGroup ? DEFAULT_GROUP_MAX_CHARS : DEFAULT_NODE_MAX_CHARS),
     )
     const size = estimateTextSize(this.text, this.fontSize, style?.label2?.fontWeight ?? 'normal')
-    const titlePosition = style?.labelPosition
-      ?? (isGroup ? DEFAULT_GROUP_LABEL_POSITION : DEFAULT_NODE_LABEL_POSITION)
+    const titlePosition = style?.labelPosition ?? (isGroup ? 'top' : 'bottom')
 
     if (
       this.position === 'insideBottom'
@@ -167,12 +161,11 @@ function usesTitleSubtitleStack(
   label2: string | undefined,
   label2Position: AttachmentPosition | undefined,
 ): boolean {
-  const subPos = label2Position ?? DEFAULT_LABEL2_POSITION
   return (
     isStackedTitlePosition(labelPosition)
     && typeof label2 === 'string'
     && label2.length > 0
-    && subPos === 'insideBottom'
+    && label2Position === 'insideBottom'
   )
 }
 
@@ -192,7 +185,7 @@ function placeSubtitleUnderTitle(
   isGroup: boolean,
 ): Rect {
   const titleFont = style?.label?.fontSize ?? DEFAULT_FONT
-  const titleWeight = style?.label?.fontWeight ?? 'bold'
+  const titleWeight = style?.label?.fontWeight ?? 'normal'
   const titleText = truncateText(
     label,
     resolveMaxChars(style?.label, isGroup ? DEFAULT_GROUP_MAX_CHARS : DEFAULT_NODE_MAX_CHARS),
