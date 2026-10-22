@@ -278,6 +278,11 @@ export interface GraphGroupStyle {
   readonly tooltip?: GraphTextStyle
   /** Alarm badge text overrides (`color` / `fontSize` / `maxChars`). */
   readonly alarm?: GraphTextStyle
+  /**
+   * Whether to paint IconsAttachment when collapsed. Default `true` when omitted.
+   * Skill cards that mirror node chrome set `false`.
+   */
+  readonly showIcon?: boolean
   readonly select?: GraphChromeStyle
   readonly hover?: GraphChromeStyle
   readonly shadow?: GraphShadowStyle
@@ -291,7 +296,16 @@ export interface GraphGroup {
   readonly label2?: string
   /** TooltipAttachment text when set. */
   readonly tooltip?: string
+  /**
+   * Direct members: node ids and/or child group ids.
+   * Child groups also set `parentId` (dual bookkeeping, same as node `groupId`).
+   */
   readonly memberIds: readonly string[]
+  /**
+   * Parent group id when nested. Omitted → root group.
+   * Cycles fail loud at document load / patch apply.
+   */
+  readonly parentId?: string
   /**
    * Whether the band is expanded. Omitted → `false` (collapsed).
    * Open with `updateGroup` `{ expanded: true }` or host gesture.

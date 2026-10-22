@@ -52,6 +52,12 @@ function loadGroupDoc(opts: {
 }
 
 describe('Group attachments and expand/collapse', () => {
+  it('honors style.showIcon false when collapsed', () => {
+    const { views } = loadGroupDoc({ style: { showIcon: false } })
+    const paint = views.getGroup('g1')!.toPaintView(false, false)
+    expect(paint.attachments.some(op => op.kind === 'icons')).toBe(false)
+  })
+
   it('defaults to collapsed node body 50×50 with group icon', () => {
     const { views } = loadGroupDoc()
     const group = views.getGroup('g1')!

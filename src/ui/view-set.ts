@@ -7,6 +7,7 @@ import type { GraphScene } from '../model/scene.ts'
 import type { GraphNode } from '../protocol/types.ts'
 import { nodeBounds } from './bounds.ts'
 import { EdgeView } from './edge-view.ts'
+import { listDescendantGroupIds, listDescendantNodeIds } from './group-state.ts'
 import { GroupView } from './group-view.ts'
 import { NodeView } from './node-view.ts'
 
@@ -116,10 +117,10 @@ export class ViewSet {
     this.groups.get(groupId)?.markDirty()
     const group = scene.groups.get(groupId)
     if (group === undefined) return
-    const members = new Set(group.memberIds)
-    for (const node of scene.nodes.values()) {
-      if (node.groupId === groupId) members.add(node.id)
+    for (const childId of listDescendantGroupIds(scene, group)) {
+      this.groups.get(childId)?.markDirty()
     }
+    const members = new Set(listDescendantNodeIds(scene, group))
     for (const memberId of members) {
       this.markNodeGeometryDirty(scene, memberId)
     }

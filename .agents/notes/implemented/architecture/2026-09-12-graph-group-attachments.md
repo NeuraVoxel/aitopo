@@ -18,7 +18,7 @@ Additive `GraphGroup` fields: `label2?`, `tooltip?`, `alarms?`, `expanded?` (**o
 
 `GraphGroupStyle` carries stroke/fill/dash, `alpha` (default `1`), `padding?`, `autoFit?` (**omitted = `true`**), `shape?: 'rectangle'`, attachment positions and text nests, `tooltipMode`, `select` / `hover` / `shadow`.
 
-`updateGroup` merges `style` one level. Zod, `asGroup` / `mergeGroup`, and invert round-trip the new fields. Fixtures that need open bands set `"expanded": true`. Hosts open a group with `updateGroup { expanded: true }` or double-click (`SelectActivateInteraction` → `toggleGroupExpanded`). Collapsed paints as a **node body** (opaque fill + `group` IconsAttachment, default **50×50** matching twaver `NODE_WIDTH`/`NODE_HEIGHT`); override with `w`/`h` / `icon`. Expanded paints the member band (+ autoFit). No expand-image this wave.
+`updateGroup` merges `style` one level. Zod, `asGroup` / `mergeGroup`, and invert round-trip the new fields. Fixtures that need open bands set `"expanded": true`. Hosts open a group with `updateGroup { expanded: true }` or double-click (`SelectActivateInteraction` → `toggleGroupExpanded`). Collapsed paints as a **node body** (opaque fill + `group` IconsAttachment by default, default **50×50** matching twaver `NODE_WIDTH`/`NODE_HEIGHT`); override with `w`/`h` / `icon`; opt-in `style.showIcon: false` hides the collapsed icon (skill card chrome). Expanded paints the member band (+ autoFit). No expand-image this wave.
 
 ### View / Attachment
 
@@ -50,7 +50,8 @@ Group ids participate in `setSelection` and hit-testing (`kind: 'group'`). Overl
 - **Groups not selectable:** rejected — product chose full selection with chrome.
 - **Hide members but leave edges on hidden node anchors:** rejected — dangling links.
 - **New Group* Attachment subclasses that duplicate box placement:** rejected in favor of widened box validate context.
-- **Exotic `group.shape`, `group.deep`, nested groups, Group icons:** deferred.
+- **Exotic `group.shape`, `group.deep`, Group icons:** deferred.
+- **Nested groups:** shipped in [nested groups](./2026-10-22-nested-groups.md) (`parentId` + child ids in `memberIds`).
 
 ## Consequences
 
@@ -68,7 +69,7 @@ Group ids participate in `setSelection` and hit-testing (`kind: 'group'`). Overl
 
 ## Deferred
 
-Group expand-image; exotic shapes; nested groups; batch-select-members-on-group-select.
+Group expand-image; exotic shapes; batch-select-members-on-group-select.
 
 ## Interaction
 

@@ -15,7 +15,12 @@ import {
   TooltipAttachment,
   type AttachmentPaintOp,
 } from './attachment/index.ts'
-import { computeGroupBandBounds, isGroupExpanded, type MemberBoundsResolver } from './group-state.ts'
+import {
+  computeGroupBandBounds,
+  isGroupExpanded,
+  isGroupVisibleInScene,
+  type MemberBoundsResolver,
+} from './group-state.ts'
 
 // Collapsed groups paint as nodes: match the default node body (statusFill/statusStroke).
 const COLLAPSED_FILL = '#1a1d24'
@@ -30,6 +35,7 @@ export class GroupView {
   private band: Rect = { x: 0, y: 0, width: 0, height: 0 }
   private union: Rect = { x: 0, y: 0, width: 0, height: 0 }
   private active = false
+  private visible = true
   private expanded = false
   private alpha = 1
   private stroke = EXPANDED_STROKE
@@ -66,6 +72,11 @@ export class GroupView {
     return this.active
   }
 
+  /** Whether ancestors are expanded so this group should paint / hit. */
+  get isVisible(): boolean {
+    return this.active && this.visible
+  }
+
   get isExpanded(): boolean {
     return this.expanded
   }
@@ -87,6 +98,7 @@ export class GroupView {
       return
     }
     this.active = true
+    this.visible = isGroupVisibleInScene(scene, this.id)
     this.expanded = isGroupExpanded(group)
     this.band = computeGroupBandBounds(scene, group, memberBoundsOf)
     const style = group.style
@@ -155,6 +167,7 @@ export class GroupView {
 
   private resetInactive(): void {
     this.active = false
+    this.visible = false
     this.expanded = false
     this.band = { x: 0, y: 0, width: 0, height: 0 }
     this.union = this.band
@@ -181,7 +194,7 @@ function syncAttachments(
   previous: Attachment[],
 ): Attachment[] {
   const next: Attachment[] = []
-  if (!expanded) {
+  if (!expanded && group.style?.showIcon !== false) {
     next.push(takeOrCreate(previous, IconsAttachment, () => new IconsAttachment()))
   }
   if (group.label.length > 0) {

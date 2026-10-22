@@ -23,10 +23,15 @@ export {
   expandCollapseCenterPatches,
   findGroupForNode,
   isGroupExpanded,
+  isGroupVisibleInScene,
   isNodeVisibleInScene,
+  listChildGroups,
+  listDescendantGroupIds,
+  listDescendantNodeIds,
   listGroupMembers,
   type MemberBoundsResolver,
   memberUnionBounds,
+  parentGroupOf,
   rectCenter,
 } from './group-state.ts'
 export { EdgeView } from './edge-view.ts'

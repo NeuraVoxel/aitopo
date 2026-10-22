@@ -82,9 +82,10 @@ Unsupported needs (named `linkType`, bus/bundle routing, obstacle avoidance, fre
 ## Groups
 
 - Scope = `groups[]` + `memberIds` + member `groupId`.
-- Structure diagrams **must set `expanded: true`**. Engine default when omitted is **collapsed**.
-- Do not nest groups (deferred in engine). Use SubNetwork or sibling groups instead.
-- Apply Group row of the Label principle (insideTop + `paddingTop`).
+- Structure diagrams that should open immediately set `expanded: true`. Engine default when omitted is **collapsed** (e.g. 应用层 starts collapsed; host **double-click** toggles).
+- **Nested groups:** child sets `parentId` to the parent group id; parent `memberIds` lists the child group id alongside node ids (dual bookkeeping). Prefer ≤1 nesting level (e.g. 应用平台 → 应用层). Cycles fail at parse. Deeper trees → keep flat or use SubNetwork.
+- Apply Group row of the Label principle (insideTop + `paddingTop`). Collapsed card chrome that mirrors a node: `showIcon: false` plus optional Alarm `tag`.
+- Cross-boundary edges attach to **member** node ids (穿透 remaps to the **nearest collapsed ancestor**).
 
 ## SubNetwork
 

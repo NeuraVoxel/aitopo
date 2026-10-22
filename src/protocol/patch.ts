@@ -2,6 +2,7 @@
  * Immutable GraphPatch application on GraphDocument.
  */
 
+import { assertGroupParentAcyclic } from './parse.ts'
 import { graphPatchSchema, type GraphPatch, type GraphPatchOp } from './schema.ts'
 import type {
   Alarm,
@@ -34,6 +35,7 @@ export function applyPatch(doc: GraphDocument, patch: unknown): GraphDocument {
   for (const op of parsed.data.ops) {
     next = applyOp(next, op)
   }
+  assertGroupParentAcyclic(next.groups ?? [])
   return next
 }
 
@@ -420,6 +422,7 @@ function asGroup(raw: {
   label2?: string | undefined
   tooltip?: string | undefined
   memberIds: readonly string[]
+  parentId?: string | undefined
   expanded?: boolean | undefined
   x?: number | undefined
   y?: number | undefined
@@ -442,6 +445,7 @@ function asGroup(raw: {
     memberIds: [...raw.memberIds],
     ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
     ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
+    ...(raw.parentId !== undefined ? { parentId: raw.parentId } : {}),
     ...(raw.expanded !== undefined ? { expanded: raw.expanded } : {}),
     ...(raw.x !== undefined ? { x: raw.x } : {}),
     ...(raw.y !== undefined ? { y: raw.y } : {}),
@@ -462,6 +466,7 @@ function mergeGroup(
     label2?: string | undefined
     tooltip?: string | undefined
     memberIds?: readonly string[] | undefined
+    parentId?: string | undefined
     expanded?: boolean | undefined
     x?: number | undefined
     y?: number | undefined
@@ -485,6 +490,7 @@ function mergeGroup(
     label2: patch.label2 ?? current.label2,
     tooltip: patch.tooltip ?? current.tooltip,
     memberIds: patch.memberIds ?? current.memberIds,
+    parentId: patch.parentId ?? current.parentId,
     expanded: patch.expanded ?? current.expanded,
     x: patch.x ?? current.x,
     y: patch.y ?? current.y,

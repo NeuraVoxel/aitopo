@@ -12,7 +12,7 @@ Emit `diagram.graph.json` + host HTML (`assets/host/` template). Use Groups, mem
 |---|---|
 | Architecture | Primary |
 | Architecture delta | Two docs or before/after groups; keep Changes in prose/meta |
-| Nested / tree / org | Groups or `parent` edges; not nested groups (engine deferred) |
+| Nested / tree / org | Groups (`parentId` nesting ≤1 preferred) or `parent` edges |
 | Dependency graph | `kind: dep` |
 | Data flow / flowchart | `kind: flow` |
 | Swimlane | One Group per lane |

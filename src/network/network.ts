@@ -434,11 +434,22 @@ export class Network {
       if (view === undefined || !view.isVisible) continue
       if (hitRect(world, view.bounds, 2 / zoom)) return { id: node.id, kind: 'node' }
     }
-    const groups = [...this.scene.groups.values()]
-    for (let i = groups.length - 1; i >= 0; i -= 1) {
-      const group = groups[i]!
+    const groups = [...this.scene.groups.values()].sort((a, b) => {
+      // Prefer deeper (nested) groups when bands overlap.
+      const depth = (id: string): number => {
+        let d = 0
+        let g = this.scene.groups.get(id)
+        while (g?.parentId !== undefined) {
+          d += 1
+          g = this.scene.groups.get(g.parentId)
+        }
+        return d
+      }
+      return depth(b.id) - depth(a.id)
+    })
+    for (const group of groups) {
       const view = this.views.getGroup(group.id)
-      if (view === undefined || !view.isActive) continue
+      if (view === undefined || !view.isVisible) continue
       if (hitRect(world, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
     }
     const pad = 4 / zoom
@@ -537,7 +548,7 @@ export class Network {
     for (let i = groups.length - 1; i >= 0; i -= 1) {
       const group = groups[i]!
       const view = this.views.getGroup(group.id)
-      if (view === undefined || !view.isActive) continue
+      if (view === undefined || !view.isVisible) continue
       if (!hitRect(world, view.bandBounds)) continue
       const area = view.bandBounds.width * view.bandBounds.height
       if (bestId === undefined || area < bestArea) {
@@ -591,6 +602,7 @@ export class Network {
     dy: number
     groupFrom: { x: number; y: number }
     members: readonly { id: string; fromX: number; fromY: number }[]
+    childGroups?: readonly { id: string; fromX: number; fromY: number }[]
   }): void {
     this.gestures.previewGroupMove(args)
   }
@@ -636,6 +648,11 @@ export class Network {
     groupFrom: { x: number; y: number }
     groupTo: { x: number; y: number }
     members: readonly {
+      id: string
+      from: { x: number; y: number }
+      to: { x: number; y: number }
+    }[]
+    childGroups?: readonly {
       id: string
       from: { x: number; y: number }
       to: { x: number; y: number }
@@ -843,7 +860,7 @@ export class Network {
     }
     for (const group of this.scene.groups.values()) {
       const view = this.views.getGroup(group.id)
-      if (view === undefined || !view.isActive) continue
+      if (view === undefined || !view.isVisible) continue
       const selected = this.scene.selectedIds.has(group.id)
       const hovered = hoverId === group.id
       const paint = view.toPaintView(selected, hovered)
@@ -897,7 +914,7 @@ export class Network {
         if (filter === undefined) {
           for (const group of this.scene.groups.values()) {
             const view = this.views.getGroup(group.id)
-            if (view === undefined || !view.isActive) continue
+            if (view === undefined || !view.isVisible) continue
             const selected = this.scene.selectedIds.has(group.id)
             const hovered = this.scene.hover === group.id
             renderer.drawGroup(group, view.toPaintView(selected, hovered))

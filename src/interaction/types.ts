@@ -145,6 +145,7 @@ export interface InteractionEditHost {
     dy: number
     groupFrom: { x: number; y: number }
     members: readonly { id: string; fromX: number; fromY: number }[]
+    childGroups?: readonly { id: string; fromX: number; fromY: number }[]
   }): void
   /**
    * Commit a group drag: updateGroup x/y + updateNode for each member.
@@ -155,6 +156,11 @@ export interface InteractionEditHost {
     groupFrom: { x: number; y: number }
     groupTo: { x: number; y: number }
     members: readonly {
+      id: string
+      from: { x: number; y: number }
+      to: { x: number; y: number }
+    }[]
+    childGroups?: readonly {
       id: string
       from: { x: number; y: number }
       to: { x: number; y: number }

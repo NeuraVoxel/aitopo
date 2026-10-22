@@ -3,6 +3,7 @@
  */
 
 import { nodeBounds } from '../ui/bounds.ts'
+import { listDescendantGroupIds, listDescendantNodeIds } from '../ui/group-state.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
 const DRAG_THRESHOLD_PX = 4
@@ -28,6 +29,7 @@ type GroupMover = {
   fromX: number
   fromY: number
   members: readonly { id: string; fromX: number; fromY: number }[]
+  childGroups: readonly { id: string; fromX: number; fromY: number }[]
 }
 
 /** Live- or lazy-move nodes/groups; skip locked; reparent from group under pointer on commit. */
@@ -172,20 +174,30 @@ export class MoveNodeInteraction implements Interaction {
       reset()
     }
 
-    const collectGroupMembers = (groupId: string): { id: string; fromX: number; fromY: number }[] => {
+    const collectGroupMembers = (groupId: string): {
+      members: { id: string; fromX: number; fromY: number }[]
+      childGroups: { id: string; fromX: number; fromY: number }[]
+    } => {
       const group = network.getGroup(groupId)
-      if (group === undefined) return []
-      const ids = new Set(group.memberIds)
-      for (const node of network.getNodes()) {
-        if (node.groupId === groupId) ids.add(node.id)
+      if (group === undefined) return { members: [], childGroups: [] }
+      // Build a lightweight scene facade for descendant walks.
+      const scene = {
+        nodes: new Map(network.getNodes().map(n => [n.id, n])),
+        groups: new Map(network.getGroups().map(g => [g.id, g])),
       }
       const members: { id: string; fromX: number; fromY: number }[] = []
-      for (const id of ids) {
+      for (const id of listDescendantNodeIds(scene as never, group)) {
         const node = network.getNode(id)
         if (node === undefined || node.locked === true) continue
         members.push({ id, fromX: node.x ?? 0, fromY: node.y ?? 0 })
       }
-      return members
+      const childGroups: { id: string; fromX: number; fromY: number }[] = []
+      for (const id of listDescendantGroupIds(scene as never, group)) {
+        const child = network.getGroup(id)
+        if (child === undefined || child.locked === true) continue
+        childGroups.push({ id, fromX: child.x ?? 0, fromY: child.y ?? 0 })
+      }
+      return { members, childGroups }
     }
 
     const onPointerDown = (event: PointerEvent): void => {
@@ -209,14 +221,16 @@ export class MoveNodeInteraction implements Interaction {
         const group = network.getGroup(id)
         if (group !== undefined) {
           if (group.locked === true) continue
-          const members = collectGroupMembers(id)
+          const { members, childGroups } = collectGroupMembers(id)
           for (const member of members) coveredMembers.add(member.id)
+          for (const child of childGroups) coveredMembers.add(child.id)
           nextMovers.push({
             kind: 'group',
             id,
             fromX: group.x ?? 0,
             fromY: group.y ?? 0,
             members,
+            childGroups,
           })
           continue
         }
@@ -257,6 +271,7 @@ export class MoveNodeInteraction implements Interaction {
               dy,
               groupFrom: { x: mover.fromX, y: mover.fromY },
               members: mover.members,
+              childGroups: mover.childGroups,
             })
           }
         }
@@ -340,6 +355,11 @@ export class MoveNodeInteraction implements Interaction {
                 id: member.id,
                 from: { x: member.fromX, y: member.fromY },
                 to: { x: member.fromX + finalDx, y: member.fromY + finalDy },
+              })),
+              childGroups: mover.childGroups.map(child => ({
+                id: child.id,
+                from: { x: child.fromX, y: child.fromY },
+                to: { x: child.fromX + finalDx, y: child.fromY + finalDy },
               })),
             })
           } else {

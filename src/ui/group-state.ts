@@ -1,5 +1,6 @@
 /**
  * Group expand/collapse and band geometry helpers shared by views.
+ * Supports nested groups via `parentId` + child ids in `memberIds`.
  */
 
 import { growRectInsets, unionRect, type Point, type Rect } from '../geom.ts'
@@ -31,7 +32,20 @@ export function isGroupExpanded(group: GraphGroup): boolean {
 }
 
 /**
- * Resolve the group that owns a node (`groupId` or `memberIds`).
+ * Parent group when `parentId` resolves, else undefined.
+ * @param scene - live scene.
+ * @param group - child group.
+ */
+export function parentGroupOf(
+  scene: GraphScene,
+  group: GraphGroup,
+): GraphGroup | undefined {
+  if (group.parentId === undefined) return undefined
+  return scene.groups.get(group.parentId)
+}
+
+/**
+ * Resolve the immediate group that owns a node (`groupId` or `memberIds`).
  * @param scene - live scene.
  * @param nodeId - node id.
  */
@@ -42,13 +56,13 @@ export function findGroupForNode(scene: GraphScene, nodeId: string): GraphGroup 
     if (byId !== undefined) return byId
   }
   for (const group of scene.groups.values()) {
-    if (group.memberIds.includes(nodeId)) return group
+    if (group.memberIds.includes(nodeId) && scene.nodes.has(nodeId)) return group
   }
   return undefined
 }
 
 /**
- * Collapsed group containing the node, if any.
+ * Nearest collapsed ancestor group containing the node (walks `parentId`).
  * @param scene - live scene.
  * @param nodeId - node id.
  */
@@ -56,9 +70,12 @@ export function collapsedGroupForNode(
   scene: GraphScene,
   nodeId: string,
 ): GraphGroup | undefined {
-  const group = findGroupForNode(scene, nodeId)
-  if (group === undefined || isGroupExpanded(group)) return undefined
-  return group
+  let group = findGroupForNode(scene, nodeId)
+  while (group !== undefined) {
+    if (!isGroupExpanded(group)) return group
+    group = parentGroupOf(scene, group)
+  }
+  return undefined
 }
 
 /**
@@ -71,7 +88,45 @@ export function isNodeVisibleInScene(scene: GraphScene, nodeId: string): boolean
 }
 
 /**
- * Member nodes of a group (`memberIds` ∪ `groupId` matches).
+ * Whether the group should be painted and hit-tested (ancestors expanded).
+ * @param scene - live scene.
+ * @param groupId - group id.
+ */
+export function isGroupVisibleInScene(scene: GraphScene, groupId: string): boolean {
+  let parent = scene.groups.get(groupId)
+  if (parent === undefined) return false
+  parent = parentGroupOf(scene, parent)
+  while (parent !== undefined) {
+    if (!isGroupExpanded(parent)) return false
+    parent = parentGroupOf(scene, parent)
+  }
+  return true
+}
+
+/**
+ * Direct child groups (`parentId` match ∪ `memberIds` group ids).
+ * @param scene - live scene.
+ * @param group - parent group.
+ */
+export function listChildGroups(scene: GraphScene, group: GraphGroup): GraphGroup[] {
+  const seen = new Set<string>()
+  const out: GraphGroup[] = []
+  for (const id of group.memberIds) {
+    const child = scene.groups.get(id)
+    if (child === undefined || seen.has(id)) continue
+    seen.add(id)
+    out.push(child)
+  }
+  for (const child of scene.groups.values()) {
+    if (child.parentId !== group.id || seen.has(child.id)) continue
+    seen.add(child.id)
+    out.push(child)
+  }
+  return out
+}
+
+/**
+ * Direct member nodes only (`memberIds` ∪ `groupId` matches; skips group ids).
  * @param scene - live scene.
  * @param group - group element.
  */
@@ -93,6 +148,69 @@ export function listGroupMembers(scene: GraphScene, group: GraphGroup): GraphNod
 }
 
 /**
+ * All descendant node ids under a group (nested groups included).
+ * @param scene - live scene.
+ * @param group - root group.
+ */
+export function listDescendantNodeIds(scene: GraphScene, group: GraphGroup): string[] {
+  const out: string[] = []
+  const seen = new Set<string>()
+  const visit = (g: GraphGroup): void => {
+    for (const node of listGroupMembers(scene, g)) {
+      if (seen.has(node.id)) continue
+      seen.add(node.id)
+      out.push(node.id)
+    }
+    for (const child of listChildGroups(scene, g)) visit(child)
+  }
+  visit(group)
+  return out
+}
+
+/**
+ * All descendant group ids (not including `group` itself).
+ * @param scene - live scene.
+ * @param group - root group.
+ */
+export function listDescendantGroupIds(scene: GraphScene, group: GraphGroup): string[] {
+  const out: string[] = []
+  const visit = (g: GraphGroup): void => {
+    for (const child of listChildGroups(scene, g)) {
+      out.push(child.id)
+      visit(child)
+    }
+  }
+  visit(group)
+  return out
+}
+
+/**
+ * Reject `parentId` cycles. Throws when a cycle is present.
+ * @param scene - live scene.
+ * @param groupId - group to check.
+ * @param parentId - proposed or current parent.
+ */
+export function assertGroupParentAcyclic(
+  scene: GraphScene,
+  groupId: string,
+  parentId: string | undefined,
+): void {
+  if (parentId === undefined) return
+  if (parentId === groupId) {
+    throw new Error(`GraphGroup ${groupId}: parentId cannot reference itself`)
+  }
+  let walk: string | undefined = parentId
+  const seen = new Set<string>([groupId])
+  while (walk !== undefined) {
+    if (seen.has(walk)) {
+      throw new Error(`GraphGroup ${groupId}: parentId cycle via ${walk}`)
+    }
+    seen.add(walk)
+    walk = scene.groups.get(walk)?.parentId
+  }
+}
+
+/**
  * Center of an AABB.
  * @param rect - world rect.
  */
@@ -101,9 +219,7 @@ export function rectCenter(rect: Rect): Point {
 }
 
 /**
- * Member union (no padding), or undefined when empty. With a resolver the
- * union covers member paint extents (attachments included); without it,
- * bare bodies.
+ * Member union (no padding), or undefined when empty. Includes child group bands.
  * @param scene - live scene.
  * @param group - group element.
  * @param memberBoundsOf - optional paint-extent resolver.
@@ -116,6 +232,9 @@ export function memberUnionBounds(
   let union: Rect | undefined
   for (const node of listGroupMembers(scene, group)) {
     union = unionRect(union, memberBoundsOf(node))
+  }
+  for (const child of listChildGroups(scene, group)) {
+    union = unionRect(union, computeGroupBandBounds(scene, child, memberBoundsOf))
   }
   return union
 }
@@ -203,7 +322,8 @@ export function collapsedOriginForCenter(group: GraphGroup, center: Point): Poin
 /**
  * Geometry patches when toggling expand/collapse so the shared center is preserved:
  * - collapse: place the node body at the expanded band center
- * - expand: translate members so the auto-fit band centers on the collapsed body center
+ * - expand: translate members (nodes + nested groups) so the auto-fit band
+ *   centers on the collapsed body center
  * @param scene - live scene.
  * @param group - group before toggle.
  * @param nextExpanded - target expanded flag.
@@ -221,6 +341,11 @@ export function expandCollapseCenterPatches(
     from: Point
     to: Point
   }[]
+  readonly childGroupMoves: readonly {
+    id: string
+    from: Point
+    to: Point
+  }[]
 } {
   if (!nextExpanded) {
     const band = computeExpandedBandBounds(scene, group, memberBoundsOf)
@@ -228,6 +353,7 @@ export function expandCollapseCenterPatches(
     return {
       groupPatch: { expanded: false, x: origin.x, y: origin.y },
       memberMoves: [],
+      childGroupMoves: [],
     }
   }
 
@@ -236,13 +362,15 @@ export function expandCollapseCenterPatches(
   const current = rectCenter(band)
   const dx = center.x - current.x
   const dy = center.y - current.y
-  const memberMoves = listGroupMembers(scene, group).map(node => {
+  const memberMoves = listDescendantNodeIds(scene, group).map(id => {
+    const node = scene.nodes.get(id)!
     const from = { x: node.x ?? 0, y: node.y ?? 0 }
-    return {
-      id: node.id,
-      from,
-      to: { x: from.x + dx, y: from.y + dy },
-    }
+    return { id, from, to: { x: from.x + dx, y: from.y + dy } }
+  })
+  const childGroupMoves = listDescendantGroupIds(scene, group).map(id => {
+    const child = scene.groups.get(id)!
+    const from = { x: child.x ?? 0, y: child.y ?? 0 }
+    return { id, from, to: { x: from.x + dx, y: from.y + dy } }
   })
   return {
     groupPatch: {
@@ -251,5 +379,6 @@ export function expandCollapseCenterPatches(
       ...(group.y !== undefined ? { y: group.y } : { y: groupBounds(group).y }),
     },
     memberMoves,
+    childGroupMoves,
   }
 }

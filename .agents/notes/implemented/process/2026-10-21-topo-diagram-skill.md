@@ -50,7 +50,7 @@ Ship an installable **topo-diagram** skill under `.agents/skills/topo-diagram/`:
 
 **Skill owns:** teaching agents to route types, author documents, apply style tokens, fill the host template, and (for SVG track) emit self-contained HTML/SVG.
 
-**Skill does not own:** engine features still deferred in aitopo (nested groups, multi-level SubNetwork stacks), full demo IDE / property panel, first-class PNG/SVG export APIs, or a complete port of all diagram-design visual grammars.
+**Skill does not own:** engine features still deferred in aitopo (multi-level SubNetwork stacks), full demo IDE / property panel, first-class PNG/SVG export APIs, or a complete port of all diagram-design visual grammars. Nested groups are engine-supported (`parentId`); skill prefers ≤1 nesting level.
 
 **Skill vs engine (global):** Prefer **keeping aitopo source and demo defaults unchanged**. Apply skill look via supported params in dialect / host / emitted JSON. Unsupported capability → **aitopo requirement** (propose → implement with clean-room `twaver.vector` reference → rebundle). Do not change global engine defaults only to restyle the skill, fake features in the skill tree, or hand-edit `assets/aitopo.iife.js`. SVG / defer stays for honest non-topo asks.
 

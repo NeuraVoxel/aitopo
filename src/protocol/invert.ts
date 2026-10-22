@@ -172,6 +172,7 @@ function invertGroupPatch(group: GraphGroup, patch: UpdateGroupPatch): UpdateGro
   if (patch.label2 !== undefined && group.label2 !== undefined) inv.label2 = group.label2
   if (patch.tooltip !== undefined && group.tooltip !== undefined) inv.tooltip = group.tooltip
   if (patch.memberIds !== undefined) inv.memberIds = [...group.memberIds]
+  if (patch.parentId !== undefined && group.parentId !== undefined) inv.parentId = group.parentId
   if (patch.expanded !== undefined) inv.expanded = group.expanded === true
   if (patch.x !== undefined && group.x !== undefined) inv.x = group.x
   if (patch.y !== undefined && group.y !== undefined) inv.y = group.y
@@ -260,6 +261,7 @@ function cloneGroup(group: GraphGroup): PatchGroup {
     memberIds: [...group.memberIds],
     ...(group.label2 !== undefined ? { label2: group.label2 } : {}),
     ...(group.tooltip !== undefined ? { tooltip: group.tooltip } : {}),
+    ...(group.parentId !== undefined ? { parentId: group.parentId } : {}),
     ...(group.expanded !== undefined ? { expanded: group.expanded } : {}),
     ...(group.x !== undefined ? { x: group.x } : {}),
     ...(group.y !== undefined ? { y: group.y } : {}),

@@ -186,6 +186,7 @@ export class GestureEditor {
     dy: number
     groupFrom: { x: number; y: number }
     members: readonly { id: string; fromX: number; fromY: number }[]
+    childGroups?: readonly { id: string; fromX: number; fromY: number }[]
   }): void {
     if (this.deps.scene.groups.get(args.groupId) === undefined) return
     const positions: Record<string, { x: number; y: number }> = {}
@@ -196,12 +197,19 @@ export class GestureEditor {
       }
     }
     this.deps.scene.writePositions(positions)
-    this.deps.scene.writeGroupPositions({
+    const groupPositions: Record<string, { x: number; y: number }> = {
       [args.groupId]: {
         x: args.groupFrom.x + args.dx,
         y: args.groupFrom.y + args.dy,
       },
-    })
+    }
+    for (const child of args.childGroups ?? []) {
+      groupPositions[child.id] = {
+        x: child.fromX + args.dx,
+        y: child.fromY + args.dy,
+      }
+    }
+    this.deps.scene.writeGroupPositions(groupPositions)
     this.deps.views.markGroupGeometryDirty(this.deps.scene, args.groupId)
     this.deps.dirty.markAll()
     this.deps.scheduleScenePaint()
@@ -220,6 +228,11 @@ export class GestureEditor {
       from: { x: number; y: number }
       to: { x: number; y: number }
     }[]
+    childGroups?: readonly {
+      id: string
+      from: { x: number; y: number }
+      to: { x: number; y: number }
+    }[]
   }): void {
     if (this.deps.scene.groups.get(args.groupId) === undefined) {
       throw new Error(`commitGroupMove: missing group ${args.groupId}`)
@@ -230,6 +243,11 @@ export class GestureEditor {
         id: args.groupId,
         patch: { x: args.groupTo.x, y: args.groupTo.y },
       },
+      ...(args.childGroups ?? []).map(child => ({
+        op: 'updateGroup' as const,
+        id: child.id,
+        patch: { x: child.to.x, y: child.to.y },
+      })),
       ...args.members.map(member => ({
         op: 'updateNode' as const,
         id: member.id,
@@ -260,7 +278,7 @@ export class GestureEditor {
     if (group === undefined || group.locked === true) return
     const nextExpanded = group.expanded !== true
     this.deps.views.validateDirty(this.deps.scene)
-    const { groupPatch, memberMoves } = expandCollapseCenterPatches(
+    const { groupPatch, memberMoves, childGroupMoves } = expandCollapseCenterPatches(
       this.deps.scene,
       group,
       nextExpanded,
@@ -268,6 +286,11 @@ export class GestureEditor {
     )
     const ops: GraphPatch['ops'] = [
       { op: 'updateGroup', id: groupId, patch: groupPatch },
+      ...childGroupMoves.map(move => ({
+        op: 'updateGroup' as const,
+        id: move.id,
+        patch: { x: move.to.x, y: move.to.y },
+      })),
       ...memberMoves.map(move => ({
         op: 'updateNode' as const,
         id: move.id,
