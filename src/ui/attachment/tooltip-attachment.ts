@@ -1,5 +1,6 @@
 /**
  * Tooltip attachment — always on scene+union, or hover-only on overlay.
+ * Long text wraps to a fixed max content width so glyphs stay inside the background.
  */
 
 import type { AttachmentPosition } from '../../protocol/types.ts'
@@ -9,22 +10,25 @@ import {
   isGroupAttachmentCtx,
   type AttachmentValidateCtx,
 } from './attachment.ts'
-import { estimateTextSize, placeAttachment } from './position.ts'
+import { layoutWrappedText, placeTooltip } from './position.ts'
 import type { AttachmentPaintOp } from './types.ts'
 
 const PAD_X = 8
-const PAD_Y = 4
+const PAD_Y = 6
 const DEFAULT_COLOR = '#e8eaed'
 const DEFAULT_BG = 'rgba(20, 24, 32, 0.92)'
 const DEFAULT_FONT = 11
-const MAX_CHARS = 48
+/** Soft cap before wrapping; wrapping handles overflow past the background. */
+const MAX_CHARS = 96
+/** Content width (before padding) — ~14 CJK glyphs at 11px. */
+const DEFAULT_MAX_CONTENT_WIDTH = 160
 
 /** TooltipAttachment for GraphNode.tooltip / GraphGroup.tooltip. */
 export class TooltipAttachment extends Attachment {
-  private text = ''
+  private lines: readonly string[] = []
   private color = DEFAULT_COLOR
   private fontSize = DEFAULT_FONT
-  private position: AttachmentPosition = 'right'
+  private position: AttachmentPosition = 'topRight'
   private mode: 'hover' | 'always' = 'hover'
 
   /** Hover-mode tooltips do not inflate union / idle hit. */
@@ -37,27 +41,31 @@ export class TooltipAttachment extends Attachment {
     const style = isGroupAttachmentCtx(ctx) ? ctx.group.style : ctx.node.style
     const tooltip = isGroupAttachmentCtx(ctx) ? ctx.group.tooltip : ctx.node.tooltip
     this.mode = style?.tooltipMode ?? 'hover'
-    this.position = style?.tooltipPosition ?? 'right'
+    this.position = style?.tooltipPosition ?? 'topRight'
     this.color = style?.tooltip?.color ?? DEFAULT_COLOR
     this.fontSize = style?.tooltip?.fontSize ?? DEFAULT_FONT
-    this.text = truncate(tooltip ?? '', MAX_CHARS)
-    const size = estimateTextSize(this.text, this.fontSize)
-    this.cachedBounds = placeAttachment(
+    const raw = truncate(tooltip ?? '', MAX_CHARS)
+    const layout = layoutWrappedText(raw, this.fontSize, DEFAULT_MAX_CONTENT_WIDTH)
+    this.lines = layout.lines
+    this.cachedBounds = placeTooltip(
       ctx.body,
       this.position,
-      size.width + PAD_X * 2,
-      size.height + PAD_Y * 2,
+      layout.width + PAD_X * 2,
+      layout.height + PAD_Y * 2,
     )
   }
 
   toPaintOp(hovered: boolean): AttachmentPaintOp | undefined {
-    if (this.text.length === 0) return undefined
+    if (this.lines.length === 0 || (this.lines.length === 1 && this.lines[0] === '')) {
+      return undefined
+    }
     if (this.mode === 'hover' && !hovered) return undefined
     return {
       kind: 'tooltip',
       layer: this.mode === 'always' ? 'scene' : 'overlay',
       bounds: this.cachedBounds,
-      text: this.text,
+      text: this.lines.join('\n'),
+      lines: this.lines,
       color: this.color,
       fontSize: this.fontSize,
       background: DEFAULT_BG,

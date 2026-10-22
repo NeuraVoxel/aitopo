@@ -649,11 +649,14 @@ function paintAttachmentOps(
         ctx.font = `${op.fontSize}px sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
-        ctx.fillText(
-          op.text,
-          bounds.x + bounds.width / 2,
-          bounds.y + bounds.height / 2,
-        )
+        const lines = op.lines ?? op.text.split('\n')
+        const lineHeight = op.fontSize * 1.25
+        const total = lines.length * lineHeight
+        const startY = bounds.y + (bounds.height - total) / 2 + lineHeight / 2
+        const cx = bounds.x + bounds.width / 2
+        for (let i = 0; i < lines.length; i += 1) {
+          ctx.fillText(lines[i]!, cx, startY + i * lineHeight)
+        }
         ctx.textAlign = 'start'
         break
       }

@@ -1,9 +1,9 @@
 /**
- * placeAttachment insideTop* anchors.
+ * placeAttachment insideTop* anchors + tooltip topRight flush corner.
  */
 
 import { describe, expect, it } from 'vitest'
-import { placeAttachment } from '../src/ui/attachment/position.ts'
+import { placeAttachment, placeTooltip } from '../src/ui/attachment/position.ts'
 
 const body = { x: 100, y: 200, width: 300, height: 150 }
 
@@ -38,5 +38,15 @@ describe('placeAttachment insideTop*', () => {
   it('keeps outside topLeft above the body', () => {
     const box = placeAttachment(body, 'topLeft', 80, 14)
     expect(box.y + box.height).toBeLessThanOrEqual(body.y)
+  })
+})
+
+describe('placeTooltip topRight', () => {
+  it('aligns tooltip bottom-left to body top-right', () => {
+    const box = placeTooltip(body, 'topRight', 120, 28)
+    expect(box.x).toBe(body.x + body.width)
+    expect(box.y + box.height).toBe(body.y)
+    expect(box.width).toBe(120)
+    expect(box.height).toBe(28)
   })
 })

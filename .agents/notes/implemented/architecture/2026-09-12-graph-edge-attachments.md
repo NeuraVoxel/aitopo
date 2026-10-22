@@ -22,7 +22,7 @@ Additive `GraphEdge` fields: `label?`, `label2?`, `tooltip?`, `style?: GraphEdge
 
 Abstract `Attachment` is shared. Edge-specific subclasses live under `src/ui/attachment/`: `EdgeLabelAttachment`, `EdgeLabel2Attachment`, `EdgeAlarmAttachment`, `EdgeTooltipAttachment`. Path sampling uses `samplePolylineAt` / `placeAlongPath` (arc-length ratio + `labelSide` offset). Default `pathLeft` preserves demo placement; `aboveOrRight` is opt-in for skill diagrams. Arrows are endpoint paint, not Attachment instances.
 
-`EdgeView` exposes `pathBounds` (polyline AABB + pad) and `unionBounds` / `bounds` (path ∪ scene attachments). Hover-mode tooltips stay off union and paint on overlay when the edge is hovered; always-mode tooltips join scene + union. Hit-testing remains path-only (label clicks do not select the edge).
+`EdgeView` exposes `pathBounds` (polyline AABB + pad) and `unionBounds` / `bounds` (path ∪ scene attachments). Hover-mode tooltips stay off union and paint on overlay when the edge is hovered; always-mode tooltips join scene + union. Long tooltip text wraps like node tooltips ([tooltip wrap](../bug-fix/2026-10-22-tooltip-text-wrap.md)). Hit-testing remains path-only (label clicks do not select the edge).
 
 ### Paint / Network
 

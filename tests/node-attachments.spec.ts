@@ -243,14 +243,21 @@ describe('Node attachments', () => {
     views.rebuild(scene)
     views.validateDirty(scene)
     const view = views.getNode('a')!
-    // label below — union taller than body; tooltip (right, hover) excluded
+    // label below — union taller than body; tooltip (topRight, hover) excluded
     const withoutHover = view.toPaintView(false, false)
     expect(withoutHover.overlayAttachments).toHaveLength(0)
     expect(withoutHover.attachments.some(op => op.kind === 'tooltip')).toBe(false)
 
     const withHover = view.toPaintView(false, true)
-    expect(withHover.overlayAttachments.some(op => op.kind === 'tooltip')).toBe(true)
+    const tip = withHover.overlayAttachments.find(op => op.kind === 'tooltip')
+    expect(tip).toBeDefined()
     expect(withHover.attachments.some(op => op.kind === 'tooltip')).toBe(false)
+    // Default: tooltip bottom-left meets body top-right.
+    if (tip !== undefined && 'bounds' in tip) {
+      const body = view.bodyBounds
+      expect(tip.bounds.x).toBe(body.x + body.width)
+      expect(tip.bounds.y + tip.bounds.height).toBe(body.y)
+    }
   })
 
   it('always tooltip joins union and scene attachments', () => {

@@ -47,7 +47,10 @@ export type AttachmentPaintOp =
     readonly kind: 'tooltip'
     readonly layer: AttachmentPaintLayer
     readonly bounds: Rect
+    /** Full text (joined with `\n` when wrapped). */
     readonly text: string
+    /** Wrapped lines for paint; omitted → single-line `text`. */
+    readonly lines?: readonly string[]
     readonly color: string
     readonly fontSize: number
     readonly background: string
