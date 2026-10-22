@@ -79,9 +79,11 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 
 ### Host page and light-edit API
 
-`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · Copy/Download · Reset); canvas below fills the remaining viewport and **fits on load / resize / reset** at skill **`fitScale: 0.9`** (≈90% of full `Network#fitContent`; override with `boot(..., { fitScale: 1 })`). Outside click / Escape closes the menu. No property panel, no Undo UI.
+`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. Host mounts with `defaultInteractions: false` then `Network#setEditing(false)` by default: **basic** = pan/zoom + select + drag-move + Shift-marquee; **Edit** (`setEditing(true)` / menu) adds edge bend, resize, Delete edge, Alt+drag create (`kind: 'flow'`). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · **Edit mode** · Copy/Download · Reset); Copy/Download call `toRootJSON()` (full root + nested `networks`, active leaf flushed). Canvas fills the remaining viewport and **fits on load / resize / reset** at skill **`fitScale: 0.9`**. Outside click / Escape closes the menu (Edit toggle keeps it open). No property panel, no Undo UI.
 
-**Pinned host contract symbols:** `Network`, `parseDocument`, `CreateEdgeInteraction`, `layoutGrid`, `layoutFlowColumns`. Golden sample: `sample.graph.json` (two expanded groups, cross edge `cross`, SubNetwork `detail`).
+**Pinned host contract symbols:** `Network` (`setEditing`, `toRootJSON`, `toJSON`), `parseDocument`, `CreateEdgeInteraction`, `layoutGrid`, `layoutFlowColumns`. Golden sample: `sample.graph.json` (two expanded groups, cross edge `cross`, SubNetwork `detail`).
+
+See also [host Edit mode](../feature/2026-10-22-topo-host-edit-mode.md).
 
 ### Style-guide and bundle
 

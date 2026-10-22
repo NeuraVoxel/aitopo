@@ -78,6 +78,8 @@ network.destroy()
 
 Pass `defaultInteractions: false` to attach only the listed modules (tests / custom packing).
 
+`Network#setEditing(false|true)` replaces the stack without remounting: **basic** = pan/zoom + select + move + marquee; **edit** = basic + bend, resize, delete edge, Alt+drag create. `Network#toRootJSON()` flushes the active SubNetwork leaf and returns the full root document for export.
+
 ## Editor interactions
 
 | Class | Role |

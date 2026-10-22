@@ -29,36 +29,48 @@ Canvas (`#canvas`) fills the remaining viewport; `boot` fits content by default 
 
 Only these are guaranteed:
 
-- `Network`
+- `Network` (includes `setEditing`, `toRootJSON`, `toJSON`)
 - `parseDocument`
 - `CreateEdgeInteraction`
 - `layoutGrid`
 - `layoutFlowColumns`
 
-Host framing uses `Network#contentBounds` + `updateCamera` / `viewport.fitBounds` with skill `fitScale` (default `0.9`). Engine `fitContent` stays available for exact fit. Host constructs `Network` with `showNodeIcons: false` so centered titles are not covered.
+Host framing uses `Network#contentBounds` + `updateCamera` / `viewport.fitBounds` with skill `fitScale` (default `0.9`). Engine `fitContent` stays available for exact fit. Host constructs `Network` with `showNodeIcons: false` and `defaultInteractions: false`, then `setEditing(false)` by default (basic drag/pan). Pass `boot(..., { editing: true })` to start in full Edit.
 
 Rebuild with `pnpm run bundle:topo-diagram-skill` from the aitopo repo. Do not hand-edit the IIFE.
 
 If the host needs an engine capability that aitopo lacks, treat it as an **aitopo requirement** (implement in source with twaver as clean-room reference, then rebundle) — see `SKILL.md` Global principle.
 
-## Gestures (light edit)
+## Gestures
+
+**Basic (default, Edit mode off)** — same as engine `defaultInteractions`:
 
 | Action | Gesture |
 |---|---|
-| Pan / zoom | Default `PanZoomInteraction` |
+| Pan / zoom | Wheel / drag empty |
 | Select / activate | Click |
+| Move node / group | Drag |
+| Marquee select | Shift-drag |
 | Toggle group | Double-click group |
 | Enter SubNetwork | Double-click portal (`networkId`) |
 | Exit SubNetwork | Double-click empty canvas |
-| Move node | Drag |
-| Create edge | **Alt+drag** from node to node (`CreateEdgeInteraction`) |
-| Export | Menu Copy / Download → `network.toJSON()` |
+
+**Edit mode on** (⋯ → **Edit mode**) adds:
+
+| Action | Gesture |
+|---|---|
+| Bend edge | Select edge → drag bend handles |
+| Resize node | Select node → drag corner handles |
+| Create edge | **Alt+drag** node → node |
+| Delete edge | Select edge → Delete / Backspace |
+
+**Export:** Menu Copy / Download → `network.toRootJSON()` (full root document with nested `networks`; active leaf flushed). Not the active-layer-only `toJSON()`.
 
 ## Toolbar / menu (template)
 
-**⋯** button opens a dropdown: Fit view · Expand all · Collapse all · Copy JSON · Download JSON · Reset. Outside click or Escape closes.
+**⋯** button opens a dropdown: Fit view · Expand all · Collapse all · **Edit mode** (checkbox, **off by default**) · Copy JSON · Download JSON · Reset. Outside click or Escape closes. Edit toggle keeps the menu open so the checkmark is visible.
 
-Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`.
+Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-edit`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`.
 
 No property panel, no Undo UI in v1.
 

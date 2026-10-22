@@ -101,6 +101,10 @@ describe('GraphScene', () => {
     scene.enterSubNetwork('ring')
     scene.enterSubNetwork('layers')
     expect(scene.nodes.get('ods')?.label).toBe('ODS+')
+
+    const root = scene.toRootJSON()
+    expect(root.nodes.some(n => n.id === 'hub')).toBe(true)
+    expect(root.networks?.ring?.networks?.layers?.nodes.find(n => n.id === 'ods')?.label).toBe('ODS+')
   })
 
   it('rejects missing nested network and stack cycles', () => {

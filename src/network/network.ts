@@ -17,9 +17,13 @@ import {
 } from '../ui/index.ts'
 import { computeGroupBandBounds } from '../ui/group-state.ts'
 import {
+  CreateEdgeInteraction,
+  DeleteEdgeInteraction,
   MarqueeSelectInteraction,
+  MoveEdgeBendInteraction,
   MoveNodeInteraction,
   PanZoomInteraction,
+  ResizeNodeInteraction,
   SelectActivateInteraction,
   type Interaction,
   type OverlayChrome,
@@ -38,8 +42,14 @@ export interface NetworkOptions {
   /**
    * Attach the default interaction set when true (default true):
    * pan/zoom, click select/activate, node/group move, Shift-marquee select.
+   * Ignored after a later `setEditing` call (that replaces the stack).
    */
   readonly defaultInteractions?: boolean
+  /**
+   * Edge `kind` used by the built-in edit pack's Alt+drag create (`setEditing(true)`).
+   * Default `flow`.
+   */
+  readonly createEdgeKind?: string
   debugPaintRects?: boolean
   /**
    * Host default for node icon visibility when `style.showIcon` is omitted.
@@ -102,6 +112,8 @@ export class Network {
   private resizeObserver: ResizeObserver | null = null
   private readonly disposers: Array<() => void> = []
   private interactionModules: Interaction[] = []
+  /** Last `setEditing` value; null until the host calls `setEditing`. */
+  private editingEnabled: boolean | null = null
 
   constructor(options: NetworkOptions = {}) {
     this.options = options
@@ -162,6 +174,61 @@ export class Network {
   /** @returns active network document. */
   toJSON(): GraphDocument {
     return this.scene.toJSON()
+  }
+
+  /**
+   * Full root `GraphDocument` including nested `networks`, with the active
+   * leaf flushed. Use for Copy / Download JSON from hosts.
+   */
+  toRootJSON(): GraphDocument {
+    return this.scene.toRootJSON()
+  }
+
+  /**
+   * Whether light edit interactions are attached (`setEditing`).
+   * `null` before the first `setEditing` call (constructor defaults apply).
+   */
+  get editing(): boolean | null {
+    return this.editingEnabled
+  }
+
+  /**
+   * Replace the interaction stack with basic or full-edit packs.
+   * Basic (`false`, host default): pan/zoom, select/activate, drag-move, Shift-marquee
+   * (same as constructor `defaultInteractions`).
+   * Edit (`true`): basic + edge bend handles, resize corners, Delete edge, Alt+drag create.
+   * Does not remount the canvas (camera/selection stay).
+   * @param enabled - true for full edit pack, false for basic drag/pan.
+   */
+  setEditing(enabled: boolean): void {
+    this.editingEnabled = enabled
+    this.detachInteractions()
+    const basic: Interaction[] = [
+      new PanZoomInteraction(),
+      new SelectActivateInteraction(),
+      new MoveNodeInteraction(),
+      new MarqueeSelectInteraction(),
+    ]
+    const modules: Interaction[] = enabled
+      ? [
+        new PanZoomInteraction(),
+        new SelectActivateInteraction(),
+        new MoveEdgeBendInteraction(),
+        new ResizeNodeInteraction(),
+        new MoveNodeInteraction(),
+        new MarqueeSelectInteraction(),
+        new DeleteEdgeInteraction(),
+        new CreateEdgeInteraction({
+          kind: this.options.createEdgeKind ?? 'flow',
+          requireAlt: true,
+        }),
+      ]
+      : basic
+    this.interactionModules = modules
+    for (const interaction of this.interactionModules) {
+      this.disposers.push(interaction.attach(this))
+    }
+    this.requestOverlayPaint()
   }
 
   /**
@@ -752,7 +819,16 @@ export class Network {
     for (const listener of this.listeners) listener(event)
   }
 
+  private detachInteractions(): void {
+    for (const dispose of this.disposers.splice(0)) dispose()
+    this.interactionModules = []
+  }
+
   private attachInteractions(): void {
+    if (this.editingEnabled !== null) {
+      this.setEditing(this.editingEnabled)
+      return
+    }
     const defaults = this.options.defaultInteractions === false
       ? []
       : [

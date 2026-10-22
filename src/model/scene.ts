@@ -143,6 +143,20 @@ export class GraphScene {
   }
 
   /**
+   * Flush the active leaf into the root tree and return a deep clone of the
+   * full document (all nested `networks` included). Prefer this for host export.
+   */
+  toRootJSON(): GraphDocument {
+    this.syncActiveFromMaps()
+    this.rootDocument = writeDocAtStack(
+      this.rootDocument,
+      this.networkStackIds,
+      this.active,
+    )
+    return structuredClone(this.rootDocument)
+  }
+
+  /**
    * Enter a child network of the **current** document (`active.networks[id]`).
    * Supports a stack (root → child → grandchild → …).
    * @param id - key in the current document's `networks`.

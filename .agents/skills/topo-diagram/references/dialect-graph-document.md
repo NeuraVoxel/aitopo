@@ -77,7 +77,7 @@ Engine default keeps demo-stable `pathLeft` offset. Skill edges set:
 | Horizontal | Above the stroke |
 | Vertical | To the right of the stroke |
 
-Optional: tune `labelAt` / `label2At` (arc-length ratio) and `style.label` text color/size. Do not invent host-side label drawing.
+Optional: tune `labelAt` / `label2At` (arc-length ratio), `labelGap` (world px from stroke to label center; default `8`), and `style.label` text color/size. Do not invent host-side label drawing.
 
 Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-control Beziers, etc.) remain **aitopo requirements**: propose → implement → rebundle. Circular ring arcs and straight spokes ship as `style.route` ([edge route arc](../../../notes/implemented/feature/2026-10-22-edge-route-arc.md)).
 

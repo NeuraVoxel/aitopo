@@ -1,5 +1,5 @@
 /**
- * Minimal topo-diagram host: mount Network, light edit, JSON export.
+ * Minimal topo-diagram host: mount Network, optional Edit mode, JSON export.
  * Depends on global Aitopo from ../aitopo.iife.js (pinned host contract).
  */
 ;(function (global) {
@@ -8,7 +8,7 @@
   /**
    * @param {HTMLElement} container
    * @param {object} doc GraphDocument-like JSON
-   * @param {{ layout?: string, fit?: boolean, fitPadding?: number, fitScale?: number }} [opts]
+   * @param {{ layout?: string, fit?: boolean, fitPadding?: number, fitScale?: number, editing?: boolean }} [opts]
    */
   function boot(container, doc, opts) {
     opts = opts || {}
@@ -19,11 +19,12 @@
 
     var Network = Aitopo.Network
     var parseDocument = Aitopo.parseDocument
-    var CreateEdgeInteraction = Aitopo.CreateEdgeInteraction
     var fitPadding = opts.fitPadding != null ? opts.fitPadding : 48
     // Slightly under full fit so labels / chrome breathe (1 = exact fitContent).
     var fitScale = opts.fitScale != null ? opts.fitScale : 0.9
     var shouldFit = opts.fit !== false
+    // Default basic: pan/zoom + drag-move. Pass editing: true for bend/resize/Alt+link.
+    var editing = opts.editing === true
 
     // Hide until the first framed fit so the default camera never flashes.
     var viewReady = false
@@ -47,13 +48,18 @@
     if (shouldFit) conceal()
 
     var initial = JSON.parse(JSON.stringify(doc))
+    // Basic by default (setEditing false = drag/pan). Full edit via menu / opts.editing.
     var network = new Network({
-      interactions: [new CreateEdgeInteraction({ kind: 'flow' })],
+      defaultInteractions: false,
+      createEdgeKind: 'flow',
       // Centered title/subtitle stack — icons would occupy the same center.
       showNodeIcons: false,
     })
     network.mount(container)
     network.load(parseDocument(doc))
+    if (typeof network.setEditing === 'function') {
+      network.setEditing(editing)
+    }
     if (opts.layout) network.layout(opts.layout)
 
     function fitContent() {
@@ -120,8 +126,22 @@
       })
     }
 
+    /** Full root document (nested networks included), active leaf flushed. */
     function exportDocument() {
+      if (typeof network.toRootJSON === 'function') return network.toRootJSON()
       return network.toJSON()
+    }
+
+    function setEditing(enabled) {
+      editing = enabled === true
+      if (typeof network.setEditing === 'function') {
+        network.setEditing(editing)
+      }
+      return editing
+    }
+
+    function isEditing() {
+      return editing
     }
 
     function setAllGroupsExpanded(expanded) {
@@ -138,6 +158,9 @@
     function reset() {
       viewReady = false
       network.load(parseDocument(JSON.parse(JSON.stringify(initial))))
+      if (typeof network.setEditing === 'function') {
+        network.setEditing(editing)
+      }
       scheduleFit()
     }
 
@@ -160,6 +183,8 @@
     return {
       network: network,
       exportDocument: exportDocument,
+      setEditing: setEditing,
+      isEditing: isEditing,
       setAllGroupsExpanded: setAllGroupsExpanded,
       fitContent: fitContent,
       fitIfSizeChanged: fitIfSizeChanged,
@@ -214,9 +239,13 @@
     var fitBtn = byId('btn-fit')
     var expandBtn = byId('btn-expand')
     var collapseBtn = byId('btn-collapse')
+    var editBtn = byId('btn-edit')
     var copyBtn = byId('btn-copy')
     var downloadBtn = byId('btn-download')
     var resetBtn = byId('btn-reset')
+    var hintEl = menu && menu.querySelector
+      ? menu.querySelector('.toolbar-hint')
+      : null
 
     // Root chrome snapshot — exit SubNetwork / reset restore this.
     var rootMeta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {}
@@ -254,7 +283,7 @@
     }
 
     function chromeFromActive() {
-      var active = host.exportDocument()
+      var active = host.network.toJSON()
       var meta = active && active.meta
       // Nested docs without meta fall back to empty chrome (not root) so layers stay distinct.
       if (host.network.currentNetworkId == null) {
@@ -264,7 +293,23 @@
       }
     }
 
+    function syncEditChrome() {
+      var on = host.isEditing()
+      if (editBtn) {
+        editBtn.setAttribute('aria-checked', on ? 'true' : 'false')
+        editBtn.classList.toggle('is-checked', on)
+        editBtn.textContent = on ? 'Edit mode ✓' : 'Edit mode'
+      }
+      if (toolbar) toolbar.classList.toggle('is-editing', on)
+      if (hintEl) {
+        hintEl.textContent = on
+          ? 'Edit: drag · bend · resize · Alt+drag link · Delete edge · double-click group/portal'
+          : 'Pan/zoom · drag nodes · Shift-marquee · double-click group/portal · empty to exit'
+      }
+    }
+
     applyChrome(rootMeta)
+    syncEditChrome()
 
     if (typeof host.network.on === 'function') {
       host.network.on(function (event) {
@@ -305,6 +350,13 @@
     if (fitBtn) fitBtn.addEventListener('click', runAndClose(function () { host.fitContent() }))
     if (expandBtn) expandBtn.addEventListener('click', runAndClose(function () { host.setAllGroupsExpanded(true) }))
     if (collapseBtn) collapseBtn.addEventListener('click', runAndClose(function () { host.setAllGroupsExpanded(false) }))
+    if (editBtn) {
+      editBtn.addEventListener('click', function () {
+        host.setEditing(!host.isEditing())
+        syncEditChrome()
+        // Keep menu open so the checkmark is visible; outside click still closes.
+      })
+    }
     if (copyBtn) {
       copyBtn.addEventListener('click', runAndClose(function () {
         copyJson().catch(function (e) { console.error(e) })
@@ -315,6 +367,7 @@
       resetBtn.addEventListener('click', runAndClose(function () {
         host.reset()
         applyChrome(rootMeta)
+        syncEditChrome()
       }))
     }
 

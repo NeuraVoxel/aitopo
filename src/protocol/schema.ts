@@ -108,6 +108,7 @@ const graphEdgeStyleSchema = z.object({
   tooltipAt: z.number().min(0).max(1).optional(),
   tooltipMode: z.enum(['hover', 'always']).optional(),
   labelSide: z.enum(['pathLeft', 'pathRight', 'aboveOrRight']).optional(),
+  labelGap: z.number().nonnegative().optional(),
   route: z.enum(['orthogonal', 'straight', 'arc']).optional(),
   arcCenter: z.object({ x: z.number(), y: z.number() }).optional(),
   arcRadius: z.number().positive().optional(),

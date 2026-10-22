@@ -219,6 +219,11 @@ export interface GraphEdgeStyle {
    * Skill diagrams set `aboveOrRight` (H above / V right).
    */
   readonly labelSide?: EdgeLabelSide
+  /**
+   * World px from the stroke to the label box center (normal / aboveOrRight gap).
+   * Omitted → engine default `8`.
+   */
+  readonly labelGap?: number
   readonly label?: GraphTextStyle
   readonly label2?: GraphTextStyle
   readonly tooltip?: GraphTextStyle

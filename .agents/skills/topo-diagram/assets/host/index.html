@@ -173,6 +173,12 @@
       background: rgba(45, 49, 66, 0.06);
       outline: none;
     }
+    .toolbar-menu button.is-checked {
+      font-weight: 600;
+    }
+    .toolbar.is-editing .toolbar-toggle {
+      color: var(--accent, #2e5aa8);
+    }
     .toolbar-hint {
       margin: 0.25rem 0 0;
       padding: 0.4rem 0.85rem 0.35rem;
@@ -218,12 +224,20 @@
         <li role="none"><button type="button" role="menuitem" id="btn-fit">Fit view</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-expand">Expand all</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-collapse">Collapse all</button></li>
+        <li role="none">
+          <button
+            type="button"
+            role="menuitemcheckbox"
+            id="btn-edit"
+            aria-checked="false"
+          >Edit mode</button>
+        </li>
         <li role="none"><button type="button" role="menuitem" id="btn-copy">Copy JSON</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-download">Download JSON</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-reset">Reset</button></li>
         <li>
           <p class="toolbar-hint">
-            Pan/zoom · drag · Alt+drag link · double-click group/portal · empty to exit
+            Pan/zoom · drag nodes · Shift-marquee · double-click group/portal · empty to exit
           </p>
         </li>
       </ul>

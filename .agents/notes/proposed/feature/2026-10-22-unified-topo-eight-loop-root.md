@@ -35,9 +35,8 @@ Palette stays the existing loop tokens (paper / ink / muted / accent / arcCenter
 
 | Entry | Content | Mechanism |
 |---|---|---|
-| `lake` | 湖仓骨架 × 挖掘大脑（含原内层 SubNetwork） | **Done:** portal → `networks.net-lake-arch` with nested `apps-platforms` / `lake-layers` / `mine-pipeline` restored. Requires multi-level stack ([note](../../implemented/feature/2026-10-22-multilevel-subnetwork-stack.md)). |
-| `mine` / `collect` / other stations | 数据流 slices | replace placeholder `networks[net-*]` |
-| current `net-*` stubs | keep until real content | do not delete yet |
+| `lake` | 文 3 四层主栈蓝图（替换原 LTR 骨架） | **Done (A):** `net-lake-arch` = 应用/数据源/接入/湖仓 + 服务贯穿 + 两流；下钻仍挂 `apps-platforms` / `lake-layers` / `mine-pipeline`。 |
+| `mine` / `collect` / other stations | 各站内部流程/架构图 | **Done:** eight `net-*` flows authored from 小周谈 notes (lake hub unchanged). |
 
 Engine constraint unchanged: SubNetwork is single-level (root ↔ one child).
 
