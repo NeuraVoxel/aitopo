@@ -144,7 +144,7 @@ export interface GraphNode {
   readonly h?: number
   readonly parentId?: string
   readonly groupId?: string
-  /** Child SubNetwork id keyed in `document.networks`. */
+  /** Child SubNetwork id keyed in the **current** document's `networks` (stack may nest). */
   readonly networkId?: string
   /** When true, move and membership edits skip this node. */
   readonly locked?: boolean

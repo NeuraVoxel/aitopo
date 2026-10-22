@@ -44,10 +44,89 @@ describe('GraphScene', () => {
     })
     scene.enterSubNetwork('team-a')
     expect(scene.currentNetworkId).toBe('team-a')
+    expect(scene.networkStack).toEqual(['team-a'])
     expect(scene.nodes.has('m1')).toBe(true)
     scene.exitSubNetwork()
     expect(scene.currentNetworkId).toBeNull()
+    expect(scene.networkStack).toEqual([])
     expect(scene.nodes.has('root-n')).toBe(true)
+  })
+
+  it('enters nested subnetworks and exits one level at a time', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'hub', type: 'portal', label: 'Hub', networkId: 'ring' }],
+      edges: [],
+      networks: {
+        ring: {
+          version: 1,
+          nodes: [{ id: 'lake', type: 'portal', label: 'Lake', networkId: 'layers' }],
+          edges: [],
+          networks: {
+            layers: {
+              version: 1,
+              nodes: [{ id: 'ods', type: 'component', label: 'ODS' }],
+              edges: [],
+            },
+          },
+        },
+      },
+    })
+    scene.enterSubNetwork('ring')
+    expect(scene.currentNetworkId).toBe('ring')
+    expect(scene.networkStack).toEqual(['ring'])
+    expect(scene.nodes.has('lake')).toBe(true)
+
+    scene.enterSubNetwork('layers')
+    expect(scene.currentNetworkId).toBe('layers')
+    expect(scene.networkStack).toEqual(['ring', 'layers'])
+    expect(scene.nodes.has('ods')).toBe(true)
+
+    scene.apply({
+      ops: [{ op: 'updateNode', id: 'ods', patch: { label: 'ODS+' } }],
+    })
+    expect(scene.nodes.get('ods')?.label).toBe('ODS+')
+
+    scene.exitSubNetwork()
+    expect(scene.currentNetworkId).toBe('ring')
+    expect(scene.networkStack).toEqual(['ring'])
+    expect(scene.nodes.has('lake')).toBe(true)
+
+    scene.exitSubNetwork()
+    expect(scene.currentNetworkId).toBeNull()
+    expect(scene.nodes.has('hub')).toBe(true)
+
+    // Nested edit survived on the root tree.
+    scene.enterSubNetwork('ring')
+    scene.enterSubNetwork('layers')
+    expect(scene.nodes.get('ods')?.label).toBe('ODS+')
+  })
+
+  it('rejects missing nested network and stack cycles', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'portal', label: 'A', networkId: 'n1' }],
+      edges: [],
+      networks: {
+        n1: {
+          version: 1,
+          nodes: [{ id: 'b', type: 'portal', label: 'B', networkId: 'n1' }],
+          edges: [],
+          networks: {
+            n1: {
+              version: 1,
+              nodes: [{ id: 'c', type: 'component', label: 'C' }],
+              edges: [],
+            },
+          },
+        },
+      },
+    })
+    scene.enterSubNetwork('n1')
+    expect(() => scene.enterSubNetwork('missing')).toThrow(/missing network/)
+    expect(() => scene.enterSubNetwork('n1')).toThrow(/cycle/)
   })
 
   it('dirties only patch-affected ids on apply', () => {

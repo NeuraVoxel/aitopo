@@ -241,13 +241,13 @@ export interface InteractionBusHost {
 /** Sub-network navigation. */
 export interface InteractionNavigationHost {
   /**
-   * Enter the sub-network of the given id.
-   * @param id - sub-network id (document.networks key).
+   * Enter a child of the current document (`networks[id]`); stack may nest.
+   * @param id - sub-network id under the active document.
    */
   enterSubNetwork(id: string): void
-  /** Leave the current sub-network for its parent. */
+  /** Pop one SubNetwork level (child → parent, or parent → root). */
   exitSubNetwork(): void
-  /** Active sub-network id, or null at the root network. */
+  /** Active sub-network id (stack tip), or null at the root network. */
   readonly currentNetworkId: string | null
 }
 

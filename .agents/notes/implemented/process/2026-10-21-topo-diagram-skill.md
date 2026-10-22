@@ -70,7 +70,7 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 2. Edges carry non-obvious relationships; use `kind`: `flow` | `dep` | `parent` | `msg`.
 3. Groups are visual scopes: `groups[]` + `memberIds` + member `groupId`. Structure diagrams **set `expanded: true` explicitly** (engine default when omitted is collapsed).
 4. Cross-group "穿透": edges keep `from`/`to` on **member** ids; remapping on collapse is view-time only (see [group attachments](../../implemented/architecture/2026-09-12-graph-group-attachments.md)). No protocol field for penetration.
-5. Drill-down: `networkId` + `networks[id]`; portal nodes; single level root ↔ child only.
+5. Drill-down: `networkId` + `networks[id]`; portal nodes; SubNetwork stack (root → child → …; see [multi-level stack](../feature/2026-10-22-multilevel-subnetwork-stack.md)).
 6. Layout: write `x`/`y` when known; else host calls `network.layout('grid' | 'flowColumns')` after load. Target density ~4/10; prefer ≤9 focal nodes or split / drill down.
 7. Styles map only style-guide semantic roles (focal / muted / accent) into `Graph*Style` — no ad-hoc hex in agent output.
 8. `meta.kind` is only `topology` | `flow` | `custom` (protocol enum).

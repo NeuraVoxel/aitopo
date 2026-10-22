@@ -21,6 +21,8 @@ Canvas (`#canvas`) fills the remaining viewport; `boot` fits content by default 
 
 **Boot framing (no flicker):** `#canvas` stays `opacity: 0` until the first double-rAF fit completes, then reveals. `ResizeObserver` only refits after that reveal and only when `clientWidth` / `clientHeight` actually changed — so the deferred mount observe does not repaint after the first framed frame.
 
+**SubNetwork framing:** `boot` listens for `subNetworkChanged` and re-runs the same fit schedule so enter/exit does not keep the parent camera.
+
 ## Pinned global `Aitopo` symbols
 
 Only these are guaranteed:

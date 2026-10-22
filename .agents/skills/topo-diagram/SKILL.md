@@ -39,7 +39,7 @@ SVG-track and explicit **defer** remain valid for statistical/geometric or out-o
 - **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; every bend / special polyline stays axis-aligned (`waypoints` / anchors). Edge text: `style.labelSide: "aboveOrRight"` (H above / V right). Missing link rules → aitopo requirement.
 - Structure diagrams that should open immediately set Group `expanded: true` (engine default is collapsed; host **double-click** toggles). Collapsed card chrome: `showIcon: false` when mirroring a node.
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
-- Nested groups allowed (`parentId` + child id in parent `memberIds`); prefer ≤1 nesting level. SubNetwork remains single-level only.
+- Nested groups allowed (`parentId` + child id in parent `memberIds`); prefer ≤1 nesting level. SubNetwork supports a stack (root → child → …); prefer shallow depth.
 - Create edge in the stock host: **Alt+drag**.
 - Host may only use pinned `Aitopo` symbols listed in `references/host.md`.
 - Rebuild the bundle from the aitopo repo: `pnpm run bundle:topo-diagram-skill` — never hand-edit `assets/aitopo.iife.js`.

@@ -113,6 +113,13 @@
 
     scheduleFit()
 
+    // Reframe when entering / leaving a SubNetwork (camera otherwise stays on the parent).
+    if (typeof network.on === 'function') {
+      network.on(function (event) {
+        if (event && event.type === 'subNetworkChanged') scheduleFit()
+      })
+    }
+
     function exportDocument() {
       return network.toJSON()
     }

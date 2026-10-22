@@ -91,8 +91,9 @@ Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-contro
 
 ## SubNetwork
 
-- Single level: root ↔ one child via `networks[id]`.
-- Child document is a full `GraphDocument` (`version: 1`, nodes, edges, …); apply the same Node label styles inside.
+- Stack: root ↔ child ↔ grandchild … via each document's own `networks[id]` (double-click enter, empty double-click pops one level).
+- Child document is a full `GraphDocument` (`version: 1`, nodes, edges, nested `networks`, …); apply the same Node label styles inside.
+- Prefer shallow stacks (≤2–3); cycle ids along the path fail loud.
 
 ## Layout
 

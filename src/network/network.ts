@@ -232,7 +232,8 @@ export class Network {
   }
 
   /**
-   * @param id - child network id under root `networks`.
+   * Enter a child of the current document (`networks[id]`); stack may go deeper than one level.
+   * @param id - network id under the active document.
    */
   enterSubNetwork(id: string): void {
     this.scene.enterSubNetwork(id)
@@ -247,6 +248,7 @@ export class Network {
     })
   }
 
+  /** Pop one SubNetwork level (emits stack tip, or null at root). */
   exitSubNetwork(): void {
     this.scene.exitSubNetwork()
     this.views.rebuild(this.scene)
@@ -255,8 +257,8 @@ export class Network {
     this.scheduleScenePaint()
     this.emit({
       type: 'subNetworkChanged',
-      activeNetworkId: null,
-      stack: [],
+      activeNetworkId: this.scene.currentNetworkId,
+      stack: this.scene.networkStack,
     })
   }
 

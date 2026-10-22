@@ -34,8 +34,11 @@ export class GraphScene {
   private sceneVersion = 0
   private invalidateAll = true
   private readonly dirtyIds = new Set<string>()
-  /** null = root; otherwise entered child network id (single level). */
-  private activeNetworkId: string | null = null
+  /**
+   * Path of entered SubNetwork ids from root (empty at root).
+   * Tip is the active child; lookup is always against the parent document's `networks`.
+   */
+  private networkStackIds: string[] = []
   private selection = new Set<string>()
   private hoverId: string | undefined
   private viewport: GraphViewport = { x: 0, y: 0, zoom: 1 }
@@ -45,14 +48,15 @@ export class GraphScene {
     return this.sceneVersion
   }
 
-  /** Active SubNetwork id, or null at root. */
+  /** Active SubNetwork id (stack tip), or null at root. */
   get currentNetworkId(): string | null {
-    return this.activeNetworkId
+    const tip = this.networkStackIds[this.networkStackIds.length - 1]
+    return tip === undefined ? null : tip
   }
 
-  /** Stack of network ids under root (empty at root; one id when entered). */
+  /** Entered network ids under root (empty at root; depth ≥ 1 when drilled). */
   get networkStack(): readonly string[] {
-    return this.activeNetworkId === null ? [] : [this.activeNetworkId]
+    return this.networkStackIds
   }
 
   get nodes(): ReadonlyMap<string, GraphNode> {
@@ -86,7 +90,7 @@ export class GraphScene {
   load(input: unknown): void {
     const doc = parseDocument(input)
     this.rootDocument = structuredClone(doc)
-    this.activeNetworkId = null
+    this.networkStackIds = []
     this.commitActive(this.rootDocument, true)
     if (doc.viewport !== undefined) {
       this.viewport = { ...doc.viewport }
@@ -103,18 +107,7 @@ export class GraphScene {
     const dirty = collectPatchDirty(this.active, parsed.ops)
     const next = applyDocumentPatch(this.active, parsed)
     this.commitActive(next, dirty.invalidateAll, dirty.ids)
-    if (this.activeNetworkId === null) {
-      this.rootDocument = {
-        ...structuredClone(next),
-        ...(this.rootDocument.networks !== undefined
-          ? { networks: this.rootDocument.networks }
-          : {}),
-      }
-    } else {
-      const networks = { ...(this.rootDocument.networks ?? {}) }
-      networks[this.activeNetworkId] = structuredClone(next)
-      this.rootDocument = { ...this.rootDocument, networks }
-    }
+    this.rootDocument = writeDocAtStack(this.rootDocument, this.networkStackIds, next)
     if (next.viewport !== undefined) {
       this.viewport = { ...next.viewport }
     }
@@ -135,7 +128,7 @@ export class GraphScene {
       viewport: this.viewport,
       ...(groups.length > 0 ? { groups } : {}),
     }
-    if (this.activeNetworkId === null) {
+    if (this.networkStackIds.length === 0) {
       return {
         ...base,
         ...(this.rootDocument.meta !== undefined ? { meta: this.rootDocument.meta } : {}),
@@ -145,32 +138,35 @@ export class GraphScene {
     return {
       ...base,
       ...(this.active.meta !== undefined ? { meta: this.active.meta } : {}),
+      ...(this.active.networks !== undefined ? { networks: this.active.networks } : {}),
     }
   }
 
   /**
-   * Enter a child network from the root document.
-   * @param id - key in `rootDocument.networks`.
+   * Enter a child network of the **current** document (`active.networks[id]`).
+   * Supports a stack (root → child → grandchild → …).
+   * @param id - key in the current document's `networks`.
    */
   enterSubNetwork(id: string): void {
-    if (this.activeNetworkId !== null) {
-      throw new Error('enterSubNetwork: only one level is supported')
+    if (this.networkStackIds.includes(id)) {
+      throw new Error(`enterSubNetwork: cycle involving ${id}`)
     }
-    const child = this.rootDocument.networks?.[id]
+    const child = this.active.networks?.[id]
     if (child === undefined) {
       throw new Error(`enterSubNetwork: missing network ${id}`)
     }
-    this.activeNetworkId = id
+    this.networkStackIds = [...this.networkStackIds, id]
     this.commitActive(structuredClone(child), true)
   }
 
-  /** Return to the root network. */
+  /** Pop one SubNetwork level (grandchild → parent, or child → root). */
   exitSubNetwork(): void {
-    if (this.activeNetworkId === null) {
+    if (this.networkStackIds.length === 0) {
       throw new Error('exitSubNetwork: already at root')
     }
-    this.activeNetworkId = null
-    this.commitActive(structuredClone(this.rootDocument), true)
+    this.networkStackIds = this.networkStackIds.slice(0, -1)
+    const doc = resolveDocAtStack(this.rootDocument, this.networkStackIds)
+    this.commitActive(structuredClone(doc), true)
   }
 
   /**
@@ -185,13 +181,7 @@ export class GraphScene {
       this.markDirty(id)
     }
     this.sceneVersion += 1
-    this.active = {
-      version: 1,
-      nodes: [...this.nodeMap.values()],
-      edges: [...this.edgeMap.values()],
-      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
-      viewport: this.viewport,
-    }
+    this.syncActiveFromMaps()
   }
 
   /**
@@ -206,13 +196,7 @@ export class GraphScene {
       this.markDirty(id)
     }
     this.sceneVersion += 1
-    this.active = {
-      version: 1,
-      nodes: [...this.nodeMap.values()],
-      edges: [...this.edgeMap.values()],
-      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
-      viewport: this.viewport,
-    }
+    this.syncActiveFromMaps()
   }
 
   /**
@@ -227,13 +211,7 @@ export class GraphScene {
       this.markDirty(id)
     }
     this.sceneVersion += 1
-    this.active = {
-      version: 1,
-      nodes: [...this.nodeMap.values()],
-      edges: [...this.edgeMap.values()],
-      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
-      viewport: this.viewport,
-    }
+    this.syncActiveFromMaps()
   }
 
   /**
@@ -258,13 +236,7 @@ export class GraphScene {
     this.edgeMap.set(edgeId, next)
     this.markDirty(edgeId)
     this.sceneVersion += 1
-    this.active = {
-      version: 1,
-      nodes: [...this.nodeMap.values()],
-      edges: [...this.edgeMap.values()],
-      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
-      viewport: this.viewport,
-    }
+    this.syncActiveFromMaps()
   }
 
   setSelection(ids: readonly string[]): void {
@@ -342,6 +314,71 @@ export class GraphScene {
     }
     for (const id of partialDirtyIds) this.dirtyIds.add(id)
   }
+
+  /** Rebuild `active` from maps without dropping meta / nested networks. */
+  private syncActiveFromMaps(): void {
+    this.active = {
+      version: 1,
+      nodes: [...this.nodeMap.values()],
+      edges: [...this.edgeMap.values()],
+      viewport: this.viewport,
+      ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
+      ...(this.active.meta !== undefined ? { meta: this.active.meta } : {}),
+      ...(this.active.networks !== undefined ? { networks: this.active.networks } : {}),
+    }
+  }
+}
+
+/**
+ * Walk `root.networks` along `stack` (empty → root).
+ * @param root - root document.
+ * @param stack - entered network ids.
+ */
+function resolveDocAtStack(root: GraphDocument, stack: readonly string[]): GraphDocument {
+  let doc = root
+  for (const id of stack) {
+    const next = doc.networks?.[id]
+    if (next === undefined) {
+      throw new Error(`resolveDocAtStack: missing network ${id}`)
+    }
+    doc = next
+  }
+  return doc
+}
+
+/**
+ * Immutable write of `leaf` at `stack` under `root` (empty stack replaces root body).
+ * Preserves existing nested `networks` on the leaf when the patch omitted them.
+ * @param root - root document.
+ * @param stack - entered network ids.
+ * @param leaf - active document after apply.
+ */
+function writeDocAtStack(
+  root: GraphDocument,
+  stack: readonly string[],
+  leaf: GraphDocument,
+): GraphDocument {
+  if (stack.length === 0) {
+    return {
+      ...structuredClone(leaf),
+      ...(root.networks !== undefined
+        ? { networks: leaf.networks ?? root.networks }
+        : leaf.networks !== undefined
+          ? { networks: leaf.networks }
+          : {}),
+    }
+  }
+  const [head, ...rest] = stack
+  if (head === undefined) {
+    throw new Error('writeDocAtStack: empty head')
+  }
+  const networks = { ...(root.networks ?? {}) }
+  const existing = networks[head]
+  if (existing === undefined) {
+    throw new Error(`writeDocAtStack: missing network ${head}`)
+  }
+  networks[head] = writeDocAtStack(existing, rest, leaf)
+  return { ...root, networks }
 }
 
 /**
