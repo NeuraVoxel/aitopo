@@ -8,7 +8,7 @@
   /**
    * @param {HTMLElement} container
    * @param {object} doc GraphDocument-like JSON
-   * @param {{ layout?: string, fit?: boolean, fitPadding?: number }} [opts]
+   * @param {{ layout?: string, fit?: boolean, fitPadding?: number, fitScale?: number }} [opts]
    */
   function boot(container, doc, opts) {
     opts = opts || {}
@@ -21,6 +21,8 @@
     var parseDocument = Aitopo.parseDocument
     var CreateEdgeInteraction = Aitopo.CreateEdgeInteraction
     var fitPadding = opts.fitPadding != null ? opts.fitPadding : 48
+    // Slightly under full fit so labels / chrome breathe (1 = exact fitContent).
+    var fitScale = opts.fitScale != null ? opts.fitScale : 0.9
     var shouldFit = opts.fit !== false
 
     var initial = JSON.parse(JSON.stringify(doc))
@@ -34,6 +36,29 @@
     if (opts.layout) network.layout(opts.layout)
 
     function fitContent() {
+      var bounds = typeof network.contentBounds === 'function'
+        ? network.contentBounds()
+        : undefined
+      if (
+        bounds
+        && typeof network.updateCamera === 'function'
+        && fitScale > 0
+        && fitScale !== 1
+      ) {
+        // Inflate content bounds by 1/fitScale so the fitted zoom is ~fitScale
+        // of a full fit, still centered (skill framing; engine default unchanged).
+        var cx = bounds.x + bounds.width / 2
+        var cy = bounds.y + bounds.height / 2
+        var w = Math.max(1, bounds.width / fitScale)
+        var h = Math.max(1, bounds.height / fitScale)
+        network.updateCamera(function (viewport) {
+          viewport.fitBounds(
+            { x: cx - w / 2, y: cy - h / 2, width: w, height: h },
+            fitPadding,
+          )
+        })
+        return
+      }
       if (typeof network.fitContent === 'function') {
         network.fitContent(fitPadding)
       }

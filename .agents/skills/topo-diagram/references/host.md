@@ -17,7 +17,7 @@ Top bar (full width), then a flex-grown canvas that **fits content on load / res
 | Center-right | `#legend` | Project/diagram legend swatches (edit HTML; not inferred from JSON) |
 | Far right | `#toolbar` | **⋯** menu |
 
-Canvas (`#canvas`) fills the remaining viewport; `boot` calls `network.fitContent` by default (centered, padded).
+Canvas (`#canvas`) fills the remaining viewport; `boot` fits content by default (centered, padded). Default **`fitScale: 0.9`** — about 90% of a full `Network#fitContent` zoom so labels / chrome breathe; override via `boot(..., { fitScale: 1 })` for exact fit.
 
 ## Pinned global `Aitopo` symbols
 
@@ -29,7 +29,7 @@ Only these are guaranteed:
 - `layoutGrid`
 - `layoutFlowColumns`
 
-`Network#fitContent` is used by the host for default adaptive framing (instance method; not a separate global). Host constructs `Network` with `showNodeIcons: false` so centered titles are not covered.
+Host framing uses `Network#contentBounds` + `updateCamera` / `viewport.fitBounds` with skill `fitScale` (default `0.9`). Engine `fitContent` stays available for exact fit. Host constructs `Network` with `showNodeIcons: false` so centered titles are not covered.
 
 Rebuild with `pnpm run bundle:topo-diagram-skill` from the aitopo repo. Do not hand-edit the IIFE.
 

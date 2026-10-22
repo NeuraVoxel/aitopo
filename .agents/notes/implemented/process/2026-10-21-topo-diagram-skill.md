@@ -79,7 +79,7 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 
 ### Host page and light-edit API
 
-`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · Copy/Download · Reset); canvas below fills the remaining viewport and **`fitContent`s on load / resize / reset**. Outside click / Escape closes the menu. No property panel, no Undo UI.
+`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · Copy/Download · Reset); canvas below fills the remaining viewport and **fits on load / resize / reset** at skill **`fitScale: 0.9`** (≈90% of full `Network#fitContent`; override with `boot(..., { fitScale: 1 })`). Outside click / Escape closes the menu. No property panel, no Undo UI.
 
 **Pinned host contract symbols:** `Network`, `parseDocument`, `CreateEdgeInteraction`, `layoutGrid`, `layoutFlowColumns`. Golden sample: `sample.graph.json` (two expanded groups, cross edge `cross`, SubNetwork `detail`).
 
