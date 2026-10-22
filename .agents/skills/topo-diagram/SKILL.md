@@ -10,6 +10,19 @@ metadata:
 
 Dual-track diagram skill: **topo** (Canvas + `GraphDocument` + bundled `aitopo.iife.js`) and **svg** (self-contained HTML). Prefer topo when containment, cross-group links, or drill-down carry the meaning.
 
+## Global principle (engine dependency)
+
+**topo-diagram depends on aitopo source** (this repository). The skill teaches routing, dialect, style, and host chrome; it does **not** invent engine capabilities in the skill tree or by hand-editing `assets/aitopo.iife.js`.
+
+When a needed topo behavior is **not supported by aitopo**:
+
+1. **Do not** fake it only inside the skill (host hacks, one-off IIFE edits, or dialect that the engine cannot honor).
+2. **Raise an aitopo requirement** (Agent Note under `.agents/notes/proposed/` when the gap is non-trivial).
+3. **Implement in aitopo**, clean-room against **`twaver.vector` ideas** (see repo `AGENTS.md` Design reference) — no SDK2D imports, no twaver public API names.
+4. **Rebuild** the skill bundle (`pnpm run bundle:topo-diagram-skill`) and update dialect / host contract if the pinned surface changes.
+
+SVG-track and explicit **defer** remain valid when the ask is statistical/geometric or honestly out of scope — that is routing, not an engine bypass.
+
 ## Workflow
 
 1. **Style gate** — On the first diagram in a project, follow [`references/style-guide.md`](references/style-guide.md).
@@ -23,6 +36,7 @@ Dual-track diagram skill: **topo** (Canvas + `GraphDocument` + bundled `aitopo.i
 
 ## Topo non-negotiables
 
+- **Labels:** title centered, subtitle centered under the title — Node, Group, and SubNetwork members (engine defaults; see dialect).
 - Structure diagrams set Group `expanded: true` (engine default is collapsed).
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
 - SubNetwork is single-level only; no nested groups.

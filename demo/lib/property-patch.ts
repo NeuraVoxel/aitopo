@@ -50,6 +50,7 @@ export const LABEL_POSITIONS = [
   'insideTop',
   'insideTopLeft',
   'insideTopRight',
+  'insideBottom',
 ] as const satisfies readonly AttachmentPosition[]
 
 type NodeUpdate = Extract<GraphPatchOp, { op: 'updateNode' }>['patch']

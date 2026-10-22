@@ -7,6 +7,18 @@
 
 Ship `aitopo.iife.js` beside the page (relative `../aitopo.iife.js` from `assets/host/`, or adjust paths).
 
+## Page chrome (default layout)
+
+Top bar (full width), then a flex-grown canvas that **fits content on load / resize / reset**:
+
+| Region | Element | Content |
+|---|---|---|
+| Left | `#page-eyebrow`, `#page-title` | `meta.eyebrow` (or `meta.kind`) + `meta.title` |
+| Center-right | `#legend` | Project/diagram legend swatches (edit HTML; not inferred from JSON) |
+| Far right | `#toolbar` | **⋯** menu |
+
+Canvas (`#canvas`) fills the remaining viewport; `boot` calls `network.fitContent` by default (centered, padded).
+
 ## Pinned global `Aitopo` symbols
 
 Only these are guaranteed:
@@ -17,7 +29,11 @@ Only these are guaranteed:
 - `layoutGrid`
 - `layoutFlowColumns`
 
+`Network#fitContent` is used by the host for default adaptive framing (instance method; not a separate global). Host constructs `Network` with `showNodeIcons: false` so centered titles are not covered.
+
 Rebuild with `pnpm run bundle:topo-diagram-skill` from the aitopo repo. Do not hand-edit the IIFE.
+
+If the host needs an engine capability that aitopo lacks, treat it as an **aitopo requirement** (implement in source with twaver as clean-room reference, then rebundle) — see `SKILL.md` Global principle.
 
 ## Gestures (light edit)
 
@@ -30,15 +46,13 @@ Rebuild with `pnpm run bundle:topo-diagram-skill` from the aitopo repo. Do not h
 | Exit SubNetwork | Double-click empty canvas |
 | Move node | Drag |
 | Create edge | **Alt+drag** from node to node (`CreateEdgeInteraction`) |
-| Export | Toolbar Copy / Download → `network.toJSON()` |
+| Export | Menu Copy / Download → `network.toJSON()` |
 
-## Toolbar (template)
+## Toolbar / menu (template)
 
-Floating **top-right** chrome: **⋯** menu button (default closed). Click opens a **dropdown list** of actions; click outside or Escape closes. Canvas is full-viewport (`#canvas { inset: 0 }`).
+**⋯** button opens a dropdown: Fit view · Expand all · Collapse all · Copy JSON · Download JSON · Reset. Outside click or Escape closes.
 
-Menu items: Expand all · Collapse all · Copy JSON · Download JSON · Reset. Optional `#toolbar-title` shows `meta.title` when present; gesture hint sits under the list.
-
-Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#toolbar-title`, plus the action buttons above. `bootFromPage` toggles `.is-open` / `aria-expanded` / `hidden`.
+Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`.
 
 No property panel, no Undo UI in v1.
 

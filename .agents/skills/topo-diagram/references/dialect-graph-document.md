@@ -2,12 +2,17 @@
 
 Authority for shapes: `@neuravoxel/aitopo` protocol (`version: 1`). This file is the **authoring** contract for agents.
 
+## Label principle (Node · Group · SubNetwork)
+
+**Title centered; subtitle centered under the title.** Engine defaults: `labelPosition: "center"`, `label2Position: "insideBottom"`. Subtitle uses a fixed gap under the title (independent of body height). Applies to every Node and Group, including elements inside a SubNetwork document. Override only when a diagram truly needs another anchor. Prefer `label` (~13px ink) + optional `label2` (~9–10px muted); topo host hides node icons by default so they do not cover the title.
+
 ## Nodes
 
 - Stable, readable `id`.
 - Small `type` set: `component`, `actor`, `state`, `layer`, `portal`, …
 - Business fields go in `data`, not new top-level keys.
 - Portal drill-down: set `networkId` to a key in `document.networks`.
+- Prefer node `h` ≥ 64 when both title and subtitle are set.
 
 ## Edges
 
@@ -20,11 +25,12 @@ Authority for shapes: `@neuravoxel/aitopo` protocol (`version: 1`). This file is
 - Scope = `groups[]` + `memberIds` + member `groupId`.
 - Structure diagrams **must set `expanded: true`**. Engine default when omitted is **collapsed**.
 - Do not nest groups (deferred in engine). Use SubNetwork or sibling groups instead.
+- Same title/subtitle principle as nodes (see above).
 
 ## SubNetwork
 
 - Single level: root ↔ one child via `networks[id]`.
-- Child document is a full `GraphDocument` (`version: 1`, nodes, edges, …).
+- Child document is a full `GraphDocument` (`version: 1`, nodes, edges, …) and inherits the same label principle.
 
 ## Layout
 

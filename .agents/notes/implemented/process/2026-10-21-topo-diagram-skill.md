@@ -52,6 +52,8 @@ Ship an installable **topo-diagram** skill under `.agents/skills/topo-diagram/`:
 
 **Skill does not own:** engine features still deferred in aitopo (nested groups, multi-level SubNetwork stacks), full demo IDE / property panel, first-class PNG/SVG export APIs, or a complete port of all diagram-design visual grammars.
 
+**Engine gap rule (global):** topo-diagram **depends on aitopo source**. Unsupported topo behavior is an **aitopo requirement** — propose, implement in this repo with clean-room reference to `twaver.vector` (see `AGENTS.md` Design reference), then rebuild the skill IIFE. Do not fake engine features only in the skill tree or by hand-editing `assets/aitopo.iife.js`. SVG / defer routing stays for honest non-topo asks.
+
 ### Type routing
 
 | Track | Typical types | Output |
@@ -72,10 +74,11 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 6. Layout: write `x`/`y` when known; else host calls `network.layout('grid' | 'flowColumns')` after load. Target density ~4/10; prefer ≤9 focal nodes or split / drill down.
 7. Styles map only style-guide semantic roles (focal / muted / accent) into `Graph*Style` — no ad-hoc hex in agent output.
 8. `meta.kind` is only `topology` | `flow` | `custom` (protocol enum).
+9. **Label principle:** title centered, subtitle centered under the title for Node, Group, and SubNetwork members (engine defaults `center` / `insideBottom`, fixed gap); topo host sets `showNodeIcons: false`. Protocol includes `insideBottom`.
 
 ### Host page and light-edit API
 
-`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Host chrome is a **floating top-right ⋯ menu** (full-viewport canvas); the dropdown lists Expand/Collapse all, Copy/Download JSON, Reset (plus optional `meta.title` and a gesture hint). Outside click / Escape closes. No property panel, no Undo UI.
+`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · Copy/Download · Reset); canvas below fills the remaining viewport and **`fitContent`s on load / resize / reset**. Outside click / Escape closes the menu. No property panel, no Undo UI.
 
 **Pinned host contract symbols:** `Network`, `parseDocument`, `CreateEdgeInteraction`, `layoutGrid`, `layoutFlowColumns`. Golden sample: `sample.graph.json` (two expanded groups, cross edge `cross`, SubNetwork `detail`).
 

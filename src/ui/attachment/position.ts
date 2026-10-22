@@ -8,6 +8,8 @@ import type { AttachmentPosition } from '../../protocol/types.ts'
 const DEFAULT_GAP = 4
 /** Inset from the body edge for `insideTop*` positions (old in-body group title). */
 const DEFAULT_INSET = 8
+/** Bottom inset for `insideBottom` — tighter to a centered title (card subtitle). */
+const INSIDE_BOTTOM_INSET = 16
 
 /**
  * Axis-aligned box for attachment content at a fixed position around/inside body.
@@ -15,7 +17,7 @@ const DEFAULT_INSET = 8
  * @param position - anchor enum.
  * @param width - content width.
  * @param height - content height.
- * @param gap - gap outside the body (ignored for `center` and `insideTop*`).
+ * @param gap - gap outside the body (ignored for `center` and `inside*`).
  */
 export function placeAttachment(
   body: Rect,
@@ -109,6 +111,13 @@ export function placeAttachment(
       return {
         x: body.x + body.width - width - inset,
         y: body.y + inset,
+        width,
+        height,
+      }
+    case 'insideBottom':
+      return {
+        x: cx - width / 2,
+        y: body.y + body.height - INSIDE_BOTTOM_INSET - height,
         width,
         height,
       }

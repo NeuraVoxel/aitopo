@@ -44,6 +44,8 @@ export type AttachmentPosition =
   | 'insideTopLeft'
   /** Inside the body, upper-right. */
   | 'insideTopRight'
+  /** Inside the body, bottom edge, horizontally centered (card subtitle). */
+  | 'insideBottom'
 
 /** Text paint overrides for label / label2 / tooltip attachments. */
 export interface GraphTextStyle {

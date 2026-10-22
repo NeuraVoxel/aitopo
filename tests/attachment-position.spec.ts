@@ -28,6 +28,13 @@ describe('placeAttachment insideTop*', () => {
     expect(box.y).toBe(208)
   })
 
+  it('places insideBottom centered near the bottom inside the body', () => {
+    const box = placeAttachment(body, 'insideBottom', 80, 14)
+    expect(box.x).toBe(body.x + body.width / 2 - 40)
+    expect(box.y).toBe(body.y + body.height - 16 - 14)
+    expect(box.y + box.height).toBeLessThanOrEqual(body.y + body.height)
+  })
+
   it('keeps outside topLeft above the body', () => {
     const box = placeAttachment(body, 'topLeft', 80, 14)
     expect(box.y + box.height).toBeLessThanOrEqual(body.y)
