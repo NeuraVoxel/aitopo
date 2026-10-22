@@ -20,58 +20,120 @@
       background: var(--paper);
       color: var(--ink);
     }
-    header {
-      display: flex;
-      flex-wrap: wrap;
+    #canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      background: var(--paper);
+    }
+    .toolbar {
+      position: absolute;
+      top: 0.75rem;
+      right: 0.75rem;
+      z-index: 10;
+    }
+    .toolbar-toggle {
+      display: inline-flex;
       align-items: center;
-      gap: 0.5rem 0.75rem;
-      padding: 0.5rem 0.75rem;
-      border-bottom: 1px solid var(--chrome);
-      background: #fff;
-    }
-    header h1 {
-      font-size: 0.95rem;
-      font-weight: 600;
-      margin: 0 0.5rem 0 0;
-    }
-    header button {
-      font: inherit;
-      font-size: 0.8rem;
-      padding: 0.35rem 0.65rem;
+      justify-content: center;
+      width: 2rem;
+      height: 2rem;
+      padding: 0;
       border: 1px solid var(--chrome);
       background: #fff;
       color: var(--ink);
       cursor: pointer;
       border-radius: 2px;
+      box-shadow: 0 1px 2px rgba(45, 49, 66, 0.06);
+      font: inherit;
+      font-size: 1.15rem;
+      line-height: 1;
+      letter-spacing: 0.05em;
     }
-    header button:hover { border-color: var(--ink); }
-    .hint {
-      flex: 1 1 12rem;
-      font-size: 0.75rem;
-      color: var(--muted);
+    .toolbar-toggle:hover,
+    .toolbar.is-open .toolbar-toggle {
+      border-color: var(--ink);
     }
-    #canvas {
+    .toolbar-menu {
+      display: none;
       position: absolute;
-      inset: 2.75rem 0 0 0;
+      top: calc(100% + 0.35rem);
+      right: 0;
+      min-width: 11.5rem;
+      margin: 0;
+      padding: 0.35rem 0;
+      list-style: none;
+      border: 1px solid var(--chrome);
+      background: #fff;
+      border-radius: 2px;
+      box-shadow: 0 4px 14px rgba(45, 49, 66, 0.12);
+    }
+    .toolbar.is-open .toolbar-menu { display: block; }
+    .toolbar-menu li { margin: 0; }
+    .toolbar-menu button {
+      display: block;
       width: 100%;
-      background: var(--paper);
+      margin: 0;
+      padding: 0.45rem 0.85rem;
+      border: 0;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.8rem;
+      text-align: left;
+      cursor: pointer;
+    }
+    .toolbar-menu button:hover,
+    .toolbar-menu button:focus-visible {
+      background: rgba(45, 49, 66, 0.06);
+      outline: none;
+    }
+    .toolbar-title {
+      padding: 0.35rem 0.85rem 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--muted);
+      line-height: 1.3;
+      border-bottom: 1px solid var(--chrome);
+      margin-bottom: 0.25rem;
+    }
+    .toolbar-hint {
+      margin: 0.25rem 0 0;
+      padding: 0.4rem 0.85rem 0.35rem;
+      border-top: 1px solid var(--chrome);
+      font-size: 0.65rem;
+      line-height: 1.35;
+      color: var(--muted);
     }
   </style>
 </head>
 <body>
-  <header>
-    <h1>topo-diagram sample</h1>
-    <button type="button" id="btn-expand">Expand all</button>
-    <button type="button" id="btn-collapse">Collapse all</button>
-    <button type="button" id="btn-copy">Copy JSON</button>
-    <button type="button" id="btn-download">Download JSON</button>
-    <button type="button" id="btn-reset">Reset</button>
-    <p class="hint">
-      Pan/zoom · drag nodes · Alt+drag to link · double-click group to toggle ·
-      double-click portal to enter · double-click empty to exit
-    </p>
-  </header>
   <div id="canvas"></div>
+  <div class="toolbar" id="toolbar">
+    <button
+      type="button"
+      class="toolbar-toggle"
+      id="btn-toolbar-toggle"
+      aria-expanded="false"
+      aria-haspopup="menu"
+      aria-controls="toolbar-menu"
+      aria-label="Menu"
+      title="Menu"
+    >⋯</button>
+    <ul class="toolbar-menu" id="toolbar-menu" role="menu" hidden>
+      <li class="toolbar-title" id="toolbar-title">topo-diagram sample</li>
+      <li role="none"><button type="button" role="menuitem" id="btn-expand">Expand all</button></li>
+      <li role="none"><button type="button" role="menuitem" id="btn-collapse">Collapse all</button></li>
+      <li role="none"><button type="button" role="menuitem" id="btn-copy">Copy JSON</button></li>
+      <li role="none"><button type="button" role="menuitem" id="btn-download">Download JSON</button></li>
+      <li role="none"><button type="button" role="menuitem" id="btn-reset">Reset</button></li>
+      <li>
+        <p class="toolbar-hint">
+          Pan/zoom · drag · Alt+drag link · double-click group/portal · empty to exit
+        </p>
+      </li>
+    </ul>
+  </div>
 
   <script type="application/json" id="diagram-data">
 {

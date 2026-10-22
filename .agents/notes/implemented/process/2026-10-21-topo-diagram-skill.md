@@ -75,7 +75,7 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 
 ### Host page and light-edit API
 
-`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Toolbar: expand/collapse all groups, copy JSON, download JSON, reset. No property panel, no Undo UI.
+`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. `Network` uses defaults **plus** `CreateEdgeInteraction` (`kind: 'flow'`, Alt+drag). Host chrome is a **floating top-right ⋯ menu** (full-viewport canvas); the dropdown lists Expand/Collapse all, Copy/Download JSON, Reset (plus optional `meta.title` and a gesture hint). Outside click / Escape closes. No property panel, no Undo UI.
 
 **Pinned host contract symbols:** `Network`, `parseDocument`, `CreateEdgeInteraction`, `layoutGrid`, `layoutFlowColumns`. Golden sample: `sample.graph.json` (two expanded groups, cross edge `cross`, SubNetwork `detail`).
 

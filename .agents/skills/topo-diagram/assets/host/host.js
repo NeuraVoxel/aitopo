@@ -97,17 +97,59 @@
     var byId = function (id) {
       return document.getElementById(id)
     }
+    var toolbar = byId('toolbar')
+    var toggleBtn = byId('btn-toolbar-toggle')
+    var menu = byId('toolbar-menu')
+    var titleEl = byId('toolbar-title')
     var expandBtn = byId('btn-expand')
     var collapseBtn = byId('btn-collapse')
     var copyBtn = byId('btn-copy')
     var downloadBtn = byId('btn-download')
     var resetBtn = byId('btn-reset')
 
-    if (expandBtn) expandBtn.addEventListener('click', function () { host.setAllGroupsExpanded(true) })
-    if (collapseBtn) collapseBtn.addEventListener('click', function () { host.setAllGroupsExpanded(false) })
-    if (copyBtn) copyBtn.addEventListener('click', function () { copyJson().catch(function (e) { console.error(e) }) })
-    if (downloadBtn) downloadBtn.addEventListener('click', downloadJson)
-    if (resetBtn) resetBtn.addEventListener('click', function () { host.reset() })
+    if (titleEl && doc.meta && typeof doc.meta.title === 'string' && doc.meta.title) {
+      titleEl.textContent = doc.meta.title
+    }
+
+    function setMenuOpen(open) {
+      if (!toolbar || !toggleBtn || !menu) return
+      toolbar.classList.toggle('is-open', open)
+      toggleBtn.setAttribute('aria-expanded', open ? 'true' : 'false')
+      if (open) menu.removeAttribute('hidden')
+      else menu.setAttribute('hidden', '')
+    }
+
+    if (toggleBtn && toolbar && menu) {
+      toggleBtn.addEventListener('click', function (e) {
+        e.stopPropagation()
+        setMenuOpen(!toolbar.classList.contains('is-open'))
+      })
+      document.addEventListener('click', function (e) {
+        if (!toolbar.classList.contains('is-open')) return
+        if (toolbar.contains(e.target)) return
+        setMenuOpen(false)
+      })
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') setMenuOpen(false)
+      })
+    }
+
+    function runAndClose(fn) {
+      return function () {
+        fn()
+        setMenuOpen(false)
+      }
+    }
+
+    if (expandBtn) expandBtn.addEventListener('click', runAndClose(function () { host.setAllGroupsExpanded(true) }))
+    if (collapseBtn) collapseBtn.addEventListener('click', runAndClose(function () { host.setAllGroupsExpanded(false) }))
+    if (copyBtn) {
+      copyBtn.addEventListener('click', runAndClose(function () {
+        copyJson().catch(function (e) { console.error(e) })
+      }))
+    }
+    if (downloadBtn) downloadBtn.addEventListener('click', runAndClose(downloadJson))
+    if (resetBtn) resetBtn.addEventListener('click', runAndClose(function () { host.reset() }))
 
     return host
   }

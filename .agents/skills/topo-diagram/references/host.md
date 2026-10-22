@@ -34,7 +34,11 @@ Rebuild with `pnpm run bundle:topo-diagram-skill` from the aitopo repo. Do not h
 
 ## Toolbar (template)
 
-Expand all · Collapse all · Copy JSON · Download JSON · Reset.
+Floating **top-right** chrome: **⋯** menu button (default closed). Click opens a **dropdown list** of actions; click outside or Escape closes. Canvas is full-viewport (`#canvas { inset: 0 }`).
+
+Menu items: Expand all · Collapse all · Copy JSON · Download JSON · Reset. Optional `#toolbar-title` shows `meta.title` when present; gesture hint sits under the list.
+
+Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#toolbar-title`, plus the action buttons above. `bootFromPage` toggles `.is-open` / `aria-expanded` / `hidden`.
 
 No property panel, no Undo UI in v1.
 
