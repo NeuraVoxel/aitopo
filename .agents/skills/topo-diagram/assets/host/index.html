@@ -144,7 +144,7 @@
       top: calc(100% + 0.35rem);
       right: 0;
       z-index: 20;
-      min-width: 11.5rem;
+      min-width: 12.5rem;
       margin: 0;
       padding: 0.35rem 0;
       list-style: none;
@@ -155,6 +155,24 @@
     }
     .toolbar.is-open .toolbar-menu { display: block; }
     .toolbar-menu li { margin: 0; }
+    .toolbar-menu-sep {
+      height: 0;
+      margin: 0.35rem 0;
+      border: 0;
+      border-top: 1px solid var(--chrome);
+      padding: 0;
+      list-style: none;
+    }
+    .toolbar-menu-label {
+      padding: 0.2rem 0.85rem 0.15rem;
+      font-size: 0.62rem;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+      pointer-events: none;
+      user-select: none;
+    }
     .toolbar-menu button {
       display: block;
       width: 100%;
@@ -221,9 +239,12 @@
         title="Menu"
       >⋯</button>
       <ul class="toolbar-menu" id="toolbar-menu" role="menu" hidden>
+        <li role="presentation" class="toolbar-menu-label">View</li>
         <li role="none"><button type="button" role="menuitem" id="btn-fit">Fit view</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-expand">Expand all</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-collapse">Collapse all</button></li>
+        <li role="separator" class="toolbar-menu-sep"></li>
+        <li role="presentation" class="toolbar-menu-label">Edit</li>
         <li role="none">
           <button
             type="button"
@@ -232,12 +253,15 @@
             aria-checked="false"
           >Edit mode</button>
         </li>
+        <li role="separator" class="toolbar-menu-sep"></li>
+        <li role="presentation" class="toolbar-menu-label">Export</li>
+        <li role="none"><button type="button" role="menuitem" id="btn-export-png">PNG</button></li>
+        <li role="none"><button type="button" role="menuitem" id="btn-export-svg">SVG</button></li>
+        <li role="none"><button type="button" role="menuitem" id="btn-export-excalidraw">Excalidraw</button></li>
+        <li role="none"><button type="button" role="menuitem" id="btn-export-drawio">draw.io</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-copy">Copy JSON</button></li>
         <li role="none"><button type="button" role="menuitem" id="btn-download">Download JSON</button></li>
-        <li role="none"><button type="button" role="menuitem" id="btn-export-excalidraw">Download Excalidraw</button></li>
-        <li role="none"><button type="button" role="menuitem" id="btn-export-drawio">Download draw.io</button></li>
-        <li role="none"><button type="button" role="menuitem" id="btn-export-png">Download PNG</button></li>
-        <li role="none"><button type="button" role="menuitem" id="btn-export-svg">Download SVG</button></li>
+        <li role="separator" class="toolbar-menu-sep"></li>
         <li role="none"><button type="button" role="menuitem" id="btn-reset">Reset</button></li>
         <li>
           <p class="toolbar-hint">

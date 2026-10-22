@@ -78,9 +78,16 @@ Load `export-diagram.js` before `host.js`. Structural exporters approximate orth
 
 ## Toolbar / menu (template)
 
-**⋯** button opens a dropdown: Fit view · Expand all · Collapse all · **Edit mode** (checkbox, **off by default**) · Copy JSON · Download JSON · Download Excalidraw · Download draw.io · Download PNG · Download SVG · Reset. Outside click or Escape closes. Edit toggle keeps the menu open so the checkmark is visible.
+**⋯** menu is grouped (separator + section label):
 
-Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-edit`, `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`.
+1. **View** — Fit view · Expand all · Collapse all  
+2. **Edit** — Edit mode (checkbox, **off by default**)  
+3. **Export** — PNG · SVG · Excalidraw · draw.io · Copy JSON · Download JSON  
+4. **Reset**
+
+Outside click or Escape closes. Edit toggle keeps the menu open so the checkmark is visible.
+
+Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-edit`, `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`. Use `.toolbar-menu-sep` / `.toolbar-menu-label` for grouping.
 
 No property panel, no Undo UI in v1.
 

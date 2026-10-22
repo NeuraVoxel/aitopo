@@ -19,7 +19,7 @@ Host-only exporters in `assets/host/export-diagram.js` (loaded before `host.js`)
 
 JSON Copy/Download stay on `toRootJSON()` (full nested tree). Structural exporters approximate routes (honor `waypoints`, axis-align); they are not a second paint engine. No new pinned `Aitopo` symbols; no IIFE change.
 
-Menu ids: `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`.
+Menu ids: `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`. ⋯ menu groups: **View** · **Edit** · **Export** (PNG → SVG → Excalidraw → draw.io → JSON) · **Reset**.
 
 ## Alternatives considered
 
