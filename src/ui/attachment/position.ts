@@ -132,8 +132,14 @@ export function placeAttachment(
  * Approximate text size without a canvas context (0.6em average advance).
  * @param text - string to measure.
  * @param fontSize - px.
+ * @param fontWeight - optional weight; bold uses a slightly wider advance.
  */
-export function estimateTextSize(text: string, fontSize: number): { width: number; height: number } {
-  const width = Math.max(1, text.length * fontSize * 0.6)
+export function estimateTextSize(
+  text: string,
+  fontSize: number,
+  fontWeight: 'normal' | 'bold' = 'normal',
+): { width: number; height: number } {
+  const advance = fontWeight === 'bold' ? 0.66 : 0.6
+  const width = Math.max(1, text.length * fontSize * advance)
   return { width, height: fontSize * 1.2 }
 }

@@ -2,13 +2,17 @@
  * Group expand/collapse and band geometry helpers shared by views.
  */
 
-import { growRect, unionRect, type Point, type Rect } from '../geom.ts'
+import { growRectInsets, unionRect, type Point, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphGroup, GraphNode } from '../protocol/types.ts'
 import { groupBounds, nodeBounds } from './bounds.ts'
 
-/** Default padding around member union when auto-fitting (world px). */
+/** Default padding on left / right / bottom when auto-fitting (world px). */
 export const DEFAULT_GROUP_PADDING = 16
+/** Inside-top title inset used when sizing default top clearance. */
+const GROUP_TITLE_INSET = 8
+/** Gap between group title block and member content. */
+const GROUP_TITLE_MEMBER_GAP = 8
 
 /**
  * Paint-extent bounds per member node (body ∪ attachments). Scene-only
@@ -129,8 +133,38 @@ export function computeExpandedBandBounds(
 ): Rect {
   const union = memberUnionBounds(scene, group, memberBoundsOf)
   if (union === undefined) return groupBounds(group)
-  const padding = group.style?.padding ?? DEFAULT_GROUP_PADDING
-  return growRect(union, padding)
+  return growRectInsets(union, resolveGroupPadding(group))
+}
+
+/**
+ * Auto-fit insets: extra top room for an insideTop title (and optional subtitle)
+ * so group labels do not cover member nodes.
+ * @param group - group element.
+ */
+export function resolveGroupPadding(group: GraphGroup): {
+  top: number
+  right: number
+  bottom: number
+  left: number
+} {
+  const base = group.style?.padding ?? DEFAULT_GROUP_PADDING
+  const top = group.style?.paddingTop ?? Math.max(base, defaultGroupTopPadding(group))
+  return { top, right: base, bottom: base, left: base }
+}
+
+/**
+ * Minimum top pad for the default insideTop title stack.
+ * @param group - group element.
+ */
+export function defaultGroupTopPadding(group: GraphGroup): number {
+  const titleSize = group.style?.label?.fontSize ?? 12
+  const titleH = titleSize * 1.2
+  let need = GROUP_TITLE_INSET + titleH + GROUP_TITLE_MEMBER_GAP
+  if (typeof group.label2 === 'string' && group.label2.length > 0) {
+    const subSize = group.style?.label2?.fontSize ?? 10
+    need = GROUP_TITLE_INSET + titleH + 2 + subSize * 1.2 + GROUP_TITLE_MEMBER_GAP
+  }
+  return Math.ceil(need)
 }
 
 /**

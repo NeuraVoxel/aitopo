@@ -51,6 +51,8 @@ export type AttachmentPosition =
 export interface GraphTextStyle {
   readonly color?: string
   readonly fontSize?: number
+  /** Canvas font weight. Omitted → host default (primary node/group label: `bold`). */
+  readonly fontWeight?: 'normal' | 'bold'
   /**
    * Max characters before ellipsis. `0` = never truncate.
    * Omitted → host default (nodes/groups `0`, i.e. unlimited; edges `18`).
@@ -217,8 +219,13 @@ export interface GraphGroupStyle {
    * Applies to band body, scene attachments, and overlay chrome/tooltip.
    */
   readonly alpha?: number
-  /** Padding around member union when auto-fitting (world px). */
+  /** Uniform padding around member union when auto-fitting (world px). */
   readonly padding?: number
+  /**
+   * Top padding when auto-fitting (world px). Omitted → at least enough for an
+   * insideTop title (and optional subtitle) so labels clear member nodes.
+   */
+  readonly paddingTop?: number
   /**
    * When expanded, grow the band from member body bounds + padding.
    * Default `true` when omitted.

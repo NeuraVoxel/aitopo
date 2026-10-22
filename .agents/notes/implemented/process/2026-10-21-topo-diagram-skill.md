@@ -74,7 +74,8 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 6. Layout: write `x`/`y` when known; else host calls `network.layout('grid' | 'flowColumns')` after load. Target density ~4/10; prefer ≤9 focal nodes or split / drill down.
 7. Styles map only style-guide semantic roles (focal / muted / accent) into `Graph*Style` — no ad-hoc hex in agent output.
 8. `meta.kind` is only `topology` | `flow` | `custom` (protocol enum).
-9. **Label principle:** title centered, subtitle centered under the title for Node, Group, and SubNetwork members (engine defaults `center` / `insideBottom`, fixed gap); topo host sets `showNodeIcons: false`. Protocol includes `insideBottom`.
+9. **Label principle:** Node title centered + bold; Group title inside top + bold with auto-fit **extra top padding** so titles clear members; subtitle under the title (fixed gap). Defaults: node `center`, group `insideTop`, both `label2` → under-title stack; `label.fontWeight` omit → bold. Protocol: `insideBottom`, `fontWeight`, `paddingTop`. Topo host sets `showNodeIcons: false`.
+10. **Link principle:** orthogonal (横平竖直) first — omit `waypoints` for aitopo auto-route; pin sides with anchors; explicit bends only as axis-aligned `waypoints`. No skill-side freeform/curve hacks; richer link types → aitopo requirement (+ twaver clean-room), then rebundle.
 
 ### Host page and light-edit API
 

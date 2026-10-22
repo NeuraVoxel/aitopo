@@ -17,6 +17,8 @@ export type AttachmentPaintOp =
     readonly text: string
     readonly color: string
     readonly fontSize: number
+    /** Canvas font weight; omitted → `normal`. */
+    readonly fontWeight?: 'normal' | 'bold'
   }
   | {
     readonly kind: 'icons'

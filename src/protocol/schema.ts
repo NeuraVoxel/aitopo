@@ -30,6 +30,7 @@ const attachmentPositionSchema = z.enum([
 const graphTextStyleSchema = z.object({
   color: z.string().optional(),
   fontSize: z.number().positive().optional(),
+  fontWeight: z.enum(['normal', 'bold']).optional(),
   /** `0` = never truncate; omitted → host default. */
   maxChars: z.number().int().nonnegative().optional(),
 })
@@ -133,6 +134,7 @@ const graphGroupStyleSchema = z.object({
   fill: z.string().optional(),
   alpha: z.number().min(0).max(1).optional(),
   padding: z.number().nonnegative().optional(),
+  paddingTop: z.number().nonnegative().optional(),
   autoFit: z.boolean().optional(),
   shape: z.literal('rectangle').optional(),
   labelPosition: attachmentPositionSchema.optional(),

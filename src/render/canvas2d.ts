@@ -567,7 +567,8 @@ function paintAttachmentOps(
       case 'label':
       case 'label2': {
         ctx.fillStyle = op.color
-        ctx.font = `${op.fontSize}px sans-serif`
+        const weight = op.fontWeight === 'bold' ? 'bold ' : ''
+        ctx.font = `${weight}${op.fontSize}px sans-serif`
         ctx.textAlign = 'center'
         ctx.textBaseline = 'middle'
         ctx.fillText(

@@ -4,7 +4,12 @@ Authority for shapes: `@neuravoxel/aitopo` protocol (`version: 1`). This file is
 
 ## Label principle (Node · Group · SubNetwork)
 
-**Title centered; subtitle centered under the title.** Engine defaults: `labelPosition: "center"`, `label2Position: "insideBottom"`. Subtitle uses a fixed gap under the title (independent of body height). Applies to every Node and Group, including elements inside a SubNetwork document. Override only when a diagram truly needs another anchor. Prefer `label` (~13px ink) + optional `label2` (~9–10px muted); topo host hides node icons by default so they do not cover the title.
+| Host | Title (`label`) | Subtitle (`label2`) |
+|---|---|---|
+| **Node** / SubNetwork member | Centered in body | Centered under title (fixed gap) |
+| **Group** | Inside top of band | Centered under title (fixed gap) |
+
+Primary `label` is **bold** by default (`style.label.fontWeight`, omit → bold). Engine defaults: nodes `labelPosition: "center"`; groups `labelPosition: "insideTop"`; both `label2Position: "insideBottom"` (resolved as under-title stack). Group auto-fit adds **extra top padding** so insideTop titles clear member nodes (`style.padding` / `style.paddingTop`). Override anchors only when needed. Prefer `label` (~13px ink, bold) + optional `label2` (~9–10px muted); topo host hides node icons by default.
 
 ## Nodes
 
@@ -20,12 +25,24 @@ Authority for shapes: `@neuravoxel/aitopo` protocol (`version: 1`). This file is
 - `kind`: `flow` | `dep` | `parent` | `msg`.
 - **穿透 / cross-group links:** `from` / `to` are **member node ids**, never the group id (unless the semantic endpoint is the collapsed group itself). Document ids do not change on collapse; the engine remaps anchors in view.
 
+### Link routing principle (orthogonal first)
+
+Keep links **横平竖直** (axis-aligned). Prefer the engine’s built-in orthogonal link routing — do not invent diagonal polylines, Bezier/SVG path hacks, or host-only routers.
+
+| Preference | How |
+|---|---|
+| 1. Auto orthogonal | Omit `waypoints` (or `[]`) — aitopo auto-routes H/V between boxes |
+| 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters; engine still routes orthogonally |
+| 3. Explicit bends | Add `waypoints` only as **axis-aligned elbows** (each segment horizontal or vertical) |
+
+Unsupported needs (named `linkType`, bus/bundle routing, obstacle avoidance, freeform/curve links, etc.) are **aitopo requirements**: propose → implement in engine with clean-room reference to `twaver.vector` Link ideas → rebundle. See `SKILL.md` Global principle.
+
 ## Groups
 
 - Scope = `groups[]` + `memberIds` + member `groupId`.
 - Structure diagrams **must set `expanded: true`**. Engine default when omitted is **collapsed**.
 - Do not nest groups (deferred in engine). Use SubNetwork or sibling groups instead.
-- Same title/subtitle principle as nodes (see above).
+- Title defaults to **inside top**; auto-fit top padding clears members (see Label principle).
 
 ## SubNetwork
 

@@ -36,7 +36,8 @@ SVG-track and explicit **defer** remain valid when the ask is statistical/geomet
 
 ## Topo non-negotiables
 
-- **Labels:** title centered, subtitle centered under the title — Node, Group, and SubNetwork members (engine defaults; see dialect).
+- **Labels:** Node title centered + bold; Group title **inside top** + bold (extra top pad so it clears members); subtitle under the title (see dialect).
+- **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; bends via axis-aligned `waypoints` / anchors only (see dialect). Missing link rules → aitopo requirement, not skill-side path hacks.
 - Structure diagrams set Group `expanded: true` (engine default is collapsed).
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
 - SubNetwork is single-level only; no nested groups.

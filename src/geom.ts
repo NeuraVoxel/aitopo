@@ -73,6 +73,28 @@ export function growRect(rect: Rect, pad: number): Rect {
   }
 }
 
+/** Per-side insets for asymmetric growth (e.g. group title clearance). */
+export interface RectInsets {
+  readonly top: number
+  readonly right: number
+  readonly bottom: number
+  readonly left: number
+}
+
+/**
+ * Grow a rect by independent insets on each side.
+ * @param rect - input.
+ * @param insets - per-side padding.
+ */
+export function growRectInsets(rect: Rect, insets: RectInsets): Rect {
+  return {
+    x: rect.x - insets.left,
+    y: rect.y - insets.top,
+    width: rect.width + insets.left + insets.right,
+    height: rect.height + insets.top + insets.bottom,
+  }
+}
+
 /**
  * Distance from a point to a line segment.
  * @param point - query point.
