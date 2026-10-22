@@ -40,21 +40,106 @@ export function groupBounds(group: GraphGroup): Rect {
 
 /**
  * Explicit endpoint side override. Omitted → auto from relative box position.
+ * `radial` — ray from own center toward peer, exit on own AABB (ring spokes).
  */
-export type EdgeAnchorSide = 'top' | 'bottom' | 'left' | 'right'
+export type EdgeAnchorSide = 'top' | 'bottom' | 'left' | 'right' | 'radial'
 
 /** Per-edge anchor side hints (GraphEdge `fromAnchor` / `toAnchor`). */
 export interface EdgeAnchorHints {
   readonly from?: EdgeAnchorSide | undefined
   readonly to?: EdgeAnchorSide | undefined
+  /** Outward nudge for a radial `from` (toward peer), world px. */
+  readonly fromOutset?: number
+  /** Outward nudge for a radial `to` (toward peer), world px. */
+  readonly toOutset?: number
 }
 
-function anchorPoint(side: EdgeAnchorSide, box: Rect): Point {
+export function anchorPoint(side: Exclude<EdgeAnchorSide, 'radial'>, box: Rect): Point {
   switch (side) {
     case 'top': return { x: box.x + box.width / 2, y: box.y }
     case 'bottom': return { x: box.x + box.width / 2, y: box.y + box.height }
     case 'left': return { x: box.x, y: box.y + box.height / 2 }
     case 'right': return { x: box.x + box.width, y: box.y + box.height / 2 }
+  }
+}
+
+function rectCenter(box: Rect): Point {
+  return { x: box.x + box.width / 2, y: box.y + box.height / 2 }
+}
+
+/**
+ * First exit of the ray `from → toward` through `box` (expects `from` inside or on box).
+ */
+export function rayRectExit(box: Rect, from: Point, toward: Point): Point | undefined {
+  const dx = toward.x - from.x
+  const dy = toward.y - from.y
+  if (Math.abs(dx) < 1e-9 && Math.abs(dy) < 1e-9) return undefined
+  let bestT = Infinity
+  let hit: Point | undefined
+  const candidates: Array<readonly [number, number, number]> = []
+  if (Math.abs(dx) > 1e-9) {
+    const tL = (box.x - from.x) / dx
+    candidates.push([box.x, from.y + tL * dy, tL])
+    const tR = (box.x + box.width - from.x) / dx
+    candidates.push([box.x + box.width, from.y + tR * dy, tR])
+  }
+  if (Math.abs(dy) > 1e-9) {
+    const tT = (box.y - from.y) / dy
+    candidates.push([from.x + tT * dx, box.y, tT])
+    const tB = (box.y + box.height - from.y) / dy
+    candidates.push([from.x + tB * dx, box.y + box.height, tB])
+  }
+  for (const [x, y, t] of candidates) {
+    if (!(t > 1e-9) || t === Infinity) continue
+    if (x < box.x - 1e-6 || x > box.x + box.width + 1e-6) continue
+    if (y < box.y - 1e-6 || y > box.y + box.height + 1e-6) continue
+    if (t < bestT) {
+      bestT = t
+      hit = { x, y }
+    }
+  }
+  return hit
+}
+
+/**
+ * Port on `own` facing `peer`: center→peer ray exit, optional outward outset.
+ */
+export function radialAnchor(own: Rect, peer: Rect, outset = 0): Point {
+  const a = rectCenter(own)
+  const b = rectCenter(peer)
+  const hit = rayRectExit(own, a, b) ?? a
+  if (outset === 0) return hit
+  const dx = b.x - a.x
+  const dy = b.y - a.y
+  const len = Math.hypot(dx, dy) || 1
+  return { x: hit.x + (dx / len) * outset, y: hit.y + (dy / len) * outset }
+}
+
+function resolveAnchor(
+  side: EdgeAnchorSide | undefined,
+  own: Rect,
+  peer: Rect,
+  auto: Point,
+  outset: number,
+): Point {
+  if (side === undefined) return auto
+  if (side === 'radial') return radialAnchor(own, peer, outset)
+  return anchorPoint(side, own)
+}
+
+/**
+ * Resolve endpoint anchors without building a route (for `straight` / `arc`).
+ */
+export function edgeEndpointsFromRects(
+  fromBox: Rect,
+  toBox: Rect,
+  hints?: EdgeAnchorHints,
+): { from: Point; to: Point; orientation: 'horizontal' | 'vertical' } {
+  const auto = edgeAnchorsAutoFromRects(fromBox, toBox)
+  return {
+    from: resolveAnchor(hints?.from, fromBox, toBox, auto.from, hints?.fromOutset ?? 0),
+    to: resolveAnchor(hints?.to, toBox, fromBox, auto.to, hints?.toOutset ?? 0),
+    orientation: auto.orientation,
   }
 }
 
@@ -108,8 +193,23 @@ export function edgeAnchorsFromRects(
   if (waypoints === undefined || waypoints.length === 0) {
     if (hints?.from === undefined && hints?.to === undefined) return auto
   }
-  const fromPt = hints?.from === undefined ? auto.from : anchorPoint(hints.from, fromBox)
-  const toPt = hints?.to === undefined ? auto.to : anchorPoint(hints.to, toBox)
+  // Radial anchors are for straight/arc routes; orthogonal corridors keep side pins.
+  if (hints?.from === 'radial' || hints?.to === 'radial') {
+    const ends = edgeEndpointsFromRects(fromBox, toBox, hints)
+    return {
+      from: ends.from,
+      to: ends.to,
+      bounds: unionPoint(unionPoint(undefined, ends.from), ends.to),
+      orientation: ends.orientation,
+      points: [ends.from, ends.to],
+    }
+  }
+  const fromPt = hints?.from === undefined || hints.from === 'radial'
+    ? auto.from
+    : anchorPoint(hints.from, fromBox)
+  const toPt = hints?.to === undefined || hints.to === 'radial'
+    ? auto.to
+    : anchorPoint(hints.to, toBox)
   const fromVertical = hints?.from === 'top' || hints?.from === 'bottom'
   const toVertical = hints?.to === 'top' || hints?.to === 'bottom'
   const orientation: 'horizontal' | 'vertical' = hints === undefined || (hints.from === undefined && hints.to === undefined)
@@ -304,7 +404,7 @@ export function orthogonalizePolyline(points: readonly Point[]): Point[] {
   return out
 }
 
-function unionPoint(bounds: Rect | undefined, point: Point): Rect {
+export function unionPoint(bounds: Rect | undefined, point: Point): Rect {
   if (bounds === undefined) return { x: point.x, y: point.y, width: 1, height: 1 }
   const x = Math.min(bounds.x, point.x)
   const y = Math.min(bounds.y, point.y)

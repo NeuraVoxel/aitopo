@@ -54,13 +54,15 @@ Optional dashed body outline (e.g. security / optional nodes): `style.strokeDash
 
 ### Link routing principle (orthogonal first)
 
-Keep links **横平竖直** (axis-aligned). Prefer the engine’s built-in orthogonal link routing — do not invent diagonal polylines, Bezier/SVG path hacks, or host-only routers. Every segment of auto routes, elbows, and “special” polylines must be horizontal or vertical.
+**Default** links stay **横平竖直**. Prefer orthogonal auto-routing; do not invent host-only Bezier/SVG path hacks. Opt-in `style.route` covers ring arcs and radial spokes.
 
 | Preference | How |
 |---|---|
-| 1. Auto orthogonal | Omit `waypoints` (or `[]`) — aitopo auto-routes H/V between boxes |
-| 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters; engine still routes orthogonally |
-| 3. Explicit bends | Add `waypoints` as **axis-aligned elbows** to route around obstacles (straight auto-routes often cross nodes). Prefer each segment shares x **or** y; if a segment is diagonal (e.g. after collapse remapping), the engine inserts an elbow so paint stays 横平竖直 |
+| 1. Auto orthogonal | Omit `waypoints` (or `[]`) and omit `style.route` (or `"orthogonal"`) — aitopo auto-routes H/V between boxes |
+| 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters |
+| 3. Explicit bends | Add `waypoints` as **axis-aligned elbows** (orthogonal mode only) |
+| 4. Ring arcs | `style.route: "arc"` + required `style.arcCenter` + preferred shared `arcRadius` (optional `arcClockwise`, default `true`). Endpoints project onto the circle; paint uses a true canvas arc. |
+| 5. Radial spokes | `style.route: "straight"` + `fromAnchor`/`toAnchor: "radial"` (center→peer ray hits each box). Optional `toOutset` / `fromOutset` (px) nudge the port outward — lake hubs often use `toOutset: 6`. |
 
 ### Link label principle (skill styles)
 
@@ -77,7 +79,7 @@ Engine default keeps demo-stable `pathLeft` offset. Skill edges set:
 
 Optional: tune `labelAt` / `label2At` (arc-length ratio) and `style.label` text color/size. Do not invent host-side label drawing.
 
-Unsupported needs (named `linkType`, bus/bundle routing, obstacle avoidance, freeform/curve links, etc.) are **aitopo requirements**: propose → implement in engine with clean-room reference to `twaver.vector` Link ideas → rebundle.
+Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-control Beziers, etc.) remain **aitopo requirements**: propose → implement → rebundle. Circular ring arcs and straight spokes ship as `style.route` ([edge route arc](../../../notes/implemented/feature/2026-10-22-edge-route-arc.md)).
 
 ## Groups
 

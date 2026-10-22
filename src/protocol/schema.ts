@@ -108,6 +108,10 @@ const graphEdgeStyleSchema = z.object({
   tooltipAt: z.number().min(0).max(1).optional(),
   tooltipMode: z.enum(['hover', 'always']).optional(),
   labelSide: z.enum(['pathLeft', 'pathRight', 'aboveOrRight']).optional(),
+  route: z.enum(['orthogonal', 'straight', 'arc']).optional(),
+  arcCenter: z.object({ x: z.number(), y: z.number() }).optional(),
+  arcRadius: z.number().positive().optional(),
+  arcClockwise: z.boolean().optional(),
   label: graphTextStyleSchema.optional(),
   label2: graphTextStyleSchema.optional(),
   tooltip: graphTextStyleSchema.optional(),
@@ -116,6 +120,14 @@ const graphEdgeStyleSchema = z.object({
   arrowFrom: z.boolean().optional(),
   arrowTo: z.boolean().optional(),
   arrow: graphEdgeArrowStyleSchema.optional(),
+}).superRefine((style, ctx) => {
+  if (style.route === 'arc' && style.arcCenter === undefined) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'style.route "arc" requires style.arcCenter',
+      path: ['arcCenter'],
+    })
+  }
 })
 
 const graphEdgeSchema = z.object({
@@ -124,8 +136,10 @@ const graphEdgeSchema = z.object({
   to: z.string().min(1),
   kind: z.string().optional(),
   waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
-  fromAnchor: z.enum(['top', 'bottom', 'left', 'right']).optional(),
-  toAnchor: z.enum(['top', 'bottom', 'left', 'right']).optional(),
+  fromAnchor: z.enum(['top', 'bottom', 'left', 'right', 'radial']).optional(),
+  toAnchor: z.enum(['top', 'bottom', 'left', 'right', 'radial']).optional(),
+  fromOutset: z.number().nonnegative().optional(),
+  toOutset: z.number().nonnegative().optional(),
   label: z.string().optional(),
   label2: z.string().optional(),
   tooltip: z.string().optional(),

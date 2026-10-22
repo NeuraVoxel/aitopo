@@ -168,6 +168,14 @@ export interface GraphEdgeArrowStyle {
  */
 export type EdgeLabelSide = 'pathLeft' | 'pathRight' | 'aboveOrRight'
 
+/**
+ * Edge path geometry mode.
+ * - `orthogonal` (default): H/V polyline (demo + skill corridors).
+ * - `straight`: chord between anchors (radial spokes).
+ * - `arc`: circular arc around {@link GraphEdgeStyle.arcCenter} (ring layouts).
+ */
+export type EdgeRoute = 'orthogonal' | 'straight' | 'arc'
+
 /** Optional per-edge visual overrides (one-level merge on updateEdge). */
 export interface GraphEdgeStyle {
   readonly stroke?: string
@@ -180,6 +188,22 @@ export interface GraphEdgeStyle {
    * Applies to path, arrows, scene attachments, and overlay chrome/tooltip.
    */
   readonly alpha?: number
+  /**
+   * Path geometry. Omitted → `orthogonal`.
+   * `arc` requires `arcCenter` (parse fails loud when missing).
+   */
+  readonly route?: EdgeRoute
+  /** Circle center for `route: "arc"` (world). */
+  readonly arcCenter?: { readonly x: number; readonly y: number }
+  /**
+   * Circle radius for `route: "arc"`. Omitted → mean of endpoint distances to center.
+   * Prefer an explicit shared radius for ring layouts so endpoints project onto one circle.
+   */
+  readonly arcRadius?: number
+  /**
+   * Sweep direction for `route: "arc"`. Default `true` (clockwise on canvas y-down).
+   */
+  readonly arcClockwise?: boolean
   /** Arc-length ratio along the polyline for label (0=from, 1=to). Default `0.5`. */
   readonly labelAt?: number
   /** Default `0.15`. */
@@ -220,12 +244,24 @@ export interface GraphEdge {
   readonly waypoints?: readonly { readonly x: number; readonly y: number }[]
   /**
    * Pin the source anchor side. Omitted → auto from relative box position.
+   * `"radial"` — exit point of the center→peer ray on this box (ring spokes).
    */
-  readonly fromAnchor?: 'top' | 'bottom' | 'left' | 'right'
+  readonly fromAnchor?: 'top' | 'bottom' | 'left' | 'right' | 'radial'
   /**
    * Pin the target anchor side. Omitted → auto from relative box position.
+   * `"radial"` — entry point of the peer→center ray on this box.
    */
-  readonly toAnchor?: 'top' | 'bottom' | 'left' | 'right'
+  readonly toAnchor?: 'top' | 'bottom' | 'left' | 'right' | 'radial'
+  /**
+   * Nudge a `"radial"` `fromAnchor` outward along the ray (world px, toward peer).
+   * Default `0` (exactly on the box edge).
+   */
+  readonly fromOutset?: number
+  /**
+   * Nudge a `"radial"` `toAnchor` outward along the ray (world px, toward peer).
+   * Default `0`. Lake hub spokes in the 八环节 ring use ~`6` to match reference.
+   */
+  readonly toOutset?: number
   /** Primary label along the path (EdgeLabelAttachment). */
   readonly label?: string
   /** Secondary label along the path (EdgeLabel2Attachment). */

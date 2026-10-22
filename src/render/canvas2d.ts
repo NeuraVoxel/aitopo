@@ -52,6 +52,15 @@ export interface NodePaintView {
   readonly overlayAttachments: readonly AttachmentPaintOp[]
 }
 
+/** True canvas arc stroke (ring layouts); densified `points` still used for hit/labels. */
+export interface EdgeArcPaint {
+  readonly center: { readonly x: number; readonly y: number }
+  readonly radius: number
+  readonly startAngle: number
+  readonly endAngle: number
+  readonly clockwise: boolean
+}
+
 /** Cached geometry for an edge paint. */
 export interface EdgePaintView {
   readonly from: { x: number; y: number }
@@ -64,6 +73,8 @@ export interface EdgePaintView {
   readonly orientation?: 'horizontal' | 'vertical'
   /** Orthogonal polyline (includes endpoints); drawn with rounded elbows. */
   readonly points?: readonly { x: number; y: number }[]
+  /** When set, stroke uses `ctx.arc` instead of rounded polyline. */
+  readonly arc?: EdgeArcPaint
   /** Whole-edge opacity `[0, 1]`; default `1`. */
   readonly alpha: number
   readonly stroke: string
@@ -270,8 +281,20 @@ export class Canvas2DRenderer implements Renderer {
     ctx.save()
     ctx.globalAlpha = view.alpha
     ctx.beginPath()
+    const arc = view.arc
     const points = view.points
-    if (points !== undefined && points.length >= 2) {
+    if (arc !== undefined) {
+      // Canvas: angles grow clockwise with y-down; matches our atan2 sweep.
+      const anticlockwise = !arc.clockwise
+      ctx.arc(
+        arc.center.x,
+        arc.center.y,
+        arc.radius,
+        arc.startAngle,
+        arc.endAngle,
+        anticlockwise,
+      )
+    } else if (points !== undefined && points.length >= 2) {
       drawRoundedPolyline(ctx, points, 8)
     } else {
       ctx.moveTo(view.from.x, view.from.y)

@@ -18,7 +18,18 @@ import {
   samplePolylineAt,
   type AttachmentPaintOp,
 } from './attachment/index.ts'
-import { edgeAnchors, edgeAnchorsFromRects, nodeBounds } from './bounds.ts'
+import {
+  edgeAnchors,
+  edgeAnchorsFromRects,
+  edgeEndpointsFromRects,
+  nodeBounds,
+  unionPoint,
+} from './bounds.ts'
+import {
+  buildCircularArc,
+  straightRoute,
+  type CircularArcDraw,
+} from './edge-route.ts'
 import { collapsedGroupForNode, computeGroupBandBounds } from './group-state.ts'
 
 const PATH_BOUNDS_PAD = 4
@@ -37,6 +48,7 @@ export class EdgeView {
   private toPt: Point = { x: 0, y: 0 }
   private orientation: 'horizontal' | 'vertical' = 'horizontal'
   private pointsCache: readonly Point[] = []
+  private arcDraw: CircularArcDraw | undefined
   private active = false
   private alpha = 1
   private stroke = DEFAULT_STROKE
@@ -118,18 +130,66 @@ export class EdgeView {
     const toBox = toCollapsed !== undefined
       ? computeGroupBandBounds(scene, toCollapsed)
       : nodeBounds(to)
-    const hints = { from: edge.fromAnchor, to: edge.toAnchor }
-    // Keep authored waypoints (corridors that avoid occlusion). Remapped ends
-    // still use them; edgeAnchorsFromRects orthogonalizes any diagonal segment.
-    const anchors = (fromCollapsed !== undefined || toCollapsed !== undefined)
-      ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints, hints)
-      : edgeAnchors(from, to, edge.waypoints, hints)
+    const hints = {
+      from: edge.fromAnchor,
+      to: edge.toAnchor,
+      fromOutset: edge.fromOutset,
+      toOutset: edge.toOutset,
+    }
+    const route = edge.style?.route ?? 'orthogonal'
+    let fromPt: Point
+    let toPt: Point
+    let orientation: 'horizontal' | 'vertical'
+    let points: readonly Point[]
+    this.arcDraw = undefined
+    if (route === 'arc' || route === 'straight') {
+      const ends = edgeEndpointsFromRects(fromBox, toBox, hints)
+      orientation = ends.orientation
+      if (route === 'straight') {
+        fromPt = ends.from
+        toPt = ends.to
+        points = straightRoute(fromPt, toPt)
+      } else {
+        const center = edge.style?.arcCenter
+        if (center === undefined) {
+          throw new Error(`edge "${edge.id}": style.route "arc" requires style.arcCenter`)
+        }
+        const built = buildCircularArc(
+          center,
+          ends.from,
+          ends.to,
+          edge.style?.arcClockwise !== false,
+          edge.style?.arcRadius,
+        )
+        points = built.points
+        this.arcDraw = built.draw
+        fromPt = points[0]!
+        toPt = points[points.length - 1]!
+      }
+    } else {
+      // Keep authored waypoints (corridors that avoid occlusion). Remapped ends
+      // still use them; edgeAnchorsFromRects orthogonalizes any diagonal segment.
+      const anchors = (fromCollapsed !== undefined || toCollapsed !== undefined)
+        ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints, hints)
+        : edgeAnchors(from, to, edge.waypoints, hints)
+      fromPt = anchors.from
+      toPt = anchors.to
+      orientation = anchors.orientation
+      points = anchors.points
+    }
     this.active = true
-    this.fromPt = anchors.from
-    this.toPt = anchors.to
-    this.orientation = anchors.orientation
-    this.pointsCache = anchors.points
-    this.path = growRect(anchors.bounds, PATH_BOUNDS_PAD)
+    this.fromPt = fromPt
+    this.toPt = toPt
+    this.orientation = orientation
+    this.pointsCache = points
+    let pathBounds: Rect | undefined
+    for (const point of points) {
+      pathBounds = unionPoint(pathBounds, point)
+    }
+    this.path = growRect(
+      pathBounds ?? { x: fromPt.x, y: fromPt.y, width: 1, height: 1 },
+      PATH_BOUNDS_PAD,
+    )
     const style = edge.style
     this.alpha = clampAlpha(style?.alpha)
     this.stroke = style?.stroke ?? DEFAULT_STROKE
@@ -194,6 +254,7 @@ export class EdgeView {
       hovered,
       orientation: this.orientation,
       points: this.pointsCache,
+      ...(this.arcDraw !== undefined ? { arc: this.arcDraw } : {}),
       alpha: this.alpha,
       stroke: resolvedStroke,
       lineWidth: paintWidth,
@@ -230,6 +291,7 @@ export class EdgeView {
     this.path = { x: 0, y: 0, width: 0, height: 0 }
     this.union = this.path
     this.pointsCache = []
+    this.arcDraw = undefined
     this.alpha = 1
     this.stroke = DEFAULT_STROKE
     this.strokeHover = DEFAULT_STROKE_HOVER

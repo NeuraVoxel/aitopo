@@ -19,6 +19,7 @@ Emit `diagram.graph.json` + host HTML (`assets/host/` template). Use Groups, mem
 | Deployment / IT current-state | Groups + portals for environments |
 | Sequence | Weak: actors as nodes/lanes, ordered `kind: msg` edges |
 | State machine | Nodes = states, edges = transitions |
+| Loop / flywheel (with SubNetwork drill-down or live edit) | Ring nodes + `style.route: "arc"` / `"straight"`; see dialect |
 
 ## svg
 
@@ -31,7 +32,7 @@ Self-contained HTML/SVG using style-guide CSS variables. See `assets/svg/quadran
 | Gantt, scatter / bubble / beeswarm |
 | Venn, quadrant, pyramid / funnel, treemap / marimekko |
 | Pure timeline (no topology) |
-| Loop / flywheel (when layout is geometric, not a live graph) |
+| Loop / flywheel (static print only, no drill-down) |
 
 ## defer
 
