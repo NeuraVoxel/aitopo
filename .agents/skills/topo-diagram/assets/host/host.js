@@ -209,6 +209,8 @@
     var menu = byId('toolbar-menu')
     var titleEl = byId('page-title')
     var eyebrowEl = byId('page-eyebrow')
+    var ledeEl = byId('page-lede')
+    var ledeMoreEl = byId('page-lede-more')
     var fitBtn = byId('btn-fit')
     var expandBtn = byId('btn-expand')
     var collapseBtn = byId('btn-collapse')
@@ -216,20 +218,58 @@
     var downloadBtn = byId('btn-download')
     var resetBtn = byId('btn-reset')
 
-    if (doc.meta && typeof doc.meta === 'object') {
-      if (titleEl && typeof doc.meta.title === 'string' && doc.meta.title) {
-        titleEl.textContent = doc.meta.title
-        if (document.title === 'topo-diagram sample' || !document.title) {
-          document.title = doc.meta.title
-        }
+    // Root chrome snapshot — exit SubNetwork / reset restore this.
+    var rootMeta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {}
+
+    /**
+     * Apply GraphDocument meta to the topbar.
+     * `meta.summary` may be two lines separated by `\n` → `#page-lede` + `#page-lede-more`.
+     * @param {object|undefined|null} meta
+     */
+    function applyChrome(meta) {
+      meta = meta && typeof meta === 'object' ? meta : {}
+      if (titleEl && typeof meta.title === 'string' && meta.title) {
+        titleEl.textContent = meta.title
+        document.title = meta.title
       }
       if (eyebrowEl) {
-        if (typeof doc.meta.eyebrow === 'string' && doc.meta.eyebrow) {
-          eyebrowEl.textContent = doc.meta.eyebrow
-        } else if (typeof doc.meta.kind === 'string' && doc.meta.kind) {
-          eyebrowEl.textContent = doc.meta.kind
+        if (typeof meta.eyebrow === 'string' && meta.eyebrow) {
+          eyebrowEl.textContent = meta.eyebrow
+        } else if (typeof meta.kind === 'string' && meta.kind) {
+          eyebrowEl.textContent = meta.kind
+        } else {
+          eyebrowEl.textContent = ''
         }
       }
+      var summary = typeof meta.summary === 'string' ? meta.summary : ''
+      var parts = summary.split('\n')
+      var line1 = (parts[0] || '').trim()
+      var line2 = parts.slice(1).join('\n').trim()
+      if (ledeEl) ledeEl.textContent = line1
+      if (ledeMoreEl) {
+        ledeMoreEl.textContent = line2
+        if (line2) ledeMoreEl.removeAttribute('hidden')
+        else ledeMoreEl.setAttribute('hidden', '')
+      }
+    }
+
+    function chromeFromActive() {
+      var active = host.exportDocument()
+      var meta = active && active.meta
+      // Nested docs without meta fall back to empty chrome (not root) so layers stay distinct.
+      if (host.network.currentNetworkId == null) {
+        applyChrome(meta && typeof meta === 'object' ? meta : rootMeta)
+      } else {
+        applyChrome(meta)
+      }
+    }
+
+    applyChrome(rootMeta)
+
+    if (typeof host.network.on === 'function') {
+      host.network.on(function (event) {
+        if (event && event.type === 'subNetworkChanged') chromeFromActive()
+      })
     }
 
     function setMenuOpen(open) {
@@ -271,7 +311,12 @@
       }))
     }
     if (downloadBtn) downloadBtn.addEventListener('click', runAndClose(downloadJson))
-    if (resetBtn) resetBtn.addEventListener('click', runAndClose(function () { host.reset() }))
+    if (resetBtn) {
+      resetBtn.addEventListener('click', runAndClose(function () {
+        host.reset()
+        applyChrome(rootMeta)
+      }))
+    }
 
     if (typeof ResizeObserver === 'function') {
       var resizeTimer = null

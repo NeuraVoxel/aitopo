@@ -13,15 +13,17 @@ Top bar (full width), then a flex-grown canvas that **fits content on load / res
 
 | Region | Element | Content |
 |---|---|---|
-| Left | `#page-eyebrow`, `#page-title` | `meta.eyebrow` (or `meta.kind`) + `meta.title` |
+| Left | `#page-eyebrow`, `#page-title`, optional `#page-lede` / `#page-lede-more` | `meta.eyebrow` (or `meta.kind`) + `meta.title`; `meta.summary` (optional `\n` → second line) |
 | Center-right | `#legend` | Project/diagram legend swatches (edit HTML; not inferred from JSON) |
 | Far right | `#toolbar` | **⋯** menu |
+
+**Per-SubNetwork chrome:** each child `GraphDocument` may set its own `meta`. On `subNetworkChanged`, the host re-applies the **active** document's meta to the topbar; exit / reset restore the root `meta`.
 
 Canvas (`#canvas`) fills the remaining viewport; `boot` fits content by default (centered, padded). Default **`fitScale: 0.9`** — about 90% of a full `Network#fitContent` zoom so labels / chrome breathe; override via `boot(..., { fitScale: 1 })` for exact fit.
 
 **Boot framing (no flicker):** `#canvas` stays `opacity: 0` until the first double-rAF fit completes, then reveals. `ResizeObserver` only refits after that reveal and only when `clientWidth` / `clientHeight` actually changed — so the deferred mount observe does not repaint after the first framed frame.
 
-**SubNetwork framing:** `boot` listens for `subNetworkChanged` and re-runs the same fit schedule so enter/exit does not keep the parent camera.
+**SubNetwork framing:** `boot` listens for `subNetworkChanged` and re-runs the same fit schedule so enter/exit does not keep the parent camera. `bootFromPage` also refreshes topbar chrome from the active `meta`.
 
 ## Pinned global `Aitopo` symbols
 
