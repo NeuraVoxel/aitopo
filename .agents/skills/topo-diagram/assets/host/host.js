@@ -25,6 +25,27 @@
     var fitScale = opts.fitScale != null ? opts.fitScale : 0.9
     var shouldFit = opts.fit !== false
 
+    // Hide until the first framed fit so the default camera never flashes.
+    var viewReady = false
+    var lastFitW = 0
+    var lastFitH = 0
+    var prevOpacity = container.style.opacity
+    var prevPointerEvents = container.style.pointerEvents
+
+    function conceal() {
+      container.style.opacity = '0'
+      container.style.pointerEvents = 'none'
+    }
+
+    function reveal() {
+      if (viewReady) return
+      viewReady = true
+      container.style.opacity = prevOpacity
+      container.style.pointerEvents = prevPointerEvents
+    }
+
+    if (shouldFit) conceal()
+
     var initial = JSON.parse(JSON.stringify(doc))
     var network = new Network({
       interactions: [new CreateEdgeInteraction({ kind: 'flow' })],
@@ -57,17 +78,36 @@
             fitPadding,
           )
         })
-        return
-      }
-      if (typeof network.fitContent === 'function') {
+      } else if (typeof network.fitContent === 'function') {
         network.fitContent(fitPadding)
       }
+      lastFitW = container.clientWidth
+      lastFitH = container.clientHeight
     }
 
+    /**
+     * Fit under opacity:0, then reveal. Double-rAF lets flex layout settle
+     * before the first visible frame.
+     */
     function scheduleFit() {
-      if (!shouldFit) return
+      if (!shouldFit) {
+        reveal()
+        return
+      }
+      if (viewReady) {
+        // Post-boot (reset / explicit): keep current visibility.
+        global.requestAnimationFrame(function () {
+          global.requestAnimationFrame(fitContent)
+        })
+        return
+      }
+      conceal()
       global.requestAnimationFrame(function () {
-        global.requestAnimationFrame(fitContent)
+        fitContent()
+        global.requestAnimationFrame(function () {
+          fitContent()
+          reveal()
+        })
       })
     }
 
@@ -89,6 +129,7 @@
     }
 
     function reset() {
+      viewReady = false
       network.load(parseDocument(JSON.parse(JSON.stringify(initial))))
       scheduleFit()
     }
@@ -97,11 +138,24 @@
       network.destroy()
     }
 
+    /**
+     * ResizeObserver path: skip until first reveal; ignore no-op size changes
+     * so a deferred boot observe does not repaint after reveal.
+     */
+    function fitIfSizeChanged() {
+      if (!shouldFit || !viewReady) return
+      var w = container.clientWidth
+      var h = container.clientHeight
+      if (w === lastFitW && h === lastFitH) return
+      fitContent()
+    }
+
     return {
       network: network,
       exportDocument: exportDocument,
       setAllGroupsExpanded: setAllGroupsExpanded,
       fitContent: fitContent,
+      fitIfSizeChanged: fitIfSizeChanged,
       reset: reset,
       destroy: destroy,
     }
@@ -217,7 +271,7 @@
       var observer = new ResizeObserver(function () {
         if (resizeTimer) global.clearTimeout(resizeTimer)
         resizeTimer = global.setTimeout(function () {
-          host.fitContent()
+          host.fitIfSizeChanged()
         }, 120)
       })
       observer.observe(canvas)

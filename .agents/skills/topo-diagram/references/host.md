@@ -19,6 +19,8 @@ Top bar (full width), then a flex-grown canvas that **fits content on load / res
 
 Canvas (`#canvas`) fills the remaining viewport; `boot` fits content by default (centered, padded). Default **`fitScale: 0.9`** — about 90% of a full `Network#fitContent` zoom so labels / chrome breathe; override via `boot(..., { fitScale: 1 })` for exact fit.
 
+**Boot framing (no flicker):** `#canvas` stays `opacity: 0` until the first double-rAF fit completes, then reveals. `ResizeObserver` only refits after that reveal and only when `clientWidth` / `clientHeight` actually changed — so the deferred mount observe does not repaint after the first framed frame.
+
 ## Pinned global `Aitopo` symbols
 
 Only these are guaranteed:
