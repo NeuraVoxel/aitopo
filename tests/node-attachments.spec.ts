@@ -177,6 +177,28 @@ describe('Node attachments', () => {
     expect(getIcon('no-such-icon').key).toBe('node')
   })
 
+  it('honors style.strokeDash on the node paint view', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'agent',
+        label: 'Gate',
+        x: 0,
+        y: 0,
+        w: 100,
+        h: 40,
+        style: { strokeDash: [4, 4] },
+      }],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    expect(views.getNode('a')!.toPaintView(false, false).strokeDash).toEqual([4, 4])
+  })
+
   it('alarm attachment appears in scene ops', () => {
     const scene = new GraphScene()
     scene.load({

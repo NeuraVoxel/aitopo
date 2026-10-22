@@ -3,6 +3,7 @@
  */
 
 import type { Point, Rect } from '../../geom.ts'
+import type { EdgeLabelSide } from '../../protocol/types.ts'
 
 const DEFAULT_NORMAL_GAP = 8
 
@@ -68,12 +69,13 @@ export function samplePolylineAt(
 }
 
 /**
- * Axis-aligned content box centered on a path sample, offset along the normal.
+ * Axis-aligned content box centered on a path sample, offset from the stroke.
  * @param points - edge polyline.
  * @param at - arc-length ratio.
  * @param width - content width.
  * @param height - content height.
- * @param normalGap - distance from the path along the left normal.
+ * @param normalGap - distance from the path to the box center.
+ * @param side - offset rule; omitted → `pathLeft` (demo default).
  */
 export function placeAlongPath(
   points: readonly Point[],
@@ -81,17 +83,36 @@ export function placeAlongPath(
   width: number,
   height: number,
   normalGap = DEFAULT_NORMAL_GAP,
+  side: EdgeLabelSide = 'pathLeft',
 ): Rect {
   const { point, tangent } = samplePolylineAt(points, at)
-  const nx = -tangent.y
-  const ny = tangent.x
-  const cx = point.x + nx * normalGap
-  const cy = point.y + ny * normalGap
+  const { cx, cy } = offsetCenter(point, tangent, normalGap, side)
   return {
     x: cx - width / 2,
     y: cy - height / 2,
     width,
     height,
+  }
+}
+
+function offsetCenter(
+  point: Point,
+  tangent: Point,
+  normalGap: number,
+  side: EdgeLabelSide,
+): { cx: number; cy: number } {
+  if (side === 'aboveOrRight') {
+    const horizontal = Math.abs(tangent.x) >= Math.abs(tangent.y)
+    return horizontal
+      ? { cx: point.x, cy: point.y - normalGap }
+      : { cx: point.x + normalGap, cy: point.y }
+  }
+  const sign = side === 'pathRight' ? -1 : 1
+  const nx = -tangent.y * sign
+  const ny = tangent.x * sign
+  return {
+    cx: point.x + nx * normalGap,
+    cy: point.y + ny * normalGap,
   }
 }
 

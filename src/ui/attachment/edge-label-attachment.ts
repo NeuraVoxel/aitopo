@@ -38,6 +38,8 @@ export class EdgeLabelAttachment extends Attachment {
       style?.labelAt ?? 0.5,
       size.width,
       size.height,
+      undefined,
+      style?.labelSide ?? 'pathLeft',
     )
   }
 
@@ -75,6 +77,8 @@ export class EdgeLabel2Attachment extends Attachment {
       style?.label2At ?? 0.15,
       size.width,
       size.height,
+      undefined,
+      style?.labelSide ?? 'pathLeft',
     )
   }
 

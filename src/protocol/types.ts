@@ -75,11 +75,25 @@ export interface GraphShadowStyle {
   readonly offsetY?: number
 }
 
+/**
+ * Node/group alarm badge chrome.
+ * - `dot` (default): filled circle at `alarmPosition` (demo-stable topRight).
+ * - `tag`: outline pill for short codes (skill third-title / eyebrow).
+ */
+export type AlarmVariant = 'dot' | 'tag'
+
 /** Optional per-node visual overrides (one-level merge on updateNode). */
 export interface GraphNodeStyle {
   readonly labelPosition?: AttachmentPosition
   readonly label2Position?: AttachmentPosition
   readonly tooltipPosition?: AttachmentPosition
+  /**
+   * Alarm badge anchor. Omitted → `topRight` (demo default).
+   * Skill third-titles use `insideTopLeft` with `alarmVariant: "tag"`.
+   */
+  readonly alarmPosition?: AttachmentPosition
+  /** Alarm chrome. Omitted → `dot`. */
+  readonly alarmVariant?: AlarmVariant
   /** Default `hover` — overlay only; `always` joins scene + union bounds. */
   readonly tooltipMode?: 'hover' | 'always'
   /**
@@ -95,6 +109,10 @@ export interface GraphNodeStyle {
   readonly label?: GraphTextStyle
   readonly label2?: GraphTextStyle
   readonly tooltip?: GraphTextStyle
+  /** Alarm badge text overrides (`color` / `fontSize` / `maxChars`). */
+  readonly alarm?: GraphTextStyle
+  /** Canvas setLineDash segments in world px for the body outline. */
+  readonly strokeDash?: readonly number[]
   readonly select?: GraphChromeStyle
   readonly hover?: GraphChromeStyle
   readonly shadow?: GraphShadowStyle
@@ -142,6 +160,14 @@ export interface GraphEdgeArrowStyle {
   readonly stroke?: string
 }
 
+/**
+ * Offset side for edge path labels (`label` / `label2`).
+ * - `pathLeft` (default): left normal along travel direction (demo-stable).
+ * - `pathRight`: right normal along travel.
+ * - `aboveOrRight`: screen space — horizontal segment → above; vertical → right.
+ */
+export type EdgeLabelSide = 'pathLeft' | 'pathRight' | 'aboveOrRight'
+
 /** Optional per-edge visual overrides (one-level merge on updateEdge). */
 export interface GraphEdgeStyle {
   readonly stroke?: string
@@ -164,6 +190,11 @@ export interface GraphEdgeStyle {
   readonly tooltipAt?: number
   /** Default `hover` — overlay only; `always` joins scene + union bounds. */
   readonly tooltipMode?: 'hover' | 'always'
+  /**
+   * Label offset relative to the path. Omitted → `pathLeft`.
+   * Skill diagrams set `aboveOrRight` (H above / V right).
+   */
+  readonly labelSide?: EdgeLabelSide
   readonly label?: GraphTextStyle
   readonly label2?: GraphTextStyle
   readonly tooltip?: GraphTextStyle
@@ -236,11 +267,17 @@ export interface GraphGroupStyle {
   readonly labelPosition?: AttachmentPosition
   readonly label2Position?: AttachmentPosition
   readonly tooltipPosition?: AttachmentPosition
+  /** Alarm badge anchor. Omitted → `topRight`. */
+  readonly alarmPosition?: AttachmentPosition
+  /** Alarm chrome. Omitted → `dot`. */
+  readonly alarmVariant?: AlarmVariant
   /** Default `hover` — overlay only; `always` joins scene + union bounds. */
   readonly tooltipMode?: 'hover' | 'always'
   readonly label?: GraphTextStyle
   readonly label2?: GraphTextStyle
   readonly tooltip?: GraphTextStyle
+  /** Alarm badge text overrides (`color` / `fontSize` / `maxChars`). */
+  readonly alarm?: GraphTextStyle
   readonly select?: GraphChromeStyle
   readonly hover?: GraphChromeStyle
   readonly shadow?: GraphShadowStyle

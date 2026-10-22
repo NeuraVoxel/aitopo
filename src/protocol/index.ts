@@ -5,11 +5,13 @@
 export type {
   Alarm,
   AlarmLevel,
+  AlarmVariant,
   AttachmentPosition,
   GraphChromeStyle,
   GraphDocument,
   GraphEdge,
   GraphEdgeArrowStyle,
+  EdgeLabelSide,
   GraphEdgeStyle,
   GraphGroup,
   GraphGroupStyle,

@@ -44,6 +44,8 @@ export interface NodePaintView {
     readonly width?: number
     readonly padding?: number
   }
+  /** Body outline dash pattern; omitted → solid. */
+  readonly strokeDash?: readonly number[]
   /** Scene-layer attachment paint ops. */
   readonly attachments: readonly AttachmentPaintOp[]
   /** Overlay-layer attachment paint ops (e.g. hover tooltip). */
@@ -314,6 +316,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.shadowOffsetY = view.shadow.offsetY ?? 2
     }
 
+    const dash = view.strokeDash
     if (view.circular) {
       const cx = bounds.x + bounds.width / 2
       const cy = bounds.y + bounds.height / 2
@@ -325,7 +328,9 @@ export class Canvas2DRenderer implements Renderer {
       ctx.shadowColor = 'transparent'
       ctx.strokeStyle = stroke
       ctx.lineWidth = lineWidth
+      if (dash !== undefined && dash.length > 0) ctx.setLineDash([...dash])
       ctx.stroke()
+      ctx.setLineDash([])
     } else {
       const radius = 8
       roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, radius)
@@ -334,7 +339,9 @@ export class Canvas2DRenderer implements Renderer {
       ctx.shadowColor = 'transparent'
       ctx.strokeStyle = stroke
       ctx.lineWidth = lineWidth
+      if (dash !== undefined && dash.length > 0) ctx.setLineDash([...dash])
       ctx.stroke()
+      ctx.setLineDash([])
     }
     paintAttachmentOps(ctx, withContrastingIcons(view.attachments, fill))
     ctx.restore()
@@ -591,8 +598,30 @@ function paintAttachmentOps(
       case 'alarm': {
         const cx = op.bounds.x + op.bounds.width / 2
         const cy = op.bounds.y + op.bounds.height / 2
+        if (op.variant === 'tag') {
+          const ink = op.color
+            ?? (op.level === 'error'
+              ? '#bf4520'
+              : op.level === 'warn'
+                ? '#fb923c'
+                : '#4f5d75')
+          roundRect(ctx, op.bounds.x, op.bounds.y, op.bounds.width, op.bounds.height, 2)
+          ctx.strokeStyle = withAlpha(ink, 0.45)
+          ctx.lineWidth = 0.8
+          ctx.stroke()
+          if (op.text !== undefined && op.text.length > 0) {
+            ctx.fillStyle = ink
+            ctx.font = `${op.fontSize ?? 7}px monospace`
+            ctx.textAlign = 'center'
+            ctx.textBaseline = 'middle'
+            ctx.fillText(op.text, cx, cy + 0.5)
+            ctx.textAlign = 'start'
+          }
+          break
+        }
+        const radius = op.radius ?? Math.min(op.bounds.width, op.bounds.height) / 2
         ctx.beginPath()
-        ctx.arc(cx, cy, op.radius, 0, Math.PI * 2)
+        ctx.arc(cx, cy, radius, 0, Math.PI * 2)
         // Warm palette on dark canvases; keep error distinct but orange-red.
         ctx.fillStyle = op.level === 'error'
           ? '#f97316'
@@ -602,7 +631,7 @@ function paintAttachmentOps(
         ctx.fill()
         if (op.text !== undefined && op.text.length > 0) {
           ctx.fillStyle = '#1a1d24'
-          ctx.font = `bold ${Math.max(9, Math.round(op.radius))}px sans-serif`
+          ctx.font = `bold ${Math.max(9, Math.round(radius))}px sans-serif`
           ctx.textAlign = 'center'
           ctx.textBaseline = 'middle'
           ctx.fillText(op.text, cx, cy + 0.5)
@@ -659,6 +688,14 @@ function contrastingInk(fill: string): string {
   }) as [number, number, number]
   const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b
   return luminance > 0.45 ? '#111827' : '#e8eaed'
+}
+
+/** Apply alpha to a parseable CSS color; unparsed colors are returned unchanged. */
+function withAlpha(color: string, alpha: number): string {
+  const rgb = parseCssRgb(color)
+  if (rgb === undefined) return color
+  const a = Math.min(1, Math.max(0, alpha))
+  return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${a})`
 }
 
 /**

@@ -15,6 +15,30 @@ Set these styles explicitly on authored nodes/groups (including SubNetwork membe
 
 When `labelPosition` is `center` / `insideTop*` and `label2Position` is `insideBottom`, the engine stacks the subtitle under the title with a fixed gap. Prefer `label` ~13px ink + optional `label2` ~9–10px muted.
 
+### Third title (Alarm tag, skill styles)
+
+Use the protocol **Alarm** field — not a fourth label key. Engine default stays a severity `dot` at `topRight`. Skill architecture cards set an outline pill in the upper-left:
+
+```json
+"alarms": [{ "id": "code", "level": "info", "message": "APP" }],
+"style": {
+  "alarmPosition": "insideTopLeft",
+  "alarmVariant": "tag",
+  "alarm": { "color": "#2d3142", "fontSize": 7, "maxChars": 5 }
+}
+```
+
+| Field | Skill value |
+|---|---|
+| `alarms[].message` | Short code (VEH / APP / LAKE / QUERY …), ≤5 chars unless `maxChars` raised |
+| `alarmPosition` | `insideTopLeft` |
+| `alarmVariant` | `tag` |
+| `alarm.color` | Match node stroke / accent ink |
+
+Do not invent host-drawn badges; missing Alarm chrome → aitopo requirement.
+
+Optional dashed body outline (e.g. security / optional nodes): `style.strokeDash: [4, 4]` (solid when omitted).
+
 ## Nodes
 
 - Stable, readable `id`.
@@ -30,13 +54,28 @@ When `labelPosition` is `center` / `insideTop*` and `label2Position` is `insideB
 
 ### Link routing principle (orthogonal first)
 
-Keep links **横平竖直** (axis-aligned). Prefer the engine’s built-in orthogonal link routing — do not invent diagonal polylines, Bezier/SVG path hacks, or host-only routers.
+Keep links **横平竖直** (axis-aligned). Prefer the engine’s built-in orthogonal link routing — do not invent diagonal polylines, Bezier/SVG path hacks, or host-only routers. Every segment of auto routes, elbows, and “special” polylines must be horizontal or vertical.
 
 | Preference | How |
 |---|---|
 | 1. Auto orthogonal | Omit `waypoints` (or `[]`) — aitopo auto-routes H/V between boxes |
 | 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters; engine still routes orthogonally |
-| 3. Explicit bends | Add `waypoints` only as **axis-aligned elbows** (each segment horizontal or vertical) |
+| 3. Explicit bends | Add `waypoints` only as **axis-aligned elbows** (each segment shares x **or** y with its neighbors — never both differ) |
+
+### Link label principle (skill styles)
+
+Engine default keeps demo-stable `pathLeft` offset. Skill edges set:
+
+```json
+"style": { "labelSide": "aboveOrRight" }
+```
+
+| Segment at `labelAt` | Label placement |
+|---|---|
+| Horizontal | Above the stroke |
+| Vertical | To the right of the stroke |
+
+Optional: tune `labelAt` / `label2At` (arc-length ratio) and `style.label` text color/size. Do not invent host-side label drawing.
 
 Unsupported needs (named `linkType`, bus/bundle routing, obstacle avoidance, freeform/curve links, etc.) are **aitopo requirements**: propose → implement in engine with clean-room reference to `twaver.vector` Link ideas → rebundle.
 

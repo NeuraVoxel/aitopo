@@ -74,8 +74,8 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 6. Layout: write `x`/`y` when known; else host calls `network.layout('grid' | 'flowColumns')` after load. Target density ~4/10; prefer ≤9 focal nodes or split / drill down.
 7. Styles map only style-guide semantic roles (focal / muted / accent) into `Graph*Style` — no ad-hoc hex in agent output.
 8. `meta.kind` is only `topology` | `flow` | `custom` (protocol enum).
-9. **Label principle (skill styles):** authors set node `center` + bold, group `insideTop` + bold + `paddingTop`, subtitle `insideBottom` (engine stacks under title when those positions are set). Engine defaults remain demo-stable (node bottom / group top / label2 top; fontWeight omit → normal). Protocol supports `insideBottom`, `fontWeight`, `paddingTop`. Topo host sets `showNodeIcons: false`.
-10. **Link principle:** orthogonal (横平竖直) first — omit `waypoints` for aitopo auto-route; pin sides with anchors; explicit bends only as axis-aligned `waypoints`. No skill-side freeform/curve hacks; richer link types → aitopo requirement (+ twaver clean-room), then rebundle.
+9. **Label principle (skill styles):** authors set node `center` + bold, group `insideTop` + bold + `paddingTop`, subtitle `insideBottom` (engine stacks under title when those positions are set). Third title = `alarms[]` + `alarmVariant: "tag"` + `alarmPosition: "insideTopLeft"` (engine default remains severity `dot` at `topRight`). Protocol supports `insideBottom`, `fontWeight`, `paddingTop`, `alarmPosition` / `alarmVariant` / `style.alarm`. Topo host sets `showNodeIcons: false`.
+10. **Link principle:** orthogonal (横平竖直) first — omit `waypoints` for aitopo auto-route; pin sides with anchors; every elbow / special polyline stays axis-aligned. Edge labels use `style.labelSide: "aboveOrRight"` (horizontal → above, vertical → right); engine default remains `pathLeft`. No skill-side freeform/curve or host-drawn labels; richer link types → aitopo requirement (+ twaver clean-room), then rebundle.
 
 ### Host page and light-edit API
 

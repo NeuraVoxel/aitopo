@@ -35,8 +35,8 @@ SVG-track and explicit **defer** remain valid for statistical/geometric or out-o
 
 ## Topo non-negotiables
 
-- **Labels (skill styles, not engine defaults):** Node title `center` + bold; Group title `insideTop` + bold + `paddingTop` so it clears members; subtitle `insideBottom` under the title (see dialect).
-- **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; bends via axis-aligned `waypoints` / anchors only (see dialect). Missing link rules → aitopo requirement.
+- **Labels (skill styles, not engine defaults):** Node title `center` + bold; Group title `insideTop` + bold + `paddingTop` so it clears members; subtitle `insideBottom` under the title; third title via **Alarm** `tag` at `insideTopLeft` (see dialect).
+- **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; every bend / special polyline stays axis-aligned (`waypoints` / anchors). Edge text: `style.labelSide: "aboveOrRight"` (H above / V right). Missing link rules → aitopo requirement.
 - Structure diagrams set Group `expanded: true` (engine default is collapsed).
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
 - SubNetwork is single-level only; no nested groups.

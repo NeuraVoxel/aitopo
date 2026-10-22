@@ -3,7 +3,7 @@
  */
 
 import type { Rect } from '../../geom.ts'
-import type { AlarmLevel } from '../../protocol/types.ts'
+import type { AlarmLevel, AlarmVariant } from '../../protocol/types.ts'
 
 /** Which canvas pass draws this attachment. */
 export type AttachmentPaintLayer = 'scene' | 'overlay'
@@ -33,8 +33,14 @@ export type AttachmentPaintOp =
     readonly layer: AttachmentPaintLayer
     readonly bounds: Rect
     readonly level: AlarmLevel
-    readonly radius: number
-    /** Optional badge text (e.g. Turn count) painted centered in the circle. */
+    /** Chrome shape. Omitted → `dot`. */
+    readonly variant?: AlarmVariant
+    /** Dot radius in world px (required for `dot`). */
+    readonly radius?: number
+    /** Outline / ink for `tag`; omitted → level palette. */
+    readonly color?: string
+    readonly fontSize?: number
+    /** Optional badge text painted centered in the chrome. */
     readonly text?: string
   }
   | {

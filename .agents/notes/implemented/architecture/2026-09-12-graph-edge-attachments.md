@@ -14,13 +14,13 @@ GraphEdge mirrors GraphNode’s model for link visuals: typed content + `GraphEd
 
 Additive `GraphEdge` fields: `label?`, `label2?`, `tooltip?`, `style?: GraphEdgeStyle`. Existing `alarms?`, `waypoints?`, `kind?`, `data?` keep their roles; `data` is business-only — the renderer does not read visual keys from it.
 
-`GraphEdgeStyle` carries stroke (`stroke`, `strokeHover`, `lineWidth`, `strokeDash`), `alpha` in `[0, 1]` (default `1`), path ratios `labelAt` / `label2At` / `alarmAt` / `tooltipAt` (defaults `0.5` / `0.15` / `0.85` / `0.5`), `tooltipMode`, text/chrome nests, `arrowFrom` (default `false`), `arrowTo` (default `true`), and shared `arrow` (`size` / `fill` / `stroke`).
+`GraphEdgeStyle` carries stroke (`stroke`, `strokeHover`, `lineWidth`, `strokeDash`), `alpha` in `[0, 1]` (default `1`), path ratios `labelAt` / `label2At` / `alarmAt` / `tooltipAt` (defaults `0.5` / `0.15` / `0.85` / `0.5`), `labelSide` (`pathLeft` default | `pathRight` | `aboveOrRight` for screen-space H-above / V-right), `tooltipMode`, text/chrome nests, `arrowFrom` (default `false`), `arrowTo` (default `true`), and shared `arrow` (`size` / `fill` / `stroke`).
 
 `updateEdge` merges `style` one level (nested objects replace as units). Zod, `asEdge`/`mergeEdge`, and invert round-trip the new fields. `waypoints: []` still clears to auto-route.
 
 ### View / Attachment
 
-Abstract `Attachment` is shared. Edge-specific subclasses live under `src/ui/attachment/`: `EdgeLabelAttachment`, `EdgeLabel2Attachment`, `EdgeAlarmAttachment`, `EdgeTooltipAttachment`. Path sampling uses `samplePolylineAt` / `placeAlongPath` (arc-length ratio + fixed normal offset). Arrows are endpoint paint, not Attachment instances.
+Abstract `Attachment` is shared. Edge-specific subclasses live under `src/ui/attachment/`: `EdgeLabelAttachment`, `EdgeLabel2Attachment`, `EdgeAlarmAttachment`, `EdgeTooltipAttachment`. Path sampling uses `samplePolylineAt` / `placeAlongPath` (arc-length ratio + `labelSide` offset). Default `pathLeft` preserves demo placement; `aboveOrRight` is opt-in for skill diagrams. Arrows are endpoint paint, not Attachment instances.
 
 `EdgeView` exposes `pathBounds` (polyline AABB + pad) and `unionBounds` / `bounds` (path ∪ scene attachments). Hover-mode tooltips stay off union and paint on overlay when the edge is hovered; always-mode tooltips join scene + union. Hit-testing remains path-only (label clicks do not select the edge).
 
@@ -49,6 +49,7 @@ Abstract `Attachment` is shared. Edge-specific subclasses live under `src/ui/att
 ## Testing
 
 - `tests/edge-attachments.spec.ts` — dual bounds, label/label2/alarm ops, arrow defaults, alpha, style merge vs ignored `data`, hover/always tooltip.
+- `tests/edge-label-side.spec.ts` — `labelSide` pathLeft / pathRight / aboveOrRight placement.
 - Fixture `fixtures/editor.json` uses `label` + `style` on edges.
 - Package: `pnpm test`, `pnpm run typecheck`, `pnpm run verify-notes`.
 

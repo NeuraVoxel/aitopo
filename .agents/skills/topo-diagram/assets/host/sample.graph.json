@@ -28,8 +28,22 @@
         "label2": {
           "fontSize": 9,
           "color": "#6b7280"
+        },
+        "alarmPosition": "insideTopLeft",
+        "alarmVariant": "tag",
+        "alarm": {
+          "color": "#2d3142",
+          "fontSize": 7,
+          "maxChars": 5
         }
-      }
+      },
+      "alarms": [
+        {
+          "id": "code",
+          "level": "info",
+          "message": "ING"
+        }
+      ]
     },
     {
       "id": "a2",
@@ -144,14 +158,20 @@
       "from": "a1",
       "to": "a2",
       "kind": "flow",
-      "label": "pipeline"
+      "label": "pipeline",
+      "style": {
+        "labelSide": "aboveOrRight"
+      }
     },
     {
       "id": "cross",
       "from": "a2",
       "to": "b1",
       "kind": "flow",
-      "label": "hand-off"
+      "label": "hand-off",
+      "style": {
+        "labelSide": "aboveOrRight"
+      }
     },
     {
       "id": "e-b",

@@ -35,6 +35,7 @@ export class NodeView {
   private active = false
   private shadow: GraphShadowStyle | undefined
   private alpha = 1
+  private strokeDash: readonly number[] | undefined
   private selectStyle: GraphChromeStyle | undefined
   private hoverStyle: GraphChromeStyle | undefined
   private attachments: Attachment[] = []
@@ -95,6 +96,7 @@ export class NodeView {
       this.circular = false
       this.shadow = undefined
       this.alpha = 1
+      this.strokeDash = undefined
       this.selectStyle = undefined
       this.hoverStyle = undefined
       this.attachments = []
@@ -109,6 +111,7 @@ export class NodeView {
     this.circular = node.type === 'tool' || node.data?.shape === 'circle'
     this.shadow = node.style?.shadow ?? DEFAULT_SHADOW
     this.alpha = clampAlpha(node.style?.alpha)
+    this.strokeDash = node.style?.strokeDash
     this.selectStyle = node.style?.select
     this.hoverStyle = node.style?.hover
     const showIcon = node.style?.showIcon ?? opts.showNodeIconsDefault !== false
@@ -148,6 +151,7 @@ export class NodeView {
       circular: this.circular,
       alpha: this.alpha,
       ...(this.shadow !== undefined ? { shadow: this.shadow } : {}),
+      ...(this.strokeDash !== undefined ? { strokeDash: this.strokeDash } : {}),
       ...(this.selectStyle !== undefined ? { selectStyle: this.selectStyle } : {}),
       ...(this.hoverStyle !== undefined ? { hoverStyle: this.hoverStyle } : {}),
       attachments: this.sceneOps,

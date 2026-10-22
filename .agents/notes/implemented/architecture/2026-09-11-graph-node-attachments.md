@@ -20,7 +20,7 @@ Package-private `src/ui/attachment/`: abstract `Attachment`; `IconsAttachment`, 
 
 `NodeView` exposes `bodyBounds` (anchors / move / resize / select chrome) and `unionBounds` / `bounds` (dirty + node hit). Hover-mode tooltips do not contribute to union; they paint on the overlay when the node is hovered. Always-mode tooltips join scene paint and union.
 
-Defaults: Icons when shown (`center`, key `node` when `icon` omitted); hide with `style.showIcon: false` or host `NetworkOptions.showNodeIcons: false` / `setShowNodeIcons(false)`. Label `bottom`; Label2 `top`; Alarm `topRight`; Tooltip `right` / `tooltipMode: 'hover'`. Body paint is fill/stroke (+ optional `style.shadow`) only — no in-body primary/secondary text. Omitted `w`/`h` use **50×50** (twaver `NODE_WIDTH` / `NODE_HEIGHT`); runtime changes via `updateNode` `{ w, h }` or resize. `style.alpha` is whole-node opacity in `[0, 1]` (twaver `whole.alpha`, default `1`).
+Defaults: Icons when shown (`center`, key `node` when `icon` omitted); hide with `style.showIcon: false` or host `NetworkOptions.showNodeIcons: false` / `setShowNodeIcons(false)`. Label `bottom`; Label2 `top`; Alarm `dot` at `topRight`; Tooltip `right` / `tooltipMode: 'hover'`. Opt-in `style.alarmPosition` / `alarmVariant: "tag"` / `style.alarm` text nest for outline third-title pills (skill); opt-in `style.strokeDash` for dashed body outlines (solid when omitted). Body paint is fill/stroke (+ optional `style.shadow`) only — no in-body primary/secondary text. Omitted `w`/`h` use **50×50** (twaver `NODE_WIDTH` / `NODE_HEIGHT`); runtime changes via `updateNode` `{ w, h }` or resize. `style.alpha` is whole-node opacity in `[0, 1]` (twaver `whole.alpha`, default `1`).
 
 ### Paint
 
@@ -46,5 +46,6 @@ Defaults: Icons when shown (`center`, key `node` when `icon` omitted); hide with
 ## Testing
 
 - `tests/node-attachments.spec.ts` — dual bounds, paint ops, icon fallback, alarm, hover/always tooltip, style/icon `updateNode`.
+- `tests/alarm-tag.spec.ts` — `alarmVariant: "tag"` + `alarmPosition: "insideTopLeft"` third-title pills; demo `dot` default retained.
 - `tests/view-set.spec.ts` — attachment ops replace former facet assertions.
 - Full package: `pnpm test`, `pnpm run typecheck`, `pnpm run verify-notes`.
