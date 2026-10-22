@@ -60,7 +60,7 @@ Keep links **横平竖直** (axis-aligned). Prefer the engine’s built-in ortho
 |---|---|
 | 1. Auto orthogonal | Omit `waypoints` (or `[]`) — aitopo auto-routes H/V between boxes |
 | 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters; engine still routes orthogonally |
-| 3. Explicit bends | Add `waypoints` only as **axis-aligned elbows** (each segment shares x **or** y with its neighbors — never both differ) |
+| 3. Explicit bends | Add `waypoints` as **axis-aligned elbows** to route around obstacles (straight auto-routes often cross nodes). Prefer each segment shares x **or** y; if a segment is diagonal (e.g. after collapse remapping), the engine inserts an elbow so paint stays 横平竖直 |
 
 ### Link label principle (skill styles)
 

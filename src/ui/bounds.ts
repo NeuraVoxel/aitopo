@@ -117,7 +117,7 @@ export function edgeAnchorsFromRects(
     : fromVertical || (!toVertical && auto.orientation === 'vertical')
       ? 'vertical'
       : 'horizontal'
-  const points: Point[] = [
+  let points: Point[] = [
     fromPt,
     ...waypoints?.map(p => ({ x: p.x, y: p.y })) ?? [],
     toPt,
@@ -127,8 +127,11 @@ export function edgeAnchorsFromRects(
     const mid = orientation === 'vertical'
       ? orthogonalVH(fromPt, toPt)
       : orthogonalHV(fromPt, toPt)
-    points.splice(1, 0, ...mid.slice(1, -1))
+    points = [fromPt, ...mid.slice(1, -1), toPt]
   }
+  // Keep corridor waypoints, but force every segment axis-aligned (insert elbows
+  // when collapse remapping or authoring leaves a diagonal).
+  points = orthogonalizePolyline(points)
   let bounds: Rect | undefined
   for (const point of points) {
     bounds = unionPoint(bounds, point)
@@ -256,6 +259,49 @@ function orthogonalVH(from: Point, to: Point): Point[] {
   if (Math.abs(from.x - to.x) < 0.5) return [from, to]
   const midY = (from.y + to.y) / 2
   return [from, { x: from.x, y: midY }, { x: to.x, y: midY }, to]
+}
+
+const AXIS_EPS = 0.5
+
+/**
+ * Ensure every consecutive pair shares x or y. Near-aligned points snap;
+ * true diagonals get an elbow (prefer continuing the previous segment axis).
+ * @param points - polyline including endpoints.
+ */
+export function orthogonalizePolyline(points: readonly Point[]): Point[] {
+  if (points.length < 2) return points.map(p => ({ x: p.x, y: p.y }))
+  const out: Point[] = [{ x: points[0]!.x, y: points[0]!.y }]
+  for (let i = 1; i < points.length; i += 1) {
+    const prev = out[out.length - 1]!
+    const next = points[i]!
+    const dx = Math.abs(next.x - prev.x)
+    const dy = Math.abs(next.y - prev.y)
+    if (dx <= AXIS_EPS && dy <= AXIS_EPS) continue
+    if (dx <= AXIS_EPS) {
+      out.push({ x: prev.x, y: next.y })
+      continue
+    }
+    if (dy <= AXIS_EPS) {
+      out.push({ x: next.x, y: prev.y })
+      continue
+    }
+    // Diagonal: prefer continuing prior axis when available.
+    let preferVertical = false
+    if (out.length >= 2) {
+      const before = out[out.length - 2]!
+      preferVertical = Math.abs(prev.x - before.x) <= AXIS_EPS
+    } else {
+      preferVertical = dy >= dx
+    }
+    if (preferVertical) {
+      out.push({ x: prev.x, y: next.y })
+      out.push({ x: next.x, y: next.y })
+    } else {
+      out.push({ x: next.x, y: prev.y })
+      out.push({ x: next.x, y: next.y })
+    }
+  }
+  return out
 }
 
 function unionPoint(bounds: Rect | undefined, point: Point): Rect {

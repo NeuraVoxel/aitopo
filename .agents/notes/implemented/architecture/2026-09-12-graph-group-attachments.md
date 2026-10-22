@@ -58,6 +58,7 @@ Group ids participate in `setSelection` and hit-testing (`kind: 'group'`). Overl
 - Existing fixtures/demos without `expanded: true` render collapsed until hosts opt in.
 - Explicit `w`/`h` are ignored while expanded and `autoFit` is true unless `autoFit: false`.
 - Edge validate depends on group expand state; group updates mark members and incident edges dirty.
+- Authored `waypoints` are kept when an endpoint remaps to a collapsed band (corridors that avoid occlusion). `orthogonalizePolyline` inserts elbows for any diagonal segment so 横平竖直 still holds after remapping.
 - Collapsed body is a styled rect only (no Group icon this wave).
 
 ## Testing

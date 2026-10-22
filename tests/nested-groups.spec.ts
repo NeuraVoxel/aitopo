@@ -117,4 +117,44 @@ describe('Nested groups', () => {
       ],
     })).toThrow(/cycle/)
   })
+
+  it('keeps corridor waypoints on collapse remap and orthogonalizes diagonals', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'inner', type: 'component', label: 'In', x: 100, y: 100, w: 80, h: 40, groupId: 'g' },
+        { id: 'out', type: 'component', label: 'Out', x: 400, y: 200, w: 50, h: 50 },
+      ],
+      edges: [{
+        id: 'e',
+        from: 'out',
+        to: 'inner',
+        fromAnchor: 'left',
+        toAnchor: 'right',
+        // Corridor south of the nodes — must survive collapse remapping.
+        waypoints: [{ x: 300, y: 300 }, { x: 180, y: 300 }],
+      }],
+      groups: [{
+        id: 'g',
+        label: 'Band',
+        memberIds: ['inner'],
+        expanded: false,
+        x: 100,
+        y: 100,
+        w: 120,
+        h: 64,
+      }],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const pts = views.getEdge('e')!.points
+    expect(pts.some(p => p.y === 300)).toBe(true)
+    for (let i = 1; i < pts.length; i += 1) {
+      const a = pts[i - 1]!
+      const b = pts[i]!
+      expect(a.x === b.x || a.y === b.y).toBe(true)
+    }
+  })
 })

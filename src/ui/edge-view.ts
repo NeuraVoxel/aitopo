@@ -119,6 +119,8 @@ export class EdgeView {
       ? computeGroupBandBounds(scene, toCollapsed)
       : nodeBounds(to)
     const hints = { from: edge.fromAnchor, to: edge.toAnchor }
+    // Keep authored waypoints (corridors that avoid occlusion). Remapped ends
+    // still use them; edgeAnchorsFromRects orthogonalizes any diagonal segment.
     const anchors = (fromCollapsed !== undefined || toCollapsed !== undefined)
       ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints, hints)
       : edgeAnchors(from, to, edge.waypoints, hints)

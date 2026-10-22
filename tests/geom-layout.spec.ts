@@ -83,14 +83,21 @@ describe('geom + dirty + viewport + layout', () => {
     expect(a.points.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('honors custom waypoints as interior route points', () => {
+  it('honors custom waypoints as interior route points (orthogonalized)', () => {
     const from = { id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 100, h: 40 }
     const to = { id: 'b', type: 'unit', label: 'B', x: 200, y: 0, w: 100, h: 40 }
     const auto = edgeAnchors(from, to)
     const custom = edgeAnchors(from, to, [{ x: 140, y: 80 }, { x: 160, y: 80 }])
     expect(custom.points[0]).toEqual(auto.from)
     expect(custom.points.at(-1)).toEqual(auto.to)
-    expect(custom.points.slice(1, -1)).toEqual([{ x: 140, y: 80 }, { x: 160, y: 80 }])
+    // Corridor through y=80 is preserved; diagonals to/from anchors get elbows.
+    expect(custom.points.some(p => p.x === 140 && p.y === 80)).toBe(true)
+    expect(custom.points.some(p => p.x === 160 && p.y === 80)).toBe(true)
+    for (let i = 1; i < custom.points.length; i += 1) {
+      const a = custom.points[i - 1]!
+      const b = custom.points[i]!
+      expect(a.x === b.x || a.y === b.y).toBe(true)
+    }
     expect(edgeAnchors(from, to, []).points).toEqual(auto.points)
   })
 
