@@ -64,13 +64,23 @@ If the host needs an engine capability that aitopo lacks, treat it as an **aitop
 | Create edge | **Alt+drag** node → node |
 | Delete edge | Select edge → Delete / Backspace |
 
-**Export:** Menu Copy / Download → `network.toRootJSON()` (full root document with nested `networks`; active leaf flushed). Not the active-layer-only `toJSON()`.
+**Export:**
+
+| Menu item | Source | Notes |
+|---|---|---|
+| Copy / Download JSON | `network.toRootJSON()` | Full root + nested `networks`, active leaf flushed |
+| Download Excalidraw | active `toJSON()` → `.excalidraw` | Rectangles + orthogonal arrows (`export-diagram.js`) |
+| Download draw.io | active `toJSON()` → `.drawio` | mxGraphModel XML |
+| Download SVG | active `toJSON()` → `.svg` | Vector approx of nodes/edges/groups |
+| Download PNG | live Network canvases | Composites root + overlay; current camera view |
+
+Load `export-diagram.js` before `host.js`. Structural exporters approximate orthogonal routes (waypoints honored); they are not pixel-perfect engine paint.
 
 ## Toolbar / menu (template)
 
-**⋯** button opens a dropdown: Fit view · Expand all · Collapse all · **Edit mode** (checkbox, **off by default**) · Copy JSON · Download JSON · Reset. Outside click or Escape closes. Edit toggle keeps the menu open so the checkmark is visible.
+**⋯** button opens a dropdown: Fit view · Expand all · Collapse all · **Edit mode** (checkbox, **off by default**) · Copy JSON · Download JSON · Download Excalidraw · Download draw.io · Download PNG · Download SVG · Reset. Outside click or Escape closes. Edit toggle keeps the menu open so the checkmark is visible.
 
-Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-edit`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`.
+Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-edit`, `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`.
 
 No property panel, no Undo UI in v1.
 

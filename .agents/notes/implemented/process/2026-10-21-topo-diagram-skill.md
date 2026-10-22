@@ -79,7 +79,7 @@ Prefer **topo** when meaning depends on containment, cross-boundary links, or dr
 
 ### Host page and light-edit API
 
-`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `host.js`, and exposes `TopoDiagramHost`. Host mounts with `defaultInteractions: false` then `Network#setEditing(false)` by default: **basic** = pan/zoom + select + drag-move + Shift-marquee; **Edit** (`setEditing(true)` / menu) adds edge bend, resize, Delete edge, Alt+drag create (`kind: 'flow'`). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · **Edit mode** · Copy/Download · Reset); Copy/Download call `toRootJSON()` (full root + nested `networks`, active leaf flushed). Canvas fills the remaining viewport and **fits on load / resize / reset** at skill **`fitScale: 0.9`**. Outside click / Escape closes the menu (Edit toggle keeps it open). No property panel, no Undo UI.
+`assets/host/` embeds a `GraphDocument`, loads `aitopo.iife.js` + `export-diagram.js` + `host.js`, and exposes `TopoDiagramHost`. Host mounts with `defaultInteractions: false` then `Network#setEditing(false)` by default: **basic** = pan/zoom + select + drag-move + Shift-marquee; **Edit** (`setEditing(true)` / menu) adds edge bend, resize, Delete edge, Alt+drag create (`kind: 'flow'`). Default page chrome: **top bar** with title (`meta.title` / `meta.eyebrow`), **legend** (`#legend`), and a far-right **⋯** menu (Fit view · Expand/Collapse · **Edit mode** · Copy/Download JSON · Excalidraw · draw.io · PNG · SVG · Reset); JSON uses `toRootJSON()`; other formats via [host export](../feature/2026-10-22-topo-host-export-formats.md). Canvas fills the remaining viewport and **fits on load / resize / reset** at skill **`fitScale: 0.9`**. Outside click / Escape closes the menu (Edit toggle keeps it open). No property panel, no Undo UI.
 
 **Pinned host contract symbols:** `Network` (`setEditing`, `toRootJSON`, `toJSON`), `parseDocument`, `CreateEdgeInteraction`, `layoutGrid`, `layoutFlowColumns`. Golden sample: `sample.graph.json` (two expanded groups, cross edge `cross`, SubNetwork `detail`).
 
@@ -91,7 +91,7 @@ Style tokens and first-diagram gate live in `references/style-guide.md`. Bundle 
 
 ### v1 non-goals
 
-Nested groups; multi-level SubNetwork; PNG/SVG export API; full 45-type SVG grammar; host Undo UI / property panel.
+Nested groups; multi-level SubNetwork; full 45-type SVG grammar; host Undo UI / property panel. (PNG/SVG/Excalidraw/draw.io ship as **host** exporters — not engine APIs.)
 
 ## Alternatives considered
 

@@ -242,10 +242,23 @@
     var editBtn = byId('btn-edit')
     var copyBtn = byId('btn-copy')
     var downloadBtn = byId('btn-download')
+    var excalidrawBtn = byId('btn-export-excalidraw')
+    var drawioBtn = byId('btn-export-drawio')
+    var pngBtn = byId('btn-export-png')
+    var svgBtn = byId('btn-export-svg')
     var resetBtn = byId('btn-reset')
     var hintEl = menu && menu.querySelector
       ? menu.querySelector('.toolbar-hint')
       : null
+
+    var exporters =
+      global.TopoDiagramExport && typeof global.TopoDiagramExport.bindExports === 'function'
+        ? global.TopoDiagramExport.bindExports({
+          network: host.network,
+          exportDocument: host.exportDocument,
+          activeDocument: function () { return host.network.toJSON() },
+        })
+        : null
 
     // Root chrome snapshot — exit SubNetwork / reset restore this.
     var rootMeta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {}
@@ -363,6 +376,28 @@
       }))
     }
     if (downloadBtn) downloadBtn.addEventListener('click', runAndClose(downloadJson))
+    if (exporters) {
+      if (excalidrawBtn) {
+        excalidrawBtn.addEventListener('click', runAndClose(function () {
+          exporters.downloadExcalidraw()
+        }))
+      }
+      if (drawioBtn) {
+        drawioBtn.addEventListener('click', runAndClose(function () {
+          exporters.downloadDrawio()
+        }))
+      }
+      if (pngBtn) {
+        pngBtn.addEventListener('click', runAndClose(function () {
+          exporters.downloadPng()
+        }))
+      }
+      if (svgBtn) {
+        svgBtn.addEventListener('click', runAndClose(function () {
+          exporters.downloadSvg()
+        }))
+      }
+    }
     if (resetBtn) {
       resetBtn.addEventListener('click', runAndClose(function () {
         host.reset()
