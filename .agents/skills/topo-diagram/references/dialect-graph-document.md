@@ -10,10 +10,25 @@ Set these styles explicitly on authored nodes/groups (including SubNetwork membe
 
 | Host | Title (`label`) | Subtitle (`label2`) | Extra |
 |---|---|---|---|
-| **Node** | `labelPosition: "center"`, `label.fontWeight: "bold"` | `label2Position: "insideBottom"` | Prefer `h` ≥ 64 when both lines set; host uses `showNodeIcons: false` |
-| **Group** | `labelPosition: "insideTop"`, `label.fontWeight: "bold"` | `label2Position: "insideBottom"` | Set `paddingTop` (e.g. ~32–40) so the title clears members; `padding` for other sides |
+| **Node** | `labelPosition: "center"`, `label.fontWeight: "bold"`, `label.color: "#000000"` | `label2Position: "insideBottom"`, `label2.color: "#6b7280"` | Prefer `h` ≥ 64 when both lines set; host uses `showNodeIcons: false` |
+| **Group** | `labelPosition: "insideTop"`, `label.fontWeight: "bold"`, `label.color: "#000000"` | `label2Position: "insideBottom"` | Set `paddingTop` (e.g. ~32–40) so the title clears members; `padding` for other sides |
 
-When `labelPosition` is `center` / `insideTop*` and `label2Position` is `insideBottom`, the engine stacks the subtitle under the title with a fixed gap. Prefer `label` ~13px ink + optional `label2` ~9–10px muted.
+When `labelPosition` is `center` / `insideTop*` and `label2Position` is `insideBottom`, the engine stacks the subtitle under the title with a fixed gap. Prefer `label` ~13px black + optional `label2` ~9–10px muted.
+
+### Node chrome (skill default — required)
+
+Engine node body reads **`data.fill` / `data.stroke`**, not `style.fill`. Omitting them falls through to near-black demo chrome (`#1a1d24`) with light gray icons — unreadable on light paper. **Every skill node** (including SubNetwork members) must set white fill + dark stroke + black title:
+
+```json
+"data": { "fill": "#ffffff", "stroke": "#2d3142" },
+"style": {
+  "labelPosition": "center",
+  "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+  "showIcon": false
+}
+```
+
+Muted / focal roles swap fill or stroke per the Style roles table below. Never emit a node that relies on engine body defaults.
 
 ### Third title (Alarm tag, skill styles)
 
@@ -87,6 +102,8 @@ Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-contro
 - Structure diagrams that should open immediately set `expanded: true`. Engine default when omitted is **collapsed** (e.g. 应用层 starts collapsed; host **double-click** toggles).
 - **Nested groups:** child sets `parentId` to the parent group id; parent `memberIds` lists the child group id alongside node ids (dual bookkeeping). Prefer ≤1 nesting level (e.g. 应用平台 → 应用层). Cycles fail at parse. Deeper trees → keep flat or use SubNetwork.
 - Apply Group row of the Label principle (insideTop + `paddingTop`). Collapsed card chrome that mirrors a node: `showIcon: false` plus optional Alarm `tag`.
+- **Collapsed fill/stroke:** set `style.fill` / `style.stroke` (lake-band tokens, e.g. `rgba(45,49,66,0.03)` / `rgba(45,49,66,0.12)`). Engine defaults collapsed chrome to near-black node body when both `style` and `data` omit fill — do not rely on `data.fill` alone for light architecture cards (engine also falls back to `data.fill`/`data.stroke` when present).
+- **Collapse geometry:** host toggle snapshots the painted band into `x/y/w/h` so the frame does not shrink to a 50×50 chip; expand recenters members if the collapsed frame was moved.
 - Cross-boundary edges attach to **member** node ids (穿透 remaps to the **nearest collapsed ancestor**).
 
 ## SubNetwork
@@ -107,11 +124,11 @@ Protocol allows only `topology` | `flow` | `custom`. Put the diagram-design type
 
 ## Style roles → Graph*Style
 
-| Role | Node / group | Edge |
-|---|---|---|
-| default | `fill: #ffffff`, `stroke: #2d3142` | `stroke: #2d3142` |
-| muted | `fill: #eef0f3`, `stroke: #6b7280` | `stroke: #6b7280` |
-| focal / accent | `fill` or `stroke: #bf4520` (1–2 nodes) | `stroke: #bf4520` |
-| group band | `fill: #eef0f3`, `stroke: #2d3142` | — |
+| Role | Node (`data.*` + label) | Group (`style.*`) | Edge |
+|---|---|---|---|
+| default | `data.fill: #ffffff`, `data.stroke: #2d3142`, `label.color: #000000` | `fill: #eef0f3`, `stroke: #2d3142`, `label.color: #000000` | `stroke: #2d3142` |
+| muted | `data.fill: #eef0f3`, `data.stroke: #6b7280`, `label.color: #000000` | — | `stroke: #6b7280` |
+| focal / accent | `data.fill` or `data.stroke: #bf4520` (1–2 nodes); keep black label on light fill | — | `stroke: #bf4520` |
+| group band | — | `fill: #eef0f3`, `stroke: #2d3142` | — |
 
 Do not emit arbitrary hex outside this table unless the project style-guide was customized. Map skill label/layout look through the Label principle table, not by changing engine defaults.

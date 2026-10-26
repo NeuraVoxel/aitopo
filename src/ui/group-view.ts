@@ -102,16 +102,19 @@ export class GroupView {
     this.expanded = isGroupExpanded(group)
     this.band = computeGroupBandBounds(scene, group, memberBoundsOf)
     const style = group.style
+    const dataFill = typeof group.data?.fill === 'string' ? group.data.fill : undefined
+    const dataStroke = typeof group.data?.stroke === 'string' ? group.data.stroke : undefined
     this.alpha = clampAlpha(style?.alpha)
     if (this.expanded) {
-      this.stroke = style?.stroke ?? EXPANDED_STROKE
-      this.fill = style?.fill ?? EXPANDED_FILL
+      this.stroke = style?.stroke ?? dataStroke ?? EXPANDED_STROKE
+      this.fill = style?.fill ?? dataFill ?? EXPANDED_FILL
       this.strokeWidth = style?.strokeWidth ?? 1
       this.strokeDash = style?.strokeDash
     } else {
       // Collapsed: opaque node body (twaver Group → NodeUI), not translucent band.
-      this.stroke = style?.stroke ?? COLLAPSED_STROKE
-      this.fill = style?.fill ?? COLLAPSED_FILL
+      // Prefer style, then data (skill diagrams often author fill on data like nodes).
+      this.stroke = style?.stroke ?? dataStroke ?? COLLAPSED_STROKE
+      this.fill = style?.fill ?? dataFill ?? COLLAPSED_FILL
       this.strokeWidth = style?.strokeWidth ?? 1.25
       this.strokeDash = undefined
     }

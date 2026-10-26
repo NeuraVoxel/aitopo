@@ -7,13 +7,15 @@ Shared tokens for **topo** (`Graph*Style`) and **svg** (CSS variables) tracks.
 | Role | Token | Value |
 |---|---|---|
 | Paper | `--paper` | `#f5f5f5` |
-| Ink | `--ink` | `#2d3142` |
+| Ink (title / body text) | `--ink` | `#000000` |
+| Stroke / structure | `--stroke` | `#2d3142` |
 | Accent / coral | `--accent` | `#bf4520` |
 | Muted | `--muted` | `#6b7280` |
 | Focal fill | `--focal` | `#bf4520` |
 | Default node fill | `--node-fill` | `#ffffff` |
-| Default stroke | `--stroke` | `#2d3142` |
 | Group band fill | `--group-fill` | `#eef0f3` |
+
+Topo nodes put fill/stroke on **`data.fill` / `data.stroke`** (engine contract). Default role is white fill + black title — never omit and rely on engine near-black body chrome.
 
 Typography: prefer expressive pairs already chosen for the project; defaults for unbranded work are `"IBM Plex Sans"` / `"Source Sans 3"` with system fallbacks. Do not invent a third display face per diagram.
 

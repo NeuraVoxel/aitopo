@@ -6,7 +6,7 @@
   'use strict'
 
   var PAPER = '#f5f5f5'
-  var INK = '#2d3142'
+  var INK = '#000000'
   var MUTED = '#4f5d75'
 
   function downloadBlob(filename, blob) {

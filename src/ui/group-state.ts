@@ -321,7 +321,8 @@ export function collapsedOriginForCenter(group: GraphGroup, center: Point): Poin
 
 /**
  * Geometry patches when toggling expand/collapse so the shared center is preserved:
- * - collapse: place the node body at the expanded band center
+ * - collapse: keep the expanded band's world rectangle (x/y/w/h) so the frame
+ *   does not jump to a smaller collapsed node body
  * - expand: translate members (nodes + nested groups) so the auto-fit band
  *   centers on the collapsed body center
  * @param scene - live scene.
@@ -335,7 +336,13 @@ export function expandCollapseCenterPatches(
   nextExpanded: boolean,
   memberBoundsOf?: MemberBoundsResolver,
 ): {
-  readonly groupPatch: { expanded: boolean; x?: number; y?: number }
+  readonly groupPatch: {
+    expanded: boolean
+    x?: number
+    y?: number
+    w?: number
+    h?: number
+  }
   readonly memberMoves: readonly {
     id: string
     from: Point
@@ -349,9 +356,14 @@ export function expandCollapseCenterPatches(
 } {
   if (!nextExpanded) {
     const band = computeExpandedBandBounds(scene, group, memberBoundsOf)
-    const origin = collapsedOriginForCenter(group, rectCenter(band))
     return {
-      groupPatch: { expanded: false, x: origin.x, y: origin.y },
+      groupPatch: {
+        expanded: false,
+        x: band.x,
+        y: band.y,
+        w: band.width,
+        h: band.height,
+      },
       memberMoves: [],
       childGroupMoves: [],
     }

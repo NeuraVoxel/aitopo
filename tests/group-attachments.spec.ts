@@ -73,6 +73,19 @@ describe('Group attachments and expand/collapse', () => {
     expect(paint.stroke).toBe('#334155')
   })
 
+  it('collapsed fill falls back to data.fill when style.fill is omitted', () => {
+    const { views } = loadGroupDoc({
+      groupExtra: {
+        data: { fill: 'rgba(45,49,66,0.03)', stroke: 'rgba(45,49,66,0.12)' },
+        style: { showIcon: false },
+      },
+    })
+    const paint = views.getGroup('g1')!.toPaintView(false, false)
+    expect(paint.fill).toBe('rgba(45,49,66,0.03)')
+    expect(paint.stroke).toBe('rgba(45,49,66,0.12)')
+    expect(paint.attachments.some(op => op.kind === 'icons')).toBe(false)
+  })
+
   it('does not truncate group labels by default; honors style.label.maxChars', () => {
     const long = 'VeryLongGroupLabelWithoutEllipsisXYZ'
     const { scene, views } = loadGroupDoc({
@@ -194,7 +207,7 @@ describe('Group attachments and expand/collapse', () => {
     expect(band.y + band.height).toBe(150 + DEFAULT_GROUP_PADDING)
   })
 
-  it('collapse parks the body at the painted band center (attachments included)', () => {
+  it('collapse keeps the painted band rectangle (no size jump)', () => {
     const { scene, views } = loadGroupDoc({ expanded: true })
     const group = scene.groups.get('g1')!
     const paintedBand = views.getGroup('g1')!.bandBounds
@@ -204,16 +217,24 @@ describe('Group attachments and expand/collapse', () => {
       false,
       n => views.nodeUnionBounds(n),
     )
-    const parked = rectCenter(groupBounds({
+    expect(collapse.groupPatch.expanded).toBe(false)
+    expect(collapse.groupPatch.x).toBeCloseTo(paintedBand.x)
+    expect(collapse.groupPatch.y).toBeCloseTo(paintedBand.y)
+    expect(collapse.groupPatch.w).toBeCloseTo(paintedBand.width)
+    expect(collapse.groupPatch.h).toBeCloseTo(paintedBand.height)
+    const parked = groupBounds({
       ...group,
       x: collapse.groupPatch.x,
       y: collapse.groupPatch.y,
-    }))
-    expect(parked.x).toBeCloseTo(rectCenter(paintedBand).x)
-    expect(parked.y).toBeCloseTo(rectCenter(paintedBand).y)
-    // Body-only collapse would park higher: labels hang below, shifting the center down.
+      w: collapse.groupPatch.w,
+      h: collapse.groupPatch.h,
+      expanded: false,
+    })
+    expect(rectCenter(parked).x).toBeCloseTo(rectCenter(paintedBand).x)
+    expect(rectCenter(parked).y).toBeCloseTo(rectCenter(paintedBand).y)
+    // Body-only band is shorter (no hanging labels); collapsed h follows the resolver.
     const bodyOnly = expandCollapseCenterPatches(scene, group, false)
-    expect(parked.y).toBeGreaterThan(bodyOnly.groupPatch.y!)
+    expect(collapse.groupPatch.h!).toBeGreaterThan(bodyOnly.groupPatch.h!)
   })
 
   it('emits label/label2/alarm attachment ops and dual bounds', () => {
@@ -292,7 +313,7 @@ describe('Group attachments and expand/collapse', () => {
     expect(views.getNode('a')!.isVisible).toBe(true)
   })
 
-  it('collapse parks body at expanded band center; expand recenters members', () => {
+  it('collapse keeps band size; expand recenters members on collapsed body', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,
@@ -311,17 +332,21 @@ describe('Group attachments and expand/collapse', () => {
       }],
     })
     const group = scene.groups.get('g1')!
-    const bandCenter = rectCenter(computeExpandedBandBounds(scene, group))
+    const band = computeExpandedBandBounds(scene, group)
     const collapse = expandCollapseCenterPatches(scene, group, false)
     expect(collapse.groupPatch.expanded).toBe(false)
+    expect(collapse.groupPatch.w).toBeCloseTo(band.width)
+    expect(collapse.groupPatch.h).toBeCloseTo(band.height)
     const collapsedBody = groupBounds({
       ...group,
       x: collapse.groupPatch.x,
       y: collapse.groupPatch.y,
+      w: collapse.groupPatch.w,
+      h: collapse.groupPatch.h,
       expanded: false,
     })
-    expect(rectCenter(collapsedBody).x).toBeCloseTo(bandCenter.x)
-    expect(rectCenter(collapsedBody).y).toBeCloseTo(bandCenter.y)
+    expect(rectCenter(collapsedBody).x).toBeCloseTo(rectCenter(band).x)
+    expect(rectCenter(collapsedBody).y).toBeCloseTo(rectCenter(band).y)
 
     scene.apply({
       ops: [{
@@ -330,7 +355,7 @@ describe('Group attachments and expand/collapse', () => {
         patch: collapse.groupPatch,
       }],
     })
-    // Drag the collapsed node away without moving members (simulate desync).
+    // Drag the collapsed frame away without moving members (simulate desync).
     scene.apply({
       ops: [{ op: 'updateGroup', id: 'g1', patch: { x: 500, y: 400 } }],
     })

@@ -267,10 +267,10 @@ export class GestureEditor {
 
   /**
    * Toggle group expand/collapse via `updateGroup` (no-op when missing or locked).
-   * Preserves the shared center: collapse parks the node at the band center;
-   * expand translates members so the auto-fit band recenters on the node.
-   * Band extents come from the validated views so collapse centers on the
-   * painted band (member attachments included), not the body-only union.
+   * Preserves the shared frame: collapse writes the painted band's x/y/w/h so
+   * size does not jump; expand translates members so the auto-fit band
+   * recenters on the collapsed body. Band extents come from validated views
+   * (member attachments included), not the body-only union.
    * @param groupId - group id.
    */
   toggleGroupExpanded(groupId: string): void {

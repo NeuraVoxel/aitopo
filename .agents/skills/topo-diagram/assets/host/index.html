@@ -7,7 +7,7 @@
   <style>
     :root {
       --paper: #f5f5f5;
-      --ink: #2d3142;
+      --ink: #000000;
       --accent: #bf4520;
       --muted: #6b7280;
       --chrome: #e8e8e8;
@@ -279,7 +279,7 @@
   "meta": {
     "title": "topo-diagram golden sample",
     "kind": "topology",
-    "eyebrow": "Topology \u00b7 host sample"
+    "eyebrow": "Topology · host sample"
   },
   "nodes": [
     {
@@ -298,7 +298,7 @@
         "label": {
           "fontSize": 13,
           "fontWeight": "bold",
-          "color": "#2d3142"
+          "color": "#000000"
         },
         "showIcon": false,
         "label2": {
@@ -319,7 +319,11 @@
           "level": "info",
           "message": "ING"
         }
-      ]
+      ],
+      "data": {
+        "fill": "#ffffff",
+        "stroke": "#2d3142"
+      }
     },
     {
       "id": "a2",
@@ -334,11 +338,15 @@
         "label": {
           "fontSize": 13,
           "fontWeight": "bold",
-          "color": "#2d3142"
+          "color": "#000000"
         },
         "showIcon": false
       },
-      "h": 64
+      "h": 64,
+      "data": {
+        "fill": "#ffffff",
+        "stroke": "#2d3142"
+      }
     },
     {
       "id": "b1",
@@ -353,11 +361,15 @@
         "label": {
           "fontSize": 13,
           "fontWeight": "bold",
-          "color": "#2d3142"
+          "color": "#000000"
         },
         "showIcon": false
       },
-      "h": 64
+      "h": 64,
+      "data": {
+        "fill": "#ffffff",
+        "stroke": "#2d3142"
+      }
     },
     {
       "id": "b2",
@@ -372,11 +384,15 @@
         "label": {
           "fontSize": 13,
           "fontWeight": "bold",
-          "color": "#2d3142"
+          "color": "#000000"
         },
         "showIcon": false
       },
-      "h": 64
+      "h": 64,
+      "data": {
+        "fill": "#ffffff",
+        "stroke": "#2d3142"
+      }
     },
     {
       "id": "gateway",
@@ -393,13 +409,17 @@
         "label": {
           "fontSize": 13,
           "fontWeight": "bold",
-          "color": "#2d3142"
+          "color": "#000000"
         },
         "showIcon": false,
         "label2": {
           "fontSize": 9,
           "color": "#6b7280"
         }
+      },
+      "data": {
+        "fill": "#ffffff",
+        "stroke": "#2d3142"
       }
     },
     {
@@ -418,13 +438,17 @@
         "label": {
           "fontSize": 13,
           "fontWeight": "bold",
-          "color": "#2d3142"
+          "color": "#000000"
         },
         "showIcon": false,
         "label2": {
           "fontSize": 9,
           "color": "#6b7280"
         }
+      },
+      "data": {
+        "fill": "#ffffff",
+        "stroke": "#2d3142"
       }
     }
   ],
@@ -483,9 +507,12 @@
         "labelPosition": "insideTop",
         "label": {
           "fontSize": 12,
-          "fontWeight": "bold"
+          "fontWeight": "bold",
+          "color": "#000000"
         },
-        "paddingTop": 36
+        "paddingTop": 36,
+        "fill": "#eef0f3",
+        "stroke": "#2d3142"
       }
     },
     {
@@ -502,9 +529,12 @@
         "labelPosition": "insideTop",
         "label": {
           "fontSize": 12,
-          "fontWeight": "bold"
+          "fontWeight": "bold",
+          "color": "#000000"
         },
-        "paddingTop": 36
+        "paddingTop": 36,
+        "fill": "#eef0f3",
+        "stroke": "#2d3142"
       }
     }
   ],
@@ -520,14 +550,40 @@
           "type": "component",
           "label": "Shard A",
           "x": 80,
-          "y": 80
+          "y": 80,
+          "data": {
+            "fill": "#ffffff",
+            "stroke": "#2d3142"
+          },
+          "style": {
+            "label": {
+              "fontSize": 13,
+              "fontWeight": "bold",
+              "color": "#000000"
+            },
+            "labelPosition": "center",
+            "showIcon": false
+          }
         },
         {
           "id": "d2",
           "type": "component",
           "label": "Shard B",
           "x": 240,
-          "y": 80
+          "y": 80,
+          "data": {
+            "fill": "#ffffff",
+            "stroke": "#2d3142"
+          },
+          "style": {
+            "label": {
+              "fontSize": 13,
+              "fontWeight": "bold",
+              "color": "#000000"
+            },
+            "labelPosition": "center",
+            "showIcon": false
+          }
         }
       ],
       "edges": [
@@ -538,7 +594,8 @@
           "kind": "flow",
           "label": "replicate"
         }
-      ]
+      ],
+      "groups": []
     }
   },
   "viewport": {
