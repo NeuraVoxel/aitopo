@@ -2,8 +2,8 @@
  * Drag orthogonal bend handles on selected edges (Move-link equivalent).
  */
 
-import type { Point } from '../geom.ts'
-import { edgeAnchors } from '../ui/bounds.ts'
+import type { Point, Rect } from '../geom.ts'
+import { edgeAnchorsFromRects, nodeBounds } from '../ui/bounds.ts'
 import type { GraphGroup, GraphNode } from '../protocol/types.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
@@ -37,18 +37,29 @@ export class MoveEdgeBendInteraction implements Interaction {
 
     const handleSize = (): number => HANDLE_SIZE / network.viewport.state.zoom
 
+    const endpointBox = (id: string): Rect | undefined => {
+      const node = network.getNode(id)
+      if (node !== undefined) return nodeBounds(node)
+      return network.getGroupBandBounds(id)
+    }
+
     const bendHandles = (edgeId: string): Point[] => {
       const edge = network.getEdges().find(e => e.id === edgeId)
       if (edge === undefined) return []
-      const from = network.getNode(edge.from)
-      const to = network.getNode(edge.to)
-      if (from === undefined || to === undefined) return []
+      const fromBox = endpointBox(edge.from)
+      const toBox = endpointBox(edge.to)
+      if (fromBox === undefined || toBox === undefined) return []
       // Collapsed remap paints auto-orthogonal without document waypoints; hide
       // handles so old corridor control points do not float on the expanded layout.
-      if (endpointUnderCollapsedGroup(network, from) || endpointUnderCollapsedGroup(network, to)) {
+      const fromNode = network.getNode(edge.from)
+      const toNode = network.getNode(edge.to)
+      if (
+        (fromNode !== undefined && endpointUnderCollapsedGroup(network, fromNode))
+        || (toNode !== undefined && endpointUnderCollapsedGroup(network, toNode))
+      ) {
         return []
       }
-      const route = edgeAnchors(from, to, edge.waypoints)
+      const route = edgeAnchorsFromRects(fromBox, toBox, edge.waypoints)
       if (route.points.length < 3) return []
       return route.points.slice(1, -1).map(p => ({ x: p.x, y: p.y }))
     }
@@ -125,10 +136,10 @@ export class MoveEdgeBendInteraction implements Interaction {
       const world = network.screenToWorld(event.clientX - rect.left, event.clientY - rect.top)
       const edge = network.getEdges().find(e => e.id === drag!.edgeId)
       if (edge === undefined) return
-      const fromNode = network.getNode(edge.from)
-      const toNode = network.getNode(edge.to)
-      if (fromNode === undefined || toNode === undefined) return
-      const anchors = edgeAnchors(fromNode, toNode, drag.waypoints)
+      const fromBox = endpointBox(edge.from)
+      const toBox = endpointBox(edge.to)
+      if (fromBox === undefined || toBox === undefined) return
+      const anchors = edgeAnchorsFromRects(fromBox, toBox, drag.waypoints)
       const full = [...anchors.points]
       const i = drag.handleIndex + 1
       if (i <= 0 || i >= full.length - 1) return

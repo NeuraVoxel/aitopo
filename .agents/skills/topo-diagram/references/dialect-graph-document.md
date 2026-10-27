@@ -11,7 +11,7 @@ Set these styles explicitly on authored nodes/groups (including SubNetwork membe
 | Host | Title (`label`) | Subtitle (`label2`) | Extra |
 |---|---|---|---|
 | **Node** | `labelPosition: "center"`, `label.fontWeight: "bold"`, `label.color: "#000000"` | `label2Position: "insideBottom"`, `label2.color: "#6b7280"` | Prefer `h` ≥ 64 when both lines set; host uses `showNodeIcons: false` |
-| **Group** | `labelPosition: "insideTop"`, `label.fontWeight: "bold"`, `label.color: "#000000"` | `label2Position: "insideBottom"` | Set `paddingTop` (e.g. ~32–40) so the title clears members; `padding` for other sides |
+| **Group** | Expanded: `labelPosition: "insideTop"` + bold + black. Collapsed: engine omit → `bottom` (set `collapsedLabelPosition` only to override) | `label2Position: "insideBottom"` | Set `paddingTop` (e.g. ~32–40) so the expanded title clears members; `padding` for other sides |
 
 When `labelPosition` is `center` / `insideTop*` and `label2Position` is `insideBottom`, the engine stacks the subtitle under the title with a fixed gap. Prefer `label` ~13px black + optional `label2` ~9–10px muted.
 
@@ -108,9 +108,9 @@ Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-contro
 - Scope = `groups[]` + `memberIds` + member `groupId`.
 - Structure diagrams that should open immediately set `expanded: true`. Engine default when omitted is **collapsed** (e.g. 应用层 starts collapsed; host **double-click** toggles).
 - **Nested groups:** child sets `parentId` to the parent group id; parent `memberIds` lists the child group id alongside node ids (dual bookkeeping). Prefer ≤1 nesting level (e.g. 应用平台 → 应用层). Cycles fail at parse. Deeper trees → keep flat or use SubNetwork.
-- Apply Group row of the Label principle (insideTop + `paddingTop`). Collapsed card chrome that mirrors a node: `showIcon: false` plus optional Alarm `tag`.
+- Apply Group row of the Label principle (`labelPosition: insideTop` + `paddingTop` when expanded; collapsed caption defaults to `bottom`). Collapsed card chrome that mirrors a node: `showIcon: false` plus optional Alarm `tag`.
 - **Collapsed fill/stroke:** set `style.fill` / `style.stroke` (lake-band tokens, e.g. `rgba(45,49,66,0.03)` / `rgba(45,49,66,0.12)`). Engine defaults collapsed chrome to near-black node body when both `style` and `data` omit fill — do not rely on `data.fill` alone for light architecture cards (engine also falls back to `data.fill`/`data.stroke` when present).
-- **Collapse geometry:** host toggle snapshots the painted band into `x/y/w/h` so the frame does not shrink to a 50×50 chip; expand recenters members if the collapsed frame was moved.
+- **Collapse geometry:** host toggle parks a node-sized body (`w`/`h`, else 50×50) on the band center; expand recenters members if the collapsed frame was moved.
 - Cross-boundary edges attach to **member** node ids (穿透 remaps to the **nearest collapsed ancestor**).
 
 ## SubNetwork

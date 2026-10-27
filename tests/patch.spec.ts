@@ -37,4 +37,37 @@ describe('applyPatch', () => {
     })
     expect(next.nodes[0]?.alarms?.[0]?.level).toBe('error')
   })
+
+  it('addEdge accepts group endpoints and removeGroup cascades those edges', () => {
+    const withGroups = applyPatch(base, {
+      ops: [
+        { op: 'addGroup', group: { id: 'g1', label: 'G1', memberIds: [] } },
+        { op: 'addGroup', group: { id: 'g2', label: 'G2', memberIds: [] } },
+        { op: 'addEdge', edge: { id: 'eg', from: 'g1', to: 'g2' } },
+        { op: 'addEdge', edge: { id: 'en', from: 'g1', to: 'a' } },
+      ],
+    })
+    expect(withGroups.edges.map(e => e.id).sort()).toEqual(['eg', 'en'])
+    const after = applyPatch(withGroups, { ops: [{ op: 'removeGroup', id: 'g1' }] })
+    expect(after.groups?.map(g => g.id)).toEqual(['g2'])
+    expect(after.edges).toHaveLength(0)
+  })
+
+  it('rejects addNode / addGroup when the id is already used by the other kind', () => {
+    const withGroup = applyPatch(base, {
+      ops: [{ op: 'addGroup', group: { id: 'g1', label: 'G1', memberIds: [] } }],
+    })
+    expect(() => applyPatch(withGroup, {
+      ops: [{ op: 'addNode', node: { id: 'g1', type: 'agent', label: 'clash' } }],
+    })).toThrow(/already used by a group/)
+    expect(() => applyPatch(base, {
+      ops: [{ op: 'addGroup', group: { id: 'a', label: 'clash', memberIds: [] } }],
+    })).toThrow(/already used by a node/)
+  })
+
+  it('rejects addEdge when an endpoint is missing', () => {
+    expect(() => applyPatch(base, {
+      ops: [{ op: 'addEdge', edge: { id: 'e', from: 'a', to: 'ghost' } }],
+    })).toThrow(/not a node or group/)
+  })
 })

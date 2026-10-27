@@ -20,7 +20,13 @@ export { EdgeLabelAttachment, EdgeLabel2Attachment } from './edge-label-attachme
 export { EdgeTooltipAttachment } from './edge-tooltip-attachment.ts'
 export { IconsAttachment } from './icons-attachment.ts'
 export { getIcon, registerIcon, type IconDefinition } from './icon-registry.ts'
-export { LabelAttachment, Label2Attachment, resolveMaxChars, truncateText } from './label-attachment.ts'
+export {
+  LabelAttachment,
+  Label2Attachment,
+  resolveGroupLabelPosition,
+  resolveMaxChars,
+  truncateText,
+} from './label-attachment.ts'
 export {
   estimateTextSize,
   estimateTextWidth,

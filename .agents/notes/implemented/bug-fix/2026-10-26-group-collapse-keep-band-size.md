@@ -23,3 +23,7 @@ Collapsed Groups stay the same footprint as the open band. Authors who want a sm
 ## Testing
 
 `tests/group-attachments.spec.ts` — collapse keeps painted band rectangle; expand still recenters after drag.
+
+## Related
+
+Superseded by [collapse parks node-sized body](./2026-10-27-group-collapse-default-node-size.md) (twaver-aligned default / authored `w`/`h`).

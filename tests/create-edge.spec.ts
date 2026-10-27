@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { CreateEdgeInteraction } from '../src/interaction/create-edge.ts'
 import type { InteractionHost } from '../src/interaction/types.ts'
-import type { GraphNode } from '../src/protocol/types.ts'
+import type { GraphGroup, GraphNode } from '../src/protocol/types.ts'
 
 class FakeHitCanvas {
   private readonly listeners = new Map<string, Set<(event: PointerEvent) => void>>()
@@ -73,13 +73,15 @@ function node(partial: Partial<GraphNode> & Pick<GraphNode, 'id'>): GraphNode {
 function createHost(options: {
   canvas: FakeHitCanvas
   nodes: GraphNode[]
-  hitAt: (x: number, y: number) => { id: string; kind: 'node' | 'edge' } | undefined
+  groups?: GraphGroup[]
+  hitAt: (x: number, y: number) => { id: string; kind: 'node' | 'edge' | 'group' } | undefined
 }): InteractionHost & {
   commitEdgeCreate: ReturnType<typeof vi.fn>
   addOverlayChrome: ReturnType<typeof vi.fn>
   rubberBandClears: number
 } {
   const nodes = new Map(options.nodes.map(n => [n.id, n]))
+  const groups = new Map((options.groups ?? []).map(g => [g.id, g]))
   const commitEdgeCreate = vi.fn(() => 'e-new')
   let gestureDragged = false
   let rubberBandClears = 0
@@ -130,15 +132,19 @@ function createHost(options: {
     updateCamera: vi.fn(),
     viewport: { state: { zoom: 1, x: 0, y: 0 } } as InteractionHost['viewport'],
     getNode: id => nodes.get(id),
+    getGroup: id => groups.get(id),
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
-    getGroups: () => [],
-    getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
+    getGroups: () => [...groups.values()],
+    getGroupBandBounds: id => (groups.has(id) ? { x: 0, y: 0, width: 100, height: 80 } : undefined),
     getSelectedIds: () => [],
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition: vi.fn(),
     previewNodeBounds: vi.fn(),
+    previewGroupMove: vi.fn(),
+    commitGroupMove: vi.fn(),
+    toggleGroupExpanded: vi.fn(),
     commitNodeMove: vi.fn(),
     commitNodeResize: vi.fn(),
     commitEdgeCreate,
@@ -219,6 +225,25 @@ describe('CreateEdgeInteraction', () => {
     canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 10, altKey: true })
     canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 10, altKey: true })
     expect(host.commitEdgeCreate).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('creates edge between groups', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [],
+      groups: [
+        { id: 'g1', label: 'G1', memberIds: [] },
+        { id: 'g2', label: 'G2', memberIds: [] },
+      ],
+      hitAt: (x) => (x < 50 ? { id: 'g1', kind: 'group' } : { id: 'g2', kind: 'group' }),
+    })
+    const dispose = new CreateEdgeInteraction({ kind: 'data' }).attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10, altKey: true })
+    canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 10, altKey: true })
+    canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 10, altKey: true })
+    expect(host.commitEdgeCreate).toHaveBeenCalledWith({ from: 'g1', to: 'g2', kind: 'data' })
     dispose()
   })
 })

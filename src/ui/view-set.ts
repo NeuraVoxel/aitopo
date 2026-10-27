@@ -125,7 +125,12 @@ export class ViewSet {
       this.markNodeGeometryDirty(scene, memberId)
     }
     for (const edge of scene.edges.values()) {
-      if (members.has(edge.from) || members.has(edge.to)) {
+      if (
+        members.has(edge.from)
+        || members.has(edge.to)
+        || edge.from === groupId
+        || edge.to === groupId
+      ) {
         this.edges.get(edge.id)?.markDirty()
       }
     }

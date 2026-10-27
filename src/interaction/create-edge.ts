@@ -1,5 +1,5 @@
 /**
- * Alt+drag from a node to another node creates a directed edge (rubber-band preview).
+ * Alt+drag from a node or group to another creates a directed edge (rubber-band preview).
  */
 
 import type { Interaction, InteractionHost } from './types.ts'
@@ -19,7 +19,8 @@ export interface CreateEdgeInteractionOptions {
 
 /**
  * Create directed edges: Alt+drag (default) or exclusive mode without Alt.
- * Skips self-links and duplicate same-direction edges via `commitEdgeCreate`.
+ * Endpoints may be nodes or groups. Skips self-links and duplicate same-direction
+ * edges via `commitEdgeCreate`.
  */
 export class CreateEdgeInteraction implements Interaction {
   private readonly kind: string | undefined
@@ -51,13 +52,28 @@ export class CreateEdgeInteraction implements Interaction {
     let band: { from: { x: number; y: number }; to: { x: number; y: number } } | undefined
     let removeChrome: (() => void) | undefined
 
-    const nodeCenter = (id: string): { x: number; y: number } | undefined => {
+    const endpointCenter = (id: string): { x: number; y: number } | undefined => {
       const node = network.getNode(id)
-      if (node === undefined) return undefined
-      const w = node.w ?? DEFAULT_W
-      const h = node.h ?? DEFAULT_H
-      return { x: (node.x ?? 0) + w / 2, y: (node.y ?? 0) + h / 2 }
+      if (node !== undefined) {
+        const w = node.w ?? DEFAULT_W
+        const h = node.h ?? DEFAULT_H
+        return { x: (node.x ?? 0) + w / 2, y: (node.y ?? 0) + h / 2 }
+      }
+      const bandBox = network.getGroupBandBounds(id)
+      if (bandBox === undefined) return undefined
+      return {
+        x: bandBox.x + bandBox.width / 2,
+        y: bandBox.y + bandBox.height / 2,
+      }
     }
+
+    const endpointExists = (id: string): boolean =>
+      network.getNode(id) !== undefined || network.getGroup(id) !== undefined
+
+    const isEndpointHit = (
+      hit: { id: string; kind: 'node' | 'edge' | 'group' } | undefined,
+    ): hit is { id: string; kind: 'node' | 'group' } =>
+      hit !== undefined && (hit.kind === 'node' || hit.kind === 'group')
 
     const clearBand = (): void => {
       band = undefined
@@ -109,8 +125,7 @@ export class CreateEdgeInteraction implements Interaction {
       }
       const rect = canvas.getBoundingClientRect()
       const hit = network.hitTestScreen(event.clientX - rect.left, event.clientY - rect.top)
-      if (hit === undefined || hit.kind !== 'node') return
-      if (network.getNode(hit.id) === undefined) return
+      if (!isEndpointHit(hit) || !endpointExists(hit.id)) return
 
       active = true
       dragged = false
@@ -134,7 +149,7 @@ export class CreateEdgeInteraction implements Interaction {
           // Capture unsupported or already held.
         }
       }
-      const from = nodeCenter(fromId)
+      const from = endpointCenter(fromId)
       if (from === undefined) return
       const rect = canvas.getBoundingClientRect()
       const to = network.screenToWorld(event.clientX - rect.left, event.clientY - rect.top)
@@ -147,7 +162,7 @@ export class CreateEdgeInteraction implements Interaction {
       if (dragged) {
         const rect = canvas.getBoundingClientRect()
         const hit = network.hitTestScreen(event.clientX - rect.left, event.clientY - rect.top)
-        if (hit !== undefined && hit.kind === 'node' && hit.id !== sourceId) {
+        if (isEndpointHit(hit) && hit.id !== sourceId && endpointExists(hit.id)) {
           network.commitEdgeCreate({
             from: sourceId,
             to: hit.id,

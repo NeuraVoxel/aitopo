@@ -108,16 +108,42 @@ describe('Group attachments and expand/collapse', () => {
     expect(label && 'text' in label && label.text).toBe('VeryLongG…')
   })
 
-  it('defaults label to top outside the body when collapsed and expanded', () => {
-    for (const expanded of [false, true] as const) {
-      const { views } = loadGroupDoc({ expanded })
-      const view = views.getGroup('g1')!
-      const paint = view.toPaintView(false, false)
-      const label = paint.attachments.find(op => op.kind === 'label')
-      expect(label && 'bounds' in label).toBe(true)
-      if (label === undefined || !('bounds' in label)) return
-      expect(label.bounds.y + label.bounds.height).toBeLessThanOrEqual(view.bandBounds.y)
+  it('defaults collapsed label below the body and expanded label above', () => {
+    const collapsed = loadGroupDoc({ expanded: false })
+    const collapsedView = collapsed.views.getGroup('g1')!
+    const collapsedLabel = collapsedView.toPaintView(false, false).attachments
+      .find(op => op.kind === 'label')
+    expect(collapsedLabel && 'bounds' in collapsedLabel).toBe(true)
+    if (collapsedLabel !== undefined && 'bounds' in collapsedLabel) {
+      expect(collapsedLabel.bounds.y).toBeGreaterThanOrEqual(
+        collapsedView.bandBounds.y + collapsedView.bandBounds.height,
+      )
     }
+
+    const expanded = loadGroupDoc({ expanded: true })
+    const expandedView = expanded.views.getGroup('g1')!
+    const expandedLabel = expandedView.toPaintView(false, false).attachments
+      .find(op => op.kind === 'label')
+    expect(expandedLabel && 'bounds' in expandedLabel).toBe(true)
+    if (expandedLabel !== undefined && 'bounds' in expandedLabel) {
+      expect(expandedLabel.bounds.y + expandedLabel.bounds.height)
+        .toBeLessThanOrEqual(expandedView.bandBounds.y)
+    }
+  })
+
+  it('honors collapsedLabelPosition independently of labelPosition', () => {
+    const { views } = loadGroupDoc({
+      expanded: false,
+      style: {
+        labelPosition: 'insideTop',
+        collapsedLabelPosition: 'top',
+      },
+    })
+    const view = views.getGroup('g1')!
+    const label = view.toPaintView(false, false).attachments.find(op => op.kind === 'label')
+    expect(label && 'bounds' in label).toBe(true)
+    if (label === undefined || !('bounds' in label)) return
+    expect(label.bounds.y + label.bounds.height).toBeLessThanOrEqual(view.bandBounds.y)
   })
 
   it('honors labelPosition insideTopLeft inside the band body', () => {
@@ -207,7 +233,7 @@ describe('Group attachments and expand/collapse', () => {
     expect(band.y + band.height).toBe(150 + DEFAULT_GROUP_PADDING)
   })
 
-  it('collapse keeps the painted band rectangle (no size jump)', () => {
+  it('collapse parks default 50×50 body on the painted band center', () => {
     const { scene, views } = loadGroupDoc({ expanded: true })
     const group = scene.groups.get('g1')!
     const paintedBand = views.getGroup('g1')!.bandBounds
@@ -218,23 +244,46 @@ describe('Group attachments and expand/collapse', () => {
       n => views.nodeUnionBounds(n),
     )
     expect(collapse.groupPatch.expanded).toBe(false)
-    expect(collapse.groupPatch.x).toBeCloseTo(paintedBand.x)
-    expect(collapse.groupPatch.y).toBeCloseTo(paintedBand.y)
-    expect(collapse.groupPatch.w).toBeCloseTo(paintedBand.width)
-    expect(collapse.groupPatch.h).toBeCloseTo(paintedBand.height)
+    expect(collapse.groupPatch.w).toBeUndefined()
+    expect(collapse.groupPatch.h).toBeUndefined()
     const parked = groupBounds({
       ...group,
       x: collapse.groupPatch.x,
       y: collapse.groupPatch.y,
-      w: collapse.groupPatch.w,
-      h: collapse.groupPatch.h,
       expanded: false,
     })
+    expect(parked.width).toBe(50)
+    expect(parked.height).toBe(50)
     expect(rectCenter(parked).x).toBeCloseTo(rectCenter(paintedBand).x)
     expect(rectCenter(parked).y).toBeCloseTo(rectCenter(paintedBand).y)
-    // Body-only band is shorter (no hanging labels); collapsed h follows the resolver.
+    // Painted band (labels) sits below the body-only band; park follows the resolver.
     const bodyOnly = expandCollapseCenterPatches(scene, group, false)
-    expect(collapse.groupPatch.h!).toBeGreaterThan(bodyOnly.groupPatch.h!)
+    expect(collapse.groupPatch.y!).toBeGreaterThan(bodyOnly.groupPatch.y!)
+  })
+
+  it('collapse honors authored w/h as the collapsed body size', () => {
+    const { scene, views } = loadGroupDoc({
+      expanded: true,
+      groupExtra: { w: 80, h: 60 },
+    })
+    const group = scene.groups.get('g1')!
+    const paintedBand = views.getGroup('g1')!.bandBounds
+    const collapse = expandCollapseCenterPatches(
+      scene,
+      group,
+      false,
+      n => views.nodeUnionBounds(n),
+    )
+    const parked = groupBounds({
+      ...group,
+      x: collapse.groupPatch.x,
+      y: collapse.groupPatch.y,
+      expanded: false,
+    })
+    expect(parked.width).toBe(80)
+    expect(parked.height).toBe(60)
+    expect(rectCenter(parked).x).toBeCloseTo(rectCenter(paintedBand).x)
+    expect(rectCenter(parked).y).toBeCloseTo(rectCenter(paintedBand).y)
   })
 
   it('emits label/label2/alarm attachment ops and dual bounds', () => {
@@ -265,6 +314,46 @@ describe('Group attachments and expand/collapse', () => {
     expect(cross.points[0]!.x).toBeLessThanOrEqual(
       group.bandBounds.x + group.bandBounds.width + 1,
     )
+  })
+
+  it('routes edges whose from/to are group ids against band bounds', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'agent', label: 'A', x: 100, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'b', type: 'agent', label: 'B', x: 200, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'c', type: 'agent', label: 'C', x: 100, y: 260, w: 50, h: 50, groupId: 'g2' },
+        { id: 'd', type: 'agent', label: 'D', x: 200, y: 260, w: 50, h: 50, groupId: 'g2' },
+        { id: 'out', type: 'agent', label: 'Out', x: 400, y: 160, w: 50, h: 50 },
+      ],
+      edges: [
+        { id: 'gg', from: 'g1', to: 'g2' },
+        { id: 'gn', from: 'g1', to: 'out' },
+      ],
+      groups: [
+        { id: 'g1', label: 'G1', memberIds: ['a', 'b'], expanded: true, x: 80, y: 80 },
+        { id: 'g2', label: 'G2', memberIds: ['c', 'd'], expanded: true, x: 80, y: 240 },
+      ],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const gg = views.getEdge('gg')!
+    const gn = views.getEdge('gn')!
+    expect(gg.isActive).toBe(true)
+    expect(gn.isActive).toBe(true)
+    const g1 = views.getGroup('g1')!
+    const g2 = views.getGroup('g2')!
+    expect(gg.points[0]!.y).toBeLessThan(gg.points[gg.points.length - 1]!.y)
+    expect(gg.points[0]!.y).toBeGreaterThanOrEqual(g1.bandBounds.y - 1)
+    expect(gg.points[gg.points.length - 1]!.y).toBeLessThanOrEqual(
+      g2.bandBounds.y + g2.bandBounds.height + 1,
+    )
+    views.markGroupGeometryDirty(scene, 'g1')
+    views.validateDirty(scene)
+    expect(views.getEdge('gg')!.isActive).toBe(true)
+    expect(views.getEdge('gn')!.isActive).toBe(true)
   })
 
   it('applies style.alpha and merges style one level', () => {
@@ -313,7 +402,7 @@ describe('Group attachments and expand/collapse', () => {
     expect(views.getNode('a')!.isVisible).toBe(true)
   })
 
-  it('collapse keeps band size; expand recenters members on collapsed body', () => {
+  it('collapse uses default body size; expand recenters members on collapsed body', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,
@@ -335,16 +424,16 @@ describe('Group attachments and expand/collapse', () => {
     const band = computeExpandedBandBounds(scene, group)
     const collapse = expandCollapseCenterPatches(scene, group, false)
     expect(collapse.groupPatch.expanded).toBe(false)
-    expect(collapse.groupPatch.w).toBeCloseTo(band.width)
-    expect(collapse.groupPatch.h).toBeCloseTo(band.height)
+    expect(collapse.groupPatch.w).toBeUndefined()
+    expect(collapse.groupPatch.h).toBeUndefined()
     const collapsedBody = groupBounds({
       ...group,
       x: collapse.groupPatch.x,
       y: collapse.groupPatch.y,
-      w: collapse.groupPatch.w,
-      h: collapse.groupPatch.h,
       expanded: false,
     })
+    expect(collapsedBody.width).toBe(50)
+    expect(collapsedBody.height).toBe(50)
     expect(rectCenter(collapsedBody).x).toBeCloseTo(rectCenter(band).x)
     expect(rectCenter(collapsedBody).y).toBeCloseTo(rectCenter(band).y)
 

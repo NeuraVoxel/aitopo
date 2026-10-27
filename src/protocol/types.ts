@@ -236,10 +236,12 @@ export interface GraphEdgeStyle {
   readonly arrow?: GraphEdgeArrowStyle
 }
 
-/** Directed edge between two node ids. */
+/** Directed edge between two endpoint ids (node or group). */
 export interface GraphEdge {
   readonly id: string
+  /** Source endpoint: node id or group id. */
   readonly from: string
+  /** Target endpoint: node id or group id. */
   readonly to: string
   readonly kind?: string
   /**
@@ -305,7 +307,16 @@ export interface GraphGroupStyle {
   readonly autoFit?: boolean
   /** Band outline shape. Only `rectangle` this release. */
   readonly shape?: 'rectangle'
+  /**
+   * Title anchor when expanded. Omitted → `top` (outside the band).
+   * Collapsed titles use {@link collapsedLabelPosition} instead.
+   */
   readonly labelPosition?: AttachmentPosition
+  /**
+   * Title anchor when collapsed. Omitted → `bottom` (node-like caption).
+   * Expand/collapse does not rewrite this field.
+   */
+  readonly collapsedLabelPosition?: AttachmentPosition
   readonly label2Position?: AttachmentPosition
   readonly tooltipPosition?: AttachmentPosition
   /** Alarm badge anchor. Omitted → `topRight`. */
@@ -357,13 +368,13 @@ export interface GraphGroup {
   /**
    * Body width in world px when collapsed (or expanded with `autoFit: false`).
    * Omitted → engine default `50` (twaver `NODE_WIDTH`; Group paints as a Node when collapsed).
-   * Change at runtime with `updateGroup` `{ w }`.
+   * Expand/collapse gestures do not overwrite this; set via document or `updateGroup` `{ w }`.
    */
   readonly w?: number
   /**
    * Body height in world px when collapsed (or expanded with `autoFit: false`).
    * Omitted → engine default `50` (twaver `NODE_HEIGHT`).
-   * Change at runtime with `updateGroup` `{ h }`.
+   * Expand/collapse gestures do not overwrite this; set via document or `updateGroup` `{ h }`.
    */
   readonly h?: number
   /** When true, move and expand-toggle edits skip this group. */

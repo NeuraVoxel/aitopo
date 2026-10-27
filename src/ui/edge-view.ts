@@ -22,15 +22,14 @@ import {
   edgeAnchors,
   edgeAnchorsFromRects,
   edgeEndpointsFromRects,
-  nodeBounds,
   unionPoint,
 } from './bounds.ts'
+import { resolveEdgeEndpoint } from './edge-endpoint.ts'
 import {
   buildCircularArc,
   straightRoute,
   type CircularArcDraw,
 } from './edge-route.ts'
-import { collapsedGroupForNode, computeGroupBandBounds } from './group-state.ts'
 
 const PATH_BOUNDS_PAD = 4
 const DEFAULT_STROKE = '#5a6478'
@@ -107,29 +106,24 @@ export class EdgeView {
       this.resetInactive()
       return
     }
-    const from = scene.nodes.get(edge.from)
-    const to = scene.nodes.get(edge.to)
-    if (from === undefined || to === undefined) {
+    const fromEp = resolveEdgeEndpoint(scene, edge.from)
+    const toEp = resolveEdgeEndpoint(scene, edge.to)
+    if (fromEp === undefined || toEp === undefined) {
       this.resetInactive()
       return
     }
-    const fromCollapsed = collapsedGroupForNode(scene, edge.from)
-    const toCollapsed = collapsedGroupForNode(scene, edge.to)
-    // Intra-group edge while collapsed: hide (agent links only cross the group boundary).
+    // Intra-group member edge while collapsed: hide (agent links only cross the boundary).
     if (
-      fromCollapsed !== undefined
-      && toCollapsed !== undefined
-      && fromCollapsed.id === toCollapsed.id
+      fromEp.kind === 'node'
+      && toEp.kind === 'node'
+      && fromEp.remappedGroupId !== undefined
+      && fromEp.remappedGroupId === toEp.remappedGroupId
     ) {
       this.resetInactive()
       return
     }
-    const fromBox = fromCollapsed !== undefined
-      ? computeGroupBandBounds(scene, fromCollapsed)
-      : nodeBounds(from)
-    const toBox = toCollapsed !== undefined
-      ? computeGroupBandBounds(scene, toCollapsed)
-      : nodeBounds(to)
+    const fromBox = fromEp.box
+    const toBox = toEp.box
     const hints = {
       from: edge.fromAnchor,
       to: edge.toAnchor,
@@ -167,17 +161,29 @@ export class EdgeView {
         toPt = points[points.length - 1]!
       }
     } else {
-      // Collapse remap: ignore authored waypoints so the path follows the new
-      // band→peer layout (document waypoints stay for when both ends are visible).
-      const remapped = fromCollapsed !== undefined || toCollapsed !== undefined
+      // Remapped member penetration: ignore authored waypoints so the path
+      // follows the live collapsed band. Explicit group endpoints keep bends.
+      const remapped = (fromEp.kind === 'node' && fromEp.remappedGroupId !== undefined)
+        || (toEp.kind === 'node' && toEp.remappedGroupId !== undefined)
+      const usesBoxRoute = fromEp.kind === 'group'
+        || toEp.kind === 'group'
+        || remapped
       const waypoints = remapped ? undefined : edge.waypoints
-      const anchors = remapped
-        ? edgeAnchorsFromRects(fromBox, toBox, waypoints, hints)
-        : edgeAnchors(from, to, waypoints, hints)
-      fromPt = anchors.from
-      toPt = anchors.to
-      orientation = anchors.orientation
-      points = anchors.points
+      if (usesBoxRoute) {
+        const anchors = edgeAnchorsFromRects(fromBox, toBox, waypoints, hints)
+        fromPt = anchors.from
+        toPt = anchors.to
+        orientation = anchors.orientation
+        points = anchors.points
+      } else {
+        const fromNode = scene.nodes.get(edge.from)!
+        const toNode = scene.nodes.get(edge.to)!
+        const anchors = edgeAnchors(fromNode, toNode, waypoints, hints)
+        fromPt = anchors.from
+        toPt = anchors.to
+        orientation = anchors.orientation
+        points = anchors.points
+      }
     }
     this.active = true
     this.fromPt = fromPt

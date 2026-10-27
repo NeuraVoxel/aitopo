@@ -182,8 +182,8 @@ export interface InteractionEditHost {
   }): void
   /**
    * Commit a new directed edge: apply `addEdge`, emit `edgeCreated`.
-   * @param args - endpoints and optional kind / id.
-   * @returns created edge id, or undefined when skipped (missing node / duplicate).
+   * @param args - endpoints (node or group ids) and optional kind / id.
+   * @returns created edge id, or undefined when skipped (missing endpoint / duplicate).
    */
   commitEdgeCreate(args: {
     from: string

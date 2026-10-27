@@ -45,6 +45,9 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if (doc.nodes.some(n => n.id === op.node.id)) {
         throw new Error(`addNode: duplicate id ${op.node.id}`)
       }
+      if ((doc.groups ?? []).some(g => g.id === op.node.id)) {
+        throw new Error(`addNode: id ${op.node.id} already used by a group`)
+      }
       return { ...doc, nodes: [...doc.nodes, asNode(op.node)] }
     }
     case 'updateNode': {
@@ -69,6 +72,7 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if (doc.edges.some(e => e.id === op.edge.id)) {
         throw new Error(`addEdge: duplicate id ${op.edge.id}`)
       }
+      assertEdgeEndpointsExist(doc, op.edge.from, op.edge.to, op.edge.id)
       const { style: rawStyle, ...edgeRest } = op.edge
       return {
         ...doc,
@@ -100,6 +104,9 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if ((doc.groups ?? []).some(g => g.id === op.group.id)) {
         throw new Error(`addGroup: duplicate id ${op.group.id}`)
       }
+      if (doc.nodes.some(n => n.id === op.group.id)) {
+        throw new Error(`addGroup: id ${op.group.id} already used by a node`)
+      }
       const { style: rawStyle, ...groupRest } = op.group
       return {
         ...doc,
@@ -127,7 +134,11 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if (!groups.some(g => g.id === op.id)) {
         throw new Error(`removeGroup: missing id ${op.id}`)
       }
-      return { ...doc, groups: groups.filter(g => g.id !== op.id) }
+      return {
+        ...doc,
+        groups: groups.filter(g => g.id !== op.id),
+        edges: doc.edges.filter(e => e.from !== op.id && e.to !== op.id),
+      }
     }
     case 'setAlarms': {
       if (op.target === 'node') {
@@ -522,6 +533,29 @@ function mergeGroupStyle(
 /** Normalize zod style bags under exactOptionalPropertyTypes. */
 function asGroupStyle(raw: object): GraphGroupStyle {
   return raw as GraphGroupStyle
+}
+
+/**
+ * Fail loud when addEdge endpoints are neither node nor group ids.
+ * @param doc - current document.
+ * @param from - source endpoint id.
+ * @param to - target endpoint id.
+ * @param edgeId - edge id for error text.
+ */
+function assertEdgeEndpointsExist(
+  doc: GraphDocument,
+  from: string,
+  to: string,
+  edgeId: string,
+): void {
+  const nodeIds = new Set(doc.nodes.map(n => n.id))
+  const groupIds = new Set((doc.groups ?? []).map(g => g.id))
+  for (const [side, id] of [['from', from], ['to', to]] as const) {
+    if (nodeIds.has(id) || groupIds.has(id)) continue
+    throw new Error(
+      `addEdge: edge ${edgeId} ${side} "${id}" is not a node or group id`,
+    )
+  }
 }
 
 function setNodeAlarms(doc: GraphDocument, id: string, alarms: readonly Alarm[]): GraphDocument {

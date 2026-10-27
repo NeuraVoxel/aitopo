@@ -23,3 +23,7 @@ Drop expand-dependent label defaults. `LabelAttachment` already resolves Group l
 ## Testing
 
 - `tests/group-attachments.spec.ts` — default label sits above `bandBounds` for both `expanded: false` and `expanded: true`.
+
+## Related
+
+Superseded by [collapsed vs expanded label anchors](./2026-10-27-group-collapsed-label-position.md) (`collapsedLabelPosition`, omit → `bottom` when collapsed).

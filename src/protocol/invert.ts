@@ -51,7 +51,11 @@ export function invertOp(beforeDoc: GraphDocument, op: GraphPatchOp): GraphPatch
     case 'removeGroup': {
       const group = (beforeDoc.groups ?? []).find(g => g.id === op.id)
       if (group === undefined) throw new Error(`invert removeGroup: missing id ${op.id}`)
-      return { op: 'addGroup', group: cloneGroup(group) }
+      const lostEdges = beforeDoc.edges.filter(e => e.from === op.id || e.to === op.id)
+      return [
+        { op: 'addGroup', group: cloneGroup(group) },
+        ...lostEdges.map(edge => ({ op: 'addEdge' as const, edge: cloneEdge(edge) })),
+      ]
     }
     case 'updateGroup': {
       const group = (beforeDoc.groups ?? []).find(g => g.id === op.id)

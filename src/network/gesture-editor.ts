@@ -352,8 +352,10 @@ export class GestureEditor {
     id?: string
   }): string | undefined {
     if (args.from === args.to) return undefined
-    if (this.deps.scene.nodes.get(args.from) === undefined) return undefined
-    if (this.deps.scene.nodes.get(args.to) === undefined) return undefined
+    const endpointOk = (id: string): boolean =>
+      this.deps.scene.nodes.get(id) !== undefined
+      || this.deps.scene.groups.get(id) !== undefined
+    if (!endpointOk(args.from) || !endpointOk(args.to)) return undefined
     for (const edge of this.deps.scene.edges.values()) {
       if (edge.from === args.from && edge.to === args.to) return undefined
     }

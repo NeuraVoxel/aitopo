@@ -36,7 +36,10 @@ describe('demo sample registry', () => {
     }
     const group = parseDocument(getSample('group')!.document)
     expect(group.groups?.[0]?.expanded).toBe(true)
-    expect(group.groups?.[0]?.style?.labelPosition).toBe('insideTopLeft')
+    expect(group.groups?.map(g => g.id).sort()).toEqual(['band', 'band2'])
+    expect(group.edges.some(e => e.from === 'band' && e.to === 'band2')).toBe(true)
+    expect(group.edges.some(e => e.from === 'band' && e.to === 'outside')).toBe(true)
+    expect(group.groups?.[0]?.style?.labelPosition).toBe('top')
     const alarm = parseDocument(getSample('alarm')!.document)
     expect(alarm.nodes.some(n => (n.alarms?.length ?? 0) > 0)).toBe(true)
     const sub = parseDocument(getSample('subnetwork')!.document)

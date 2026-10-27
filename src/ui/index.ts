@@ -34,6 +34,11 @@ export {
   parentGroupOf,
   rectCenter,
 } from './group-state.ts'
+export {
+  endpointExistsInMaps,
+  resolveEdgeEndpoint,
+  type EdgeEndpoint,
+} from './edge-endpoint.ts'
 export { EdgeView } from './edge-view.ts'
 export { GroupView } from './group-view.ts'
 export { NodeView } from './node-view.ts'

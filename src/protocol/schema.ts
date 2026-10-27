@@ -160,6 +160,7 @@ const graphGroupStyleSchema = z.object({
   autoFit: z.boolean().optional(),
   shape: z.literal('rectangle').optional(),
   labelPosition: attachmentPositionSchema.optional(),
+  collapsedLabelPosition: attachmentPositionSchema.optional(),
   label2Position: attachmentPositionSchema.optional(),
   tooltipPosition: attachmentPositionSchema.optional(),
   alarmPosition: attachmentPositionSchema.optional(),

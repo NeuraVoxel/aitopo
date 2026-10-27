@@ -32,6 +32,7 @@ function groupCtx(height: number): AttachmentValidateCtx {
       label: '应用平台',
       label2: '9 platforms',
       memberIds: [],
+      expanded: true,
       style: {
         labelPosition: 'insideTop',
         label2Position: 'insideBottom',

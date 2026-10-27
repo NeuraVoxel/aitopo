@@ -20,7 +20,39 @@ export function parseDocument(input: unknown): GraphDocument {
     throw new Error(`GraphDocument parse failed at ${path}: ${message}`)
   }
   assertGroupParentAcyclic(result.data.groups ?? [])
+  assertEndpointIds(result.data)
+  assertNoCrossKindIdClash(result.data)
   return result.data
+}
+
+/**
+ * Fail loud when an edge endpoint is neither a node nor a group.
+ * @param doc - parsed document.
+ */
+export function assertEndpointIds(doc: GraphDocument): void {
+  const nodeIds = new Set(doc.nodes.map(n => n.id))
+  const groupIds = new Set((doc.groups ?? []).map(g => g.id))
+  for (const edge of doc.edges) {
+    for (const side of ['from', 'to'] as const) {
+      const id = edge[side]
+      if (nodeIds.has(id) || groupIds.has(id)) continue
+      throw new Error(
+        `GraphEdge ${edge.id}: ${side} "${id}" is not a node or group id`,
+      )
+    }
+  }
+}
+
+/**
+ * Fail loud when a node id and group id collide.
+ * @param doc - parsed document.
+ */
+export function assertNoCrossKindIdClash(doc: GraphDocument): void {
+  const groupIds = new Set((doc.groups ?? []).map(g => g.id))
+  for (const node of doc.nodes) {
+    if (!groupIds.has(node.id)) continue
+    throw new Error(`id "${node.id}" is used by both a node and a group`)
+  }
 }
 
 /**

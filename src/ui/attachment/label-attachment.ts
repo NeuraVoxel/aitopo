@@ -1,12 +1,12 @@
 /**
  * Primary / secondary labels for nodes and groups.
  *
- * Engine defaults stay demo-stable (node label bottom, group label top, label2 top).
- * Skill look-and-feel is applied via explicit Graph*Style in authored documents.
+ * Node label defaults to bottom. Group title: expanded → `labelPosition` (omit `top`);
+ * collapsed → `collapsedLabelPosition` (omit `bottom`). Label2 defaults to top.
  * When authors set center/insideTop + insideBottom, subtitle stacks under the title.
  */
 
-import type { AttachmentPosition, GraphTextStyle } from '../../protocol/types.ts'
+import type { AttachmentPosition, GraphGroup, GraphTextStyle } from '../../protocol/types.ts'
 import {
   Attachment,
   isBoxAttachmentCtx,
@@ -17,6 +17,7 @@ import {
 import { estimateTextSize, placeAttachment } from './position.ts'
 import type { AttachmentPaintOp } from './types.ts'
 import type { Rect } from '../../geom.ts'
+import { isGroupExpanded } from '../group-state.ts'
 
 const DEFAULT_COLOR = '#000000'
 const DEFAULT_FONT = 12
@@ -44,8 +45,9 @@ export class LabelAttachment extends Attachment {
     const style = isGroup ? ctx.group.style : ctx.node.style
     const label = isGroup ? ctx.group.label : ctx.node.label
     const label2 = isGroup ? ctx.group.label2 : ctx.node.label2
-    // Demo-stable defaults: node bottom, group top (outside).
-    this.position = style?.labelPosition ?? (isGroup ? 'top' : 'bottom')
+    this.position = isGroup
+      ? resolveGroupLabelPosition(ctx.group)
+      : (style?.labelPosition ?? 'bottom')
     this.color = style?.label?.color ?? DEFAULT_COLOR
     this.fontSize = style?.label?.fontSize ?? DEFAULT_FONT
     this.fontWeight = style?.label?.fontWeight ?? 'normal'
@@ -100,7 +102,9 @@ export class Label2Attachment extends Attachment {
       resolveMaxChars(style?.label2, isGroup ? DEFAULT_GROUP_MAX_CHARS : DEFAULT_NODE_MAX_CHARS),
     )
     const size = estimateTextSize(this.text, this.fontSize, style?.label2?.fontWeight ?? 'normal')
-    const titlePosition = style?.labelPosition ?? (isGroup ? 'top' : 'bottom')
+    const titlePosition = isGroup
+      ? resolveGroupLabelPosition(ctx.group)
+      : (style?.labelPosition ?? 'bottom')
 
     if (
       this.position === 'insideBottom'
@@ -149,6 +153,19 @@ export function truncateText(text: string, maxChars: number): string {
   if (maxChars <= 0 || text.length <= maxChars) return text
   if (maxChars === 1) return '…'
   return `${text.slice(0, maxChars - 1)}…`
+}
+
+/**
+ * Group title side: expanded uses `labelPosition` (omit → top);
+ * collapsed uses `collapsedLabelPosition` (omit → bottom).
+ * @param group - live group.
+ */
+export function resolveGroupLabelPosition(group: GraphGroup): AttachmentPosition {
+  const style = group.style
+  if (isGroupExpanded(group)) {
+    return style?.labelPosition ?? 'top'
+  }
+  return style?.collapsedLabelPosition ?? 'bottom'
 }
 
 function isStackedTitlePosition(position: AttachmentPosition): boolean {
