@@ -63,21 +63,28 @@ Optional dashed body outline (e.g. security / optional nodes): `style.strokeDash
 
 ## Edges
 
-- Draw an edge only when the relationship is not obvious from layout.
+- Draw an edge only when the relationship is **not** obvious from adjacency on the grid.
 - `kind`: `flow` | `dep` | `parent` | `msg`.
 - **穿透 / cross-group links:** `from` / `to` are **member node ids**, never the group id (unless the semantic endpoint is the collapsed group itself). Document ids do not change on collapse; the engine remaps anchors in view.
 
-### Link routing principle (orthogonal first)
+### Link routing principle (orthogonal first · keep sparse)
 
 **Default** links stay **横平竖直**. Prefer orthogonal auto-routing; do not invent host-only Bezier/SVG path hacks. Opt-in `style.route` covers ring arcs and radial spokes.
 
 | Preference | How |
 |---|---|
 | 1. Auto orthogonal | Omit `waypoints` (or `[]`) and omit `style.route` (or `"orthogonal"`) — aitopo auto-routes H/V between boxes |
-| 2. Side pins | Set `fromAnchor` / `toAnchor` (`top` \| `bottom` \| `left` \| `right`) when the exit/enter side matters |
-| 3. Explicit bends | Add `waypoints` as **axis-aligned elbows** (orthogonal mode only) |
+| 2. Side pins | Set `fromAnchor` / `toAnchor` **only** when the exit/enter side carries meaning (or to keep a feedback edge on the open side of a U). Same-row / same-column neighbors usually omit anchors. |
+| 3. Explicit bends | Add `waypoints` as **axis-aligned elbows** only when auto-route crosses a box; prefer moving nodes onto the grid instead |
 | 4. Ring arcs | `style.route: "arc"` + required `style.arcCenter` + preferred shared `arcRadius` (optional `arcClockwise`, default `true`). Endpoints project onto the circle; paint uses a true canvas arc. |
 | 5. Radial spokes | `style.route: "straight"` + `fromAnchor`/`toAnchor: "radial"` (center→peer ray hits each box). Optional `toOutset` / `fromOutset` (px) nudge the port outward — lake hubs often use `toOutset: 6`. |
+
+**Sparsity (skill default):**
+
+- One **primary path** per story; feedback / writeback as **one** dashed `dep` edge, not a fan of parallels.
+- Many→one: insert a merge node, or align sources so edges stay parallel — do not spider-web every pair.
+- Labels only on non-obvious edges (hand-off, feedback, writeback). Chain steps on a row need no label.
+- Prefer deleting a crossing edge over adding waypoints.
 
 ### Link label principle (skill styles)
 
@@ -112,11 +119,20 @@ Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-contro
 - Child document is a full `GraphDocument` (`version: 1`, nodes, edges, nested `networks`, …); apply the same Node label styles inside.
 - Prefer shallow stacks (≤2–3); cycle ids along the path fail loud.
 
-## Layout
+## Layout (grid first · 简洁规整)
 
-- Prefer explicit `x` / `y`.
-- Else host may call `network.layout('grid' | 'flowColumns')` after load.
-- Density ~4/10; prefer ≤9 focal nodes or split / drill down.
+Skill default is a **regular orthogonal grid**, not freeform scatter.
+
+| Rule | Practice |
+|---|---|
+| Pitch | Pick fixed column / row steps (e.g. `dx ≈ 200`, `dy ≈ 140–160`) and stick to them on one canvas |
+| Align | Same row → shared `y`; same column → shared `x`. Neighbors that share an edge should share a row **or** a column so auto-route stays a single H/V segment |
+| Reading order | Left → right for forward flow; top → bottom for stages; U-turns fold on the grid (top row L→R, bottom row R→L) |
+| Groups | Place the band so members already sit on the grid; leave ≥1 pitch gutter between bands |
+| Density | ~4/10; prefer ≤9 root nodes — extra detail → SubNetwork portal, not more root edges |
+| Coordinates | Prefer explicit `x` / `y`. Else host may call `network.layout('grid' \| 'flowColumns')` after load |
+
+**Stop** when removing one more edge or aligning one more node would not improve scanability.
 
 ## meta.kind
 

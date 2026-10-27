@@ -36,7 +36,7 @@ SVG-track and explicit **defer** remain valid for statistical/geometric or out-o
 ## Topo non-negotiables
 
 - **Labels + chrome (skill styles, not engine defaults):** Node title `center` + bold + `color: "#000000"`; every node sets `data.fill: "#ffffff"` + `data.stroke: "#2d3142"` (engine body reads `data.*`, not `style.fill` — omit → near-black). Group title `insideTop` + bold + `paddingTop` + black label; subtitle `insideBottom` under the title; third title via **Alarm** `tag` at `insideTopLeft` (see dialect).
-- **Links:** 横平竖直 — prefer aitopo orthogonal auto-route; every bend / special polyline stays axis-aligned (`waypoints` / anchors). Edge text: `style.labelSide: "aboveOrRight"` (H above / V right). Missing link rules → aitopo requirement.
+- **Layout + links (简洁规整):** place nodes on a fixed `dx`/`dy` grid (same row → same `y`); primary path only; feedback = one dashed edge. 横平竖直 — prefer auto orthogonal; pin anchors only when side matters; avoid spider-webs and labeled every-hop. Edge text: `style.labelSide: "aboveOrRight"`. See dialect Layout + Link routing. Missing capability → aitopo requirement.
 - Structure diagrams that should open immediately set Group `expanded: true` (engine default is collapsed; host **double-click** toggles). Collapsed card chrome: `showIcon: false` when mirroring a node.
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
 - Nested groups allowed (`parentId` + child id in parent `memberIds`); prefer ≤1 nesting level. SubNetwork supports a stack (root → child → …); prefer shallow depth.
