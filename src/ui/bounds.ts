@@ -204,26 +204,33 @@ export function edgeAnchorsFromRects(
       points: [ends.from, ends.to],
     }
   }
-  const fromPt = hints?.from === undefined || hints.from === 'radial'
-    ? auto.from
-    : anchorPoint(hints.from, fromBox)
-  const toPt = hints?.to === undefined || hints.to === 'radial'
-    ? auto.to
-    : anchorPoint(hints.to, toBox)
-  const fromVertical = hints?.from === 'top' || hints?.from === 'bottom'
-  const toVertical = hints?.to === 'top' || hints?.to === 'bottom'
-  const orientation: 'horizontal' | 'vertical' = hints === undefined || (hints.from === undefined && hints.to === undefined)
+  const fromSide = hints?.from !== undefined && hints.from !== 'radial' ? hints.from : undefined
+  const toSide = hints?.to !== undefined && hints.to !== 'radial' ? hints.to : undefined
+  const fromPt = fromSide === undefined ? auto.from : anchorPoint(fromSide, fromBox)
+  const toPt = toSide === undefined ? auto.to : anchorPoint(toSide, toBox)
+  const fromVertical = fromSide === 'top' || fromSide === 'bottom'
+  const toVertical = toSide === 'top' || toSide === 'bottom'
+  const orientation: 'horizontal' | 'vertical' = fromSide === undefined && toSide === undefined
     ? auto.orientation
     : fromVertical || (!toVertical && auto.orientation === 'vertical')
       ? 'vertical'
       : 'horizontal'
-  let points: Point[] = [
-    fromPt,
-    ...waypoints?.map(p => ({ x: p.x, y: p.y })) ?? [],
-    toPt,
-  ]
-  if (waypoints === undefined || waypoints.length === 0) {
-    // Hints without bends still route orthogonally between the pinned sides.
+  // Complementary sides (e.g. bottom→right): one elbow = two segments, not a mid Z.
+  const elbow = fromSide !== undefined && toSide !== undefined
+    ? complementaryElbow(fromPt, toPt, fromSide, toSide)
+    : undefined
+  let points: Point[]
+  if (elbow !== undefined) {
+    // Prefer relative corner semantics over stale absolute waypoints (esp. after
+    // collapse remap moves the to-box onto a group card).
+    points = elbow
+  } else if (waypoints !== undefined && waypoints.length > 0) {
+    points = [
+      fromPt,
+      ...waypoints.map(p => ({ x: p.x, y: p.y })),
+      toPt,
+    ]
+  } else {
     const mid = orientation === 'vertical'
       ? orthogonalVH(fromPt, toPt)
       : orthogonalHV(fromPt, toPt)
@@ -362,6 +369,51 @@ function orthogonalVH(from: Point, to: Point): Point[] {
 }
 
 const AXIS_EPS = 0.5
+
+type CardinalSide = 'top' | 'bottom' | 'left' | 'right'
+
+function isVerticalSide(side: CardinalSide): boolean {
+  return side === 'top' || side === 'bottom'
+}
+
+function isHorizontalSide(side: CardinalSide): boolean {
+  return side === 'left' || side === 'right'
+}
+
+/**
+ * Minimal orthogonal path for complementary leave/arrive sides
+ * (vertical leave + horizontal arrive, or the reverse): one corner, two segments.
+ * Parallel sides return undefined so callers keep the mid Z (H.V / V.H).
+ * @param from - pinned leave point.
+ * @param to - pinned arrive point.
+ * @param fromSide - leave side.
+ * @param toSide - arrive side.
+ */
+export function complementaryElbow(
+  from: Point,
+  to: Point,
+  fromSide: CardinalSide,
+  toSide: CardinalSide,
+): Point[] | undefined {
+  if (Math.abs(from.x - to.x) < AXIS_EPS && Math.abs(from.y - to.y) < AXIS_EPS) {
+    return [from, to]
+  }
+  if (isVerticalSide(fromSide) && isHorizontalSide(toSide)) {
+    // Leave along ±Y, arrive along ±X → corner (from.x, to.y).
+    if (Math.abs(from.x - to.x) < AXIS_EPS || Math.abs(from.y - to.y) < AXIS_EPS) {
+      return [from, to]
+    }
+    return [from, { x: from.x, y: to.y }, to]
+  }
+  if (isHorizontalSide(fromSide) && isVerticalSide(toSide)) {
+    // Leave along ±X, arrive along ±Y → corner (to.x, from.y).
+    if (Math.abs(from.x - to.x) < AXIS_EPS || Math.abs(from.y - to.y) < AXIS_EPS) {
+      return [from, to]
+    }
+    return [from, { x: to.x, y: from.y }, to]
+  }
+  return undefined
+}
 
 /**
  * Ensure every consecutive pair shares x or y. Near-aligned points snap;

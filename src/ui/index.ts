@@ -3,6 +3,7 @@
  */
 
 export {
+  complementaryElbow,
   DEFAULT_H,
   DEFAULT_W,
   edgeAnchors,

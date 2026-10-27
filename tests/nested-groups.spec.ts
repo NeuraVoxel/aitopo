@@ -118,7 +118,7 @@ describe('Nested groups', () => {
     })).toThrow(/cycle/)
   })
 
-  it('ignores corridor waypoints while an endpoint is collapse-remapped', () => {
+  it('ignores non-complementary corridor waypoints while collapse-remapped', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,

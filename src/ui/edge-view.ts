@@ -161,14 +161,17 @@ export class EdgeView {
         toPt = points[points.length - 1]!
       }
     } else {
-      // Remapped member penetration: ignore authored waypoints so the path
-      // follows the live collapsed band. Explicit group endpoints keep bends.
+      // Remapped / group endpoints route from live boxes. Complementary anchors
+      // (e.g. bottom→right) get a relative two-segment elbow in bounds.ts.
+      // Non-complementary remaps still drop absolute corridor waypoints so an
+      // expanded layout elbow does not float off the collapsed card.
       const remapped = (fromEp.kind === 'node' && fromEp.remappedGroupId !== undefined)
         || (toEp.kind === 'node' && toEp.remappedGroupId !== undefined)
       const usesBoxRoute = fromEp.kind === 'group'
         || toEp.kind === 'group'
         || remapped
-      const waypoints = remapped ? undefined : edge.waypoints
+      const complementary = isComplementaryAnchorPair(edge.fromAnchor, edge.toAnchor)
+      const waypoints = remapped && !complementary ? undefined : edge.waypoints
       if (usesBoxRoute) {
         const anchors = edgeAnchorsFromRects(fromBox, toBox, waypoints, hints)
         fromPt = anchors.from
@@ -321,6 +324,29 @@ export class EdgeView {
 function clampAlpha(value: number | undefined): number {
   if (value === undefined || Number.isNaN(value)) return 1
   return Math.min(1, Math.max(0, value))
+}
+
+function isVerticalAnchor(
+  side: import('../protocol/types.ts').GraphEdge['fromAnchor'],
+): boolean {
+  return side === 'top' || side === 'bottom'
+}
+
+function isHorizontalAnchor(
+  side: import('../protocol/types.ts').GraphEdge['fromAnchor'],
+): boolean {
+  return side === 'left' || side === 'right'
+}
+
+/** True when leave/arrive sides are orthogonal (one V, one H). */
+function isComplementaryAnchorPair(
+  from: import('../protocol/types.ts').GraphEdge['fromAnchor'],
+  to: import('../protocol/types.ts').GraphEdge['toAnchor'],
+): boolean {
+  if (from === undefined || to === undefined) return false
+  if (from === 'radial' || to === 'radial') return false
+  return (isVerticalAnchor(from) && isHorizontalAnchor(to))
+    || (isHorizontalAnchor(from) && isVerticalAnchor(to))
 }
 
 function syncAttachments(
