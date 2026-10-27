@@ -8,7 +8,7 @@ Agents already have a strong HTML/SVG diagram skill (`diagram-design`) for forty
 
 ## Decision
 
-Ship an installable **topo-diagram** skill under `.agents/skills/topo-diagram/`: style-guide + type routing + GraphDocument dialect + vendored `aitopo` IIFE (`assets/aitopo.iife.js`, global `Aitopo`) + minimal host template. Structure/flow diagrams use the engine; statistical/geometric types use an in-skill SVG/HTML subset (or defer to `diagram-design`). Consumers install by copying the skill tree. Rebuild the IIFE with `pnpm run bundle:topo-diagram-skill`.
+Ship an installable **topo-diagram** skill under `.agents/skills/topo-diagram/`: style-guide + type routing + GraphDocument dialect + vendored `aitopo` IIFE (`assets/aitopo.iife.js`, global `Aitopo`) + minimal host template. Structure/flow diagrams use the engine; statistical/geometric types use an in-skill SVG/HTML subset (or defer to `diagram-design`). Consumers install / symlink the skill once; diagram folders emit **JSON + HTML only** and load the shared `assets/` runtime ([shared runtime](../architecture/2026-10-27-topo-shared-runtime.md)). Rebuild the IIFE with `pnpm run bundle:topo-diagram-skill`.
 
 ### Intent
 

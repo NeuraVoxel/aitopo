@@ -15,7 +15,7 @@ import {
   nodeBounds,
   ViewSet,
 } from '../ui/index.ts'
-import { computeGroupBandBounds } from '../ui/group-state.ts'
+import { computeGroupBandBounds, listDescendantNodeIds } from '../ui/group-state.ts'
 import {
   CreateEdgeInteraction,
   DeleteEdgeInteraction,
@@ -863,14 +863,20 @@ export class Network {
       return
     }
     // Capture old geometry before membership sync drops removed Views.
+    // Group expand/collapse remaps agent edges; capture those paths even when
+    // collectPatchDirty only listed the group id (no memberMoves).
     const oldRects: Rect[] = []
     for (const id of peek.ids) {
       const nodeView = this.views.getNode(id)
       if (nodeView?.isActive === true) oldRects.push(growRect(nodeView.bounds, 8))
       const edgeView = this.views.getEdge(id)
       if (edgeView?.isActive === true) oldRects.push(growRect(edgeView.bounds, 8))
-      const groupView = this.views.getGroup(id)
-      if (groupView?.isActive === true) oldRects.push(growRect(groupView.bounds, 8))
+      if (this.scene.groups.has(id)) {
+        for (const rect of this.captureGroupTopologyRects(id)) oldRects.push(rect)
+      } else {
+        const groupView = this.views.getGroup(id)
+        if (groupView?.isActive === true) oldRects.push(growRect(groupView.bounds, 8))
+      }
     }
     this.views.sync(this.scene)
     for (const id of peek.ids) {
@@ -900,9 +906,36 @@ export class Network {
         this.dirty.add(growRect(edgeView.bounds, 8))
         continue
       }
+      if (this.scene.groups.has(id)) {
+        for (const rect of this.captureGroupTopologyRects(id)) this.dirty.add(rect)
+        continue
+      }
       const groupView = this.views.getGroup(id)
       if (groupView?.isActive === true) this.dirty.add(growRect(groupView.bounds, 8))
     }
+  }
+
+  /**
+   * Group band + visible members + incident edges (agent-remap topology).
+   * Used so expand/collapse paints clear old cross-edge paths outside the band.
+   */
+  private captureGroupTopologyRects(groupId: string): Rect[] {
+    const rects: Rect[] = []
+    const groupView = this.views.getGroup(groupId)
+    if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
+    const group = this.scene.groups.get(groupId)
+    if (group === undefined) return rects
+    const members = new Set(listDescendantNodeIds(this.scene, group))
+    for (const memberId of members) {
+      const nodeView = this.views.getNode(memberId)
+      if (nodeView?.isActive === true) rects.push(growRect(nodeView.bounds, 8))
+    }
+    for (const edge of this.scene.edges.values()) {
+      if (!members.has(edge.from) && !members.has(edge.to)) continue
+      const edgeView = this.views.getEdge(edge.id)
+      if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
+    }
+    return rects
   }
 
   /** Schedule root + overlay paint (camera, content, drag filter). */

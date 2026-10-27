@@ -255,4 +255,57 @@ describe('paint channels', () => {
     expect(Array.isArray(dirty)).toBe(true)
     expect(renderer.sceneDraws).toBeGreaterThan(0)
   })
+
+  it('group collapse dirties remapped cross-edge geometry outside the band', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    // Expanded band ~[80,80]–[250,180]; external node far right so the cross
+    // edge leaves the band. Collapse only patches the group (no memberMoves).
+    network.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 100, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'b', type: 'unit', label: 'B', x: 200, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'c', type: 'unit', label: 'C', x: 520, y: 110, w: 50, h: 50 },
+      ],
+      edges: [{ id: 'cross', from: 'a', to: 'c', kind: 'flow' }],
+      groups: [{
+        id: 'g1',
+        label: 'G',
+        memberIds: ['a', 'b'],
+        expanded: true,
+        x: 80,
+        y: 80,
+      }],
+    })
+    host = document.createElement('div')
+    host.style.width = '700px'
+    host.style.height = '400px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+
+    network.toggleGroupExpanded('g1')
+    await flushFrames(2)
+
+    expect(renderer.beginDirties.length).toBeGreaterThan(0)
+    const dirty = renderer.beginDirties[0]
+    expect(dirty).not.toBe('overlay')
+    // Partial dirty must reach the far endpoint of the pre-collapse cross edge;
+    // band-only dirty (~x<280) would leave a stale stroke to C.
+    if (dirty === 'all') return
+    expect(Array.isArray(dirty)).toBe(true)
+    const rects = dirty as { x: number; y: number; width: number; height: number }[]
+    let minX = Infinity
+    let maxX = -Infinity
+    for (const r of rects) {
+      minX = Math.min(minX, r.x)
+      maxX = Math.max(maxX, r.x + r.width)
+    }
+    expect(maxX).toBeGreaterThan(450)
+  })
 })

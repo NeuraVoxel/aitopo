@@ -145,9 +145,20 @@
     }
 
     function setAllGroupsExpanded(expanded) {
+      // Prefer toggleGroupExpanded so collapse snapshots band geometry and the
+      // engine dirties remapped cross-edge paint (raw {expanded} alone skips that).
       var current = network.toJSON()
       var groups = current.groups || []
       if (groups.length === 0) return
+      if (typeof network.toggleGroupExpanded === 'function') {
+        for (var i = 0; i < groups.length; i++) {
+          var g = groups[i]
+          var isOpen = g.expanded === true
+          if (isOpen === expanded) continue
+          network.toggleGroupExpanded(g.id)
+        }
+        return
+      }
       network.apply({
         ops: groups.map(function (g) {
           return { op: 'updateGroup', id: g.id, patch: { expanded: expanded } }

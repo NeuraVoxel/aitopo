@@ -3,9 +3,30 @@
 ## Deliverables (topo)
 
 1. `diagram.graph.json` — valid `version: 1` document (dialect rules apply).
-2. `diagram.html` — copy `assets/host/index.html` pattern: embed JSON in `#diagram-data`, load `aitopo.iife.js` + `host.js`, call `TopoDiagramHost.bootFromPage(document)`.
+2. `diagram.html` — host chrome + embedded `#diagram-data`; call `TopoDiagramHost.bootFromPage(document)`.
 
-Ship `aitopo.iife.js` beside the page (relative `../aitopo.iife.js` from `assets/host/`, or adjust paths).
+### Shared runtime (default — do not vendor per diagram)
+
+Runtime JS lives **once** in the installed skill:
+
+`…/topo-diagram/assets/aitopo.iife.js`  
+`…/topo-diagram/assets/host/host.js`  
+`…/topo-diagram/assets/host/export-diagram.js`
+
+Product folders ship **only** JSON + HTML. Script `src` points at those shared files via a **relative href** from the diagram directory (compute with `scripts/runtime-href.mjs <diagram-dir>`).
+
+```html
+<script src="…/assets/aitopo.iife.js"></script>
+<script src="…/assets/host/export-diagram.js"></script>
+<script src="…/assets/host/host.js"></script>
+```
+
+| Do | Don't |
+|---|---|
+| Install / symlink the skill once per vault or repo | Copy `aitopo.iife.js` / `host.js` into every `*-topo/` folder |
+| Rebundle skill assets after engine changes | Hand-edit the IIFE; re-copy into diagrams |
+
+Skill-internal sample (`assets/host/index.html`) may keep sibling-relative paths for smoke tests. Optional portable zip still uses `runtime-href` or a one-off copy — not the default authoring path.
 
 ## Page chrome (default layout)
 

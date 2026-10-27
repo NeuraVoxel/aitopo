@@ -28,7 +28,7 @@ SVG-track and explicit **defer** remain valid for statistical/geometric or out-o
 2. **Pattern (optional)** — [`references/semantic-patterns.md`](references/semantic-patterns.md).
 3. **Route** — [`references/routing.md`](references/routing.md): `topo` | `svg` | `defer`.
 4. **Author**
-   - **topo:** follow [`references/dialect-graph-document.md`](references/dialect-graph-document.md); emit JSON + HTML per [`references/host.md`](references/host.md). Start from `assets/host/`.
+   - **topo:** follow [`references/dialect-graph-document.md`](references/dialect-graph-document.md); emit **only** `diagram.graph.json` + `diagram.html` per [`references/host.md`](references/host.md). Point script tags at the **shared** skill `assets/` (use `scripts/runtime-href.mjs`); do **not** copy `aitopo.iife.js` / `host.js` into the diagram folder.
    - **svg:** self-contained HTML using style-guide CSS variables; see `assets/svg/quadrant.example.html`.
    - **defer:** one-sentence refusal + fallback name.
 5. **Stop** when nothing else can be removed (density ~4/10).
@@ -42,7 +42,7 @@ SVG-track and explicit **defer** remain valid for statistical/geometric or out-o
 - Nested groups allowed (`parentId` + child id in parent `memberIds`); prefer ≤1 nesting level. SubNetwork supports a stack (root → child → …); prefer shallow depth.
 - Stock host **default** = pan/zoom + drag-move (basic). ⋯ → **Edit mode** adds bend handles, resize, Alt+drag create, Delete edge. Copy/Download JSON use `toRootJSON()` (full live document). ⋯ also exports Excalidraw / draw.io / PNG / SVG via `assets/host/export-diagram.js`.
 - Host may only use pinned `Aitopo` symbols listed in `references/host.md`.
-- Rebuild the bundle from the aitopo repo: `pnpm run bundle:topo-diagram-skill` — never hand-edit `assets/aitopo.iife.js`.
+- Rebuild the bundle from the aitopo repo: `pnpm run bundle:topo-diagram-skill` — never hand-edit `assets/aitopo.iife.js`. Downstream pages share that asset tree; rebundling updates all diagrams that link to it.
 
 ## When not to use
 

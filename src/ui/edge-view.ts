@@ -167,11 +167,13 @@ export class EdgeView {
         toPt = points[points.length - 1]!
       }
     } else {
-      // Keep authored waypoints (corridors that avoid occlusion). Remapped ends
-      // still use them; edgeAnchorsFromRects orthogonalizes any diagonal segment.
-      const anchors = (fromCollapsed !== undefined || toCollapsed !== undefined)
-        ? edgeAnchorsFromRects(fromBox, toBox, edge.waypoints, hints)
-        : edgeAnchors(from, to, edge.waypoints, hints)
+      // Collapse remap: ignore authored waypoints so the path follows the new
+      // band→peer layout (document waypoints stay for when both ends are visible).
+      const remapped = fromCollapsed !== undefined || toCollapsed !== undefined
+      const waypoints = remapped ? undefined : edge.waypoints
+      const anchors = remapped
+        ? edgeAnchorsFromRects(fromBox, toBox, waypoints, hints)
+        : edgeAnchors(from, to, waypoints, hints)
       fromPt = anchors.from
       toPt = anchors.to
       orientation = anchors.orientation

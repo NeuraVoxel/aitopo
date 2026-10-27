@@ -4,6 +4,7 @@
 
 import type { Point } from '../geom.ts'
 import { edgeAnchors } from '../ui/bounds.ts'
+import type { GraphGroup, GraphNode } from '../protocol/types.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
 const HANDLE_SIZE = 10
@@ -42,6 +43,11 @@ export class MoveEdgeBendInteraction implements Interaction {
       const from = network.getNode(edge.from)
       const to = network.getNode(edge.to)
       if (from === undefined || to === undefined) return []
+      // Collapsed remap paints auto-orthogonal without document waypoints; hide
+      // handles so old corridor control points do not float on the expanded layout.
+      if (endpointUnderCollapsedGroup(network, from) || endpointUnderCollapsedGroup(network, to)) {
+        return []
+      }
       const route = edgeAnchors(from, to, edge.waypoints)
       if (route.points.length < 3) return []
       return route.points.slice(1, -1).map(p => ({ x: p.x, y: p.y }))
@@ -163,6 +169,18 @@ export class MoveEdgeBendInteraction implements Interaction {
       removeChrome()
     }
   }
+}
+
+/** True when the node sits under a collapsed group (agent-link remap active). */
+function endpointUnderCollapsedGroup(network: InteractionHost, node: GraphNode): boolean {
+  let group: GraphGroup | undefined = node.groupId !== undefined
+    ? network.getGroup(node.groupId)
+    : network.getGroups().find(g => g.memberIds.includes(node.id))
+  while (group !== undefined) {
+    if (group.expanded !== true) return true
+    group = group.parentId !== undefined ? network.getGroup(group.parentId) : undefined
+  }
+  return false
 }
 
 /**

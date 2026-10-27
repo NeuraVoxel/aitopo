@@ -118,7 +118,7 @@ describe('Nested groups', () => {
     })).toThrow(/cycle/)
   })
 
-  it('keeps corridor waypoints on collapse remap and orthogonalizes diagonals', () => {
+  it('ignores corridor waypoints while an endpoint is collapse-remapped', () => {
     const scene = new GraphScene()
     scene.load({
       version: 1,
@@ -132,7 +132,7 @@ describe('Nested groups', () => {
         to: 'inner',
         fromAnchor: 'left',
         toAnchor: 'right',
-        // Corridor south of the nodes — must survive collapse remapping.
+        // Authored for the expanded layout — must not drive the collapsed path.
         waypoints: [{ x: 300, y: 300 }, { x: 180, y: 300 }],
       }],
       groups: [{
@@ -150,11 +150,16 @@ describe('Nested groups', () => {
     views.rebuild(scene)
     views.validateDirty(scene)
     const pts = views.getEdge('e')!.points
-    expect(pts.some(p => p.y === 300)).toBe(true)
+    expect(pts.some(p => p.y === 300)).toBe(false)
     for (let i = 1; i < pts.length; i += 1) {
       const a = pts[i - 1]!
       const b = pts[i]!
       expect(a.x === b.x || a.y === b.y).toBe(true)
     }
+    // Document waypoints remain for when the group expands again.
+    expect(scene.edges.get('e')!.waypoints).toEqual([
+      { x: 300, y: 300 },
+      { x: 180, y: 300 },
+    ])
   })
 })
