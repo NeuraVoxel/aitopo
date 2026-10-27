@@ -29,6 +29,7 @@ export {
   listDescendantGroupIds,
   listDescendantNodeIds,
   listGroupMembers,
+  listOwningGroupChain,
   type MemberBoundsResolver,
   memberUnionBounds,
   parentGroupOf,

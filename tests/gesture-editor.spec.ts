@@ -174,6 +174,44 @@ describe('GestureEditor', () => {
       expect(containsPoint(union!, corner)).toBe(true)
     }
   })
+
+  it('preview move dirties group-endpoint edge old and new paths', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 100, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'out', type: 'unit', label: 'Out', x: 400, y: 100, w: 50, h: 50 },
+      ],
+      edges: [{ id: 'eg', from: 'g1', to: 'out' }],
+      groups: [
+        { id: 'g1', label: 'G1', memberIds: ['a'], x: 84, y: 84, expanded: true },
+      ],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const before = views.getEdge('eg')!.points.map(p => ({ ...p }))
+    const dirty = new DirtyAccumulator()
+    const editor = new GestureEditor({
+      scene,
+      views,
+      dirty,
+      scheduleScenePaint: vi.fn(),
+      apply: vi.fn(),
+      emit: vi.fn(),
+    })
+
+    editor.previewNodePosition('a', 100, 280)
+
+    const after = views.getEdge('eg')!.points
+    expect(after[0]!.y).toBeGreaterThan(before[0]!.y)
+    const union = dirty.rect
+    expect(union).toBeDefined()
+    for (const point of [...before, ...after]) {
+      expect(containsPoint(union!, point)).toBe(true)
+    }
+  })
 })
 
 function containsPoint(

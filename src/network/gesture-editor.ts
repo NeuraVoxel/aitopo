@@ -6,7 +6,10 @@ import { growRect, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
-import { expandCollapseCenterPatches } from '../ui/group-state.ts'
+import {
+  expandCollapseCenterPatches,
+  listOwningGroupChain,
+} from '../ui/group-state.ts'
 import type { DirtyAccumulator } from './dirty.ts'
 import type { ViewSet } from '../ui/view-set.ts'
 
@@ -471,24 +474,24 @@ export class GestureEditor {
     const rects: Rect[] = []
     const nodeView = this.deps.views.getNode(nodeId)
     if (nodeView?.isActive === true) rects.push(growRect(nodeView.bounds, 8))
+    const groupIds = new Set(listOwningGroupChain(this.deps.scene, nodeId))
     for (const edge of this.deps.scene.edges.values()) {
-      if (edge.from !== nodeId && edge.to !== nodeId) continue
+      if (
+        edge.from !== nodeId
+        && edge.to !== nodeId
+        && !groupIds.has(edge.from)
+        && !groupIds.has(edge.to)
+      ) continue
       const edgeView = this.deps.views.getEdge(edge.id)
       if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
     }
     return rects
   }
 
-  /** Bounds of every group view the node belongs to (`groupId` ∪ `memberIds`). */
+  /** Bounds of owning groups and ancestors (auto-fit chain). */
   private captureNodeGroupRects(nodeId: string): Rect[] {
-    const node = this.deps.scene.nodes.get(nodeId)
-    const ids = new Set<string>()
-    if (node?.groupId !== undefined) ids.add(node.groupId)
-    for (const group of this.deps.scene.groups.values()) {
-      if (group.memberIds.includes(nodeId)) ids.add(group.id)
-    }
     const rects: Rect[] = []
-    for (const id of ids) {
+    for (const id of listOwningGroupChain(this.deps.scene, nodeId)) {
       const groupView = this.deps.views.getGroup(id)
       if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
     }

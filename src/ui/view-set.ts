@@ -7,7 +7,11 @@ import type { GraphScene } from '../model/scene.ts'
 import type { GraphNode } from '../protocol/types.ts'
 import { nodeBounds } from './bounds.ts'
 import { EdgeView } from './edge-view.ts'
-import { listDescendantGroupIds, listDescendantNodeIds } from './group-state.ts'
+import {
+  listDescendantGroupIds,
+  listDescendantNodeIds,
+  listOwningGroupChain,
+} from './group-state.ts'
 import { GroupView } from './group-view.ts'
 import { NodeView } from './node-view.ts'
 
@@ -63,7 +67,8 @@ export class ViewSet {
 
   /**
    * Mark a node and every incident edge dirty after a geometry move.
-   * Also dirties the owning group so auto-fit bands recompute.
+   * Also dirties owning groups (and ancestors) so auto-fit bands recompute,
+   * plus edges whose endpoints are those group ids.
    * @param scene - active graph scene.
    * @param nodeId - moved node id.
    */
@@ -74,13 +79,12 @@ export class ViewSet {
         this.edges.get(edge.id)?.markDirty()
       }
     }
-    const node = scene.nodes.get(nodeId)
-    if (node?.groupId !== undefined) {
-      this.groups.get(node.groupId)?.markDirty()
-    }
-    for (const group of scene.groups.values()) {
-      if (group.memberIds.includes(nodeId)) {
-        this.groups.get(group.id)?.markDirty()
+    for (const groupId of listOwningGroupChain(scene, nodeId)) {
+      this.groups.get(groupId)?.markDirty()
+      for (const edge of scene.edges.values()) {
+        if (edge.from === groupId || edge.to === groupId) {
+          this.edges.get(edge.id)?.markDirty()
+        }
       }
     }
   }

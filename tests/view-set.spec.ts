@@ -41,6 +41,37 @@ describe('ViewSet', () => {
     expect(views.getNode('a')!.bounds.x).toBe(50)
   })
 
+  it('markNodeGeometryDirty refreshes group-endpoint edges when a member moves', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'agent', label: 'A', x: 100, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'b', type: 'agent', label: 'B', x: 200, y: 100, w: 50, h: 50, groupId: 'g1' },
+        { id: 'out', type: 'agent', label: 'Out', x: 400, y: 100, w: 50, h: 50 },
+      ],
+      edges: [{ id: 'eg', from: 'g1', to: 'out' }],
+      groups: [{
+        id: 'g1',
+        label: 'G',
+        memberIds: ['a', 'b'],
+        expanded: true,
+        x: 80,
+        y: 80,
+      }],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    const edge = views.getEdge('eg')!
+    const fromBefore = edge.points[0]!
+    scene.writePositions({ a: { x: 100, y: 250 } })
+    views.markNodeGeometryDirty(scene, 'a')
+    views.validateDirty(scene)
+    const fromAfter = edge.points[0]!
+    expect(fromAfter.y).toBeGreaterThan(fromBefore.y)
+  })
+
   it('validate is idempotent until markDirty', () => {
     const scene = loadScene()
     const views = new ViewSet()

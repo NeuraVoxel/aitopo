@@ -34,6 +34,12 @@ describe('demo sample registry', () => {
       expect(count).toBeLessThanOrEqual(15)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
     }
+    const edge = parseDocument(getSample('edge')!.document)
+    expect(edge.groups?.[0]?.id).toBe('band')
+    expect(edge.groups?.[0]?.expanded).toBe(true)
+    expect(edge.edges.some(e => e.from === 'a' && e.to === 'b')).toBe(true)
+    expect(edge.edges.some(e => e.from === 'a' && e.to === 'out')).toBe(true)
+    expect(edge.edges.some(e => e.from === 'band' && e.to === 'out')).toBe(true)
     const group = parseDocument(getSample('group')!.document)
     expect(group.groups?.[0]?.expanded).toBe(true)
     expect(group.groups?.map(g => g.id).sort()).toEqual(['band', 'band2'])

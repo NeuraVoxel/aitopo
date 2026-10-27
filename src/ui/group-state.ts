@@ -62,6 +62,22 @@ export function findGroupForNode(scene: GraphScene, nodeId: string): GraphGroup 
 }
 
 /**
+ * Owning group id then each ancestor via `parentId` (inner → outer).
+ * Used when member geometry changes so auto-fit bands and group-endpoint edges refresh.
+ * @param scene - live scene.
+ * @param nodeId - node id.
+ */
+export function listOwningGroupChain(scene: GraphScene, nodeId: string): readonly string[] {
+  const ids: string[] = []
+  let group = findGroupForNode(scene, nodeId)
+  while (group !== undefined) {
+    ids.push(group.id)
+    group = parentGroupOf(scene, group)
+  }
+  return ids
+}
+
+/**
  * Nearest collapsed ancestor group containing the node (walks `parentId`).
  * @param scene - live scene.
  * @param nodeId - node id.
