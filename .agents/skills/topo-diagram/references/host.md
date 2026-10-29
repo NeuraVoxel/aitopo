@@ -101,14 +101,14 @@ Load `export-diagram.js` before `host.js`. Structural exporters approximate orth
 
 **⋯** menu is grouped (separator + section label):
 
-1. **View** — Fit view · Expand all · Collapse all  
+1. **View** — Fit view · **Fullscreen** (checkbox) · Expand all · Collapse all  
 2. **Edit** — Edit mode (checkbox, **off by default**)  
 3. **Export** — PNG · SVG · Excalidraw · draw.io · Copy JSON · Download JSON  
 4. **Reset**
 
-Outside click or Escape closes. Edit toggle keeps the menu open so the checkmark is visible.
+Outside click or Escape closes the menu. Edit / Fullscreen toggles keep the menu open so the checkmark is visible. Fullscreen uses the Page Fullscreen API on `document.documentElement` (top bar + canvas); the host refits the Network after enter/exit. Escape also exits browser fullscreen.
 
-Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-edit`, `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`. Use `.toolbar-menu-sep` / `.toolbar-menu-label` for grouping.
+Wire ids: `#toolbar`, `#btn-toolbar-toggle`, `#toolbar-menu`, `#btn-fit`, `#btn-fullscreen`, `#btn-edit`, `#btn-export-excalidraw`, `#btn-export-drawio`, `#btn-export-png`, `#btn-export-svg`, plus the action buttons above. Optional chrome: `#page-title`, `#page-eyebrow`, `#legend`. Use `.toolbar-menu-sep` / `.toolbar-menu-label` for grouping.
 
 No property panel, no Undo UI in v1.
 

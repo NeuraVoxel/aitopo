@@ -248,6 +248,7 @@
     var ledeEl = byId('page-lede')
     var ledeMoreEl = byId('page-lede-more')
     var fitBtn = byId('btn-fit')
+    var fullscreenBtn = byId('btn-fullscreen')
     var expandBtn = byId('btn-expand')
     var collapseBtn = byId('btn-collapse')
     var editBtn = byId('btn-edit')
@@ -298,7 +299,11 @@
       var parts = summary.split('\n')
       var line1 = (parts[0] || '').trim()
       var line2 = parts.slice(1).join('\n').trim()
-      if (ledeEl) ledeEl.textContent = line1
+      if (ledeEl) {
+        ledeEl.textContent = line1
+        if (line1) ledeEl.removeAttribute('hidden')
+        else ledeEl.setAttribute('hidden', '')
+      }
       if (ledeMoreEl) {
         ledeMoreEl.textContent = line2
         if (line2) ledeMoreEl.removeAttribute('hidden')
@@ -332,8 +337,45 @@
       }
     }
 
+    function fullscreenElement() {
+      return document.fullscreenElement || document.webkitFullscreenElement || null
+    }
+
+    function syncFullscreenChrome() {
+      var on = fullscreenElement() != null
+      if (fullscreenBtn) {
+        fullscreenBtn.setAttribute('aria-checked', on ? 'true' : 'false')
+        fullscreenBtn.classList.toggle('is-checked', on)
+        fullscreenBtn.textContent = on ? 'Fullscreen ✓' : 'Fullscreen'
+      }
+      if (toolbar) toolbar.classList.toggle('is-fullscreen', on)
+    }
+
+    function requestPageFullscreen() {
+      var root = document.documentElement
+      var req = root.requestFullscreen || root.webkitRequestFullscreen
+      if (typeof req !== 'function') return Promise.reject(new Error('Fullscreen API unavailable'))
+      return Promise.resolve(req.call(root))
+    }
+
+    function exitPageFullscreen() {
+      var exit = document.exitFullscreen || document.webkitExitFullscreen
+      if (typeof exit !== 'function') return Promise.reject(new Error('Fullscreen API unavailable'))
+      return Promise.resolve(exit.call(document))
+    }
+
+    function refitAfterFullscreen() {
+      global.requestAnimationFrame(function () {
+        host.fitIfSizeChanged()
+        global.requestAnimationFrame(function () {
+          host.fitIfSizeChanged()
+        })
+      })
+    }
+
     applyChrome(rootMeta)
     syncEditChrome()
+    syncFullscreenChrome()
 
     if (typeof host.network.on === 'function') {
       host.network.on(function (event) {
@@ -372,6 +414,30 @@
     }
 
     if (fitBtn) fitBtn.addEventListener('click', runAndClose(function () { host.fitContent() }))
+    if (fullscreenBtn) {
+      var canFullscreen = typeof (document.documentElement.requestFullscreen
+        || document.documentElement.webkitRequestFullscreen) === 'function'
+      if (!canFullscreen) {
+        fullscreenBtn.disabled = true
+        fullscreenBtn.title = 'Fullscreen is not supported in this browser'
+      } else {
+        fullscreenBtn.addEventListener('click', function () {
+          var toggle = fullscreenElement() != null ? exitPageFullscreen() : requestPageFullscreen()
+          toggle.catch(function (err) {
+            console.error(err)
+          })
+          // Keep menu open so the checkmark is visible; outside click still closes.
+        })
+      }
+    }
+    document.addEventListener('fullscreenchange', function () {
+      syncFullscreenChrome()
+      refitAfterFullscreen()
+    })
+    document.addEventListener('webkitfullscreenchange', function () {
+      syncFullscreenChrome()
+      refitAfterFullscreen()
+    })
     if (expandBtn) expandBtn.addEventListener('click', runAndClose(function () { host.setAllGroupsExpanded(true) }))
     if (collapseBtn) collapseBtn.addEventListener('click', runAndClose(function () { host.setAllGroupsExpanded(false) }))
     if (editBtn) {
