@@ -132,6 +132,20 @@ Skill default is a **regular orthogonal grid**, not freeform scatter.
 | Density | ~4/10; prefer ≤9 root nodes — extra detail → SubNetwork portal, not more root edges |
 | Coordinates | Prefer explicit `x` / `y`. Else host may call `network.layout('grid' \| 'flowColumns')` after load |
 
+### Group stacking (padding-aware — hard rule)
+
+Engine Group chrome is **larger than the member AABB**. Expanded groups use `paddingTop` (title clearance, often 44–52) + `padding` / `paddingLeft` / `paddingRight` (often 24–36). **Do not space Groups by member `y` alone** — that is the usual cause of “Group overlap”.
+
+| Step | Practice |
+|---|---|
+| 1. Chrome box | For each group: `top = min(member.y) - paddingTop`, `bottom = max(member.y+h) + padding`, likewise for x with L/R padding |
+| 2. Gutter | Adjacent **chrome boxes** need ≥ **80–100px** gap (horizontal or vertical). Node-to-node gap of one `dy` is not enough if paddings eat it |
+| 3. Stack formula | Next band first member `y ≥ prev_chrome_bottom + gutter + next_paddingTop` |
+| 4. Verify | After emit, check pairwise chrome boxes for intersection; fix before syncing HTML |
+| 5. Not an engine bug | aitopo draws groups from members + style padding; overlapping chrome means authoring math was node-only |
+
+When generating multi-group pages (三问列、流程图分段、顶栏+底栏), compute positions from chrome boxes first, then place members inside.
+
 **Stop** when removing one more edge or aligning one more node would not improve scanability.
 
 ## meta.kind
