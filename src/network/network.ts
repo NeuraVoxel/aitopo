@@ -114,6 +114,16 @@ export class Network {
   private interactionModules: Interaction[] = []
   /** Last `setEditing` value; null until the host calls `setEditing`. */
   private editingEnabled: boolean | null = null
+  /**
+   * Parent cameras pushed on each `enterSubNetwork`, popped on `exitSubNetwork`
+   * so exit restores zoom / pan from before that enter (aligned with stack depth).
+   */
+  private readonly cameraStack: GraphViewport[] = []
+  /**
+   * Last camera while inside each SubNetwork path (stack ids joined), saved on
+   * exit and restored on a later enter of the same path.
+   */
+  private readonly cameraByPath = new Map<string, GraphViewport>()
 
   constructor(options: NetworkOptions = {}) {
     this.options = options
@@ -161,6 +171,8 @@ export class Network {
    * @param input - GraphDocument or unknown JSON.
    */
   load(input: unknown): void {
+    this.cameraStack.length = 0
+    this.cameraByPath.clear()
     this.scene.load(input)
     this.views.rebuild(this.scene)
     this.views.validateDirty(this.scene)
@@ -300,32 +312,75 @@ export class Network {
 
   /**
    * Enter a child of the current document (`networks[id]`); stack may go deeper than one level.
+   * Pushes the current camera so a later {@link exitSubNetwork} can restore zoom / pan.
+   * If this stack path was visited before, restores the camera saved on the last exit.
    * @param id - network id under the active document.
    */
   enterSubNetwork(id: string): void {
+    const cam = this.viewport.state
+    this.cameraStack.push({ x: cam.x, y: cam.y, zoom: cam.zoom })
     this.scene.enterSubNetwork(id)
     this.views.rebuild(this.scene)
     this.views.validateDirty(this.scene)
+    const saved = this.cameraByPath.get(networkPathKey(this.scene.networkStack))
+    const cameraRestored = saved !== undefined
+    if (saved !== undefined) {
+      this.viewport.setCamera(saved)
+      this.scene.setCamera(saved)
+      this.emit({
+        type: 'viewportChanged',
+        viewport: { x: saved.x, y: saved.y, zoom: saved.zoom },
+      })
+    } else {
+      // First visit: do not keep the parent zoom/pan. Fit when the view has a
+      // real size (skip the 1×1 pre-mount default so headless callers stay put).
+      // Hosts may still re-fit with their own padding / fitScale after the event.
+      const { width, height } = this.viewport.state
+      if (width > 1 && height > 1) this.fitContent()
+    }
     this.dirty.markAll()
     this.scheduleScenePaint()
     this.emit({
       type: 'subNetworkChanged',
       activeNetworkId: this.scene.currentNetworkId,
       stack: this.scene.networkStack,
+      direction: 'enter',
+      cameraRestored,
     })
   }
 
-  /** Pop one SubNetwork level (emits stack tip, or null at root). */
+  /**
+   * Pop one SubNetwork level: save the current (child) camera for a later re-enter,
+   * then restore the parent camera from before that enter.
+   */
   exitSubNetwork(): void {
+    const leavingPath = networkPathKey(this.scene.networkStack)
+    const childCam = this.viewport.state
+    this.cameraByPath.set(leavingPath, {
+      x: childCam.x,
+      y: childCam.y,
+      zoom: childCam.zoom,
+    })
     this.scene.exitSubNetwork()
     this.views.rebuild(this.scene)
     this.views.validateDirty(this.scene)
+    const restored = this.cameraStack.pop()
+    if (restored !== undefined) {
+      this.viewport.setCamera(restored)
+      this.scene.setCamera(restored)
+      this.emit({
+        type: 'viewportChanged',
+        viewport: { x: restored.x, y: restored.y, zoom: restored.zoom },
+      })
+    }
     this.dirty.markAll()
     this.scheduleScenePaint()
     this.emit({
       type: 'subNetworkChanged',
       activeNetworkId: this.scene.currentNetworkId,
       stack: this.scene.networkStack,
+      direction: 'exit',
+      cameraRestored: false,
     })
   }
 
@@ -1080,4 +1135,9 @@ export function contentBounds(scene: GraphScene): Rect | undefined {
       : groupBounds(group))
   }
   return bounds
+}
+
+/** Stable key for a SubNetwork stack path (enter/exit camera memory). */
+function networkPathKey(stack: readonly string[]): string {
+  return stack.join('\0')
 }

@@ -48,6 +48,13 @@ export interface SubNetworkChangedEvent {
   readonly type: 'subNetworkChanged'
   readonly activeNetworkId: string | null
   readonly stack: readonly string[]
+  /** Whether this event is a drill-in or a pop. */
+  readonly direction: 'enter' | 'exit'
+  /**
+   * True when enter restored a previously saved camera for this stack path
+   * (hosts should skip fitContent). Always false on exit.
+   */
+  readonly cameraRestored: boolean
 }
 
 /** Durable document fields changed (optional host notification). */

@@ -30,3 +30,7 @@ Unified topo can nest `net-lake-arch` and keep `apps-platforms` / `lake-layers` 
 ## Testing
 
 `tests/scene-graph.spec.ts`: nested enter/exit, nested apply survives round-trip, missing id and cycle throw. Prior single-level enter/exit and `select-activate` navigation still pass.
+
+## Related
+
+Camera restore on exit: [exit SubNetwork restores pre-enter camera](./2026-10-30-subnetwork-restore-camera.md).

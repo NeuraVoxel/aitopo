@@ -44,7 +44,7 @@ Canvas (`#canvas`) fills the remaining viewport; `boot` fits content by default 
 
 **Boot framing (no flicker):** `#canvas` stays `opacity: 0` until the first double-rAF fit completes, then reveals. `ResizeObserver` only refits after that reveal and only when `clientWidth` / `clientHeight` actually changed — so the deferred mount observe does not repaint after the first framed frame.
 
-**SubNetwork framing:** `boot` listens for `subNetworkChanged` and re-runs the same fit schedule so enter/exit does not keep the parent camera. `bootFromPage` also refreshes topbar chrome from the active `meta`.
+**SubNetwork framing (not enter+exit fit):** do **not** call `fitContent` on every `subNetworkChanged`. Engine fits on first enter when the view is sized; host `boot` re-fits **only** when `direction === "enter" && cameraRestored !== true` (applies skill `fitScale`). Exit restores the pre-enter parent camera; re-enter restores the last in-child camera — host must not fit on those. After those navigations the host adopts the post-chrome canvas size into `lastFitW`/`lastFitH` so a topbar reflow `ResizeObserver` does not treat the height change as a window resize and fit again. `bootFromPage` also refreshes topbar chrome from the active `meta`.
 
 ## Pinned global `Aitopo` symbols
 

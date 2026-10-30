@@ -119,10 +119,26 @@
 
     scheduleFit()
 
-    // Reframe when entering / leaving a SubNetwork (camera otherwise stays on the parent).
+    // SubNetwork: fit only on first enter (apply fitScale). Never fit on exit
+    // or on re-enter when the engine restored a saved camera.
+    // chromeFromActive may change topbar height and fire ResizeObserver — adopt
+    // the new canvas size without fitting so RO does not undo camera restore.
+    function adoptCanvasSizeWithoutFit() {
+      global.requestAnimationFrame(function () {
+        global.requestAnimationFrame(function () {
+          lastFitW = container.clientWidth
+          lastFitH = container.clientHeight
+        })
+      })
+    }
     if (typeof network.on === 'function') {
       network.on(function (event) {
-        if (event && event.type === 'subNetworkChanged') scheduleFit()
+        if (!event || event.type !== 'subNetworkChanged') return
+        if (event.direction === 'enter' && event.cameraRestored !== true) {
+          scheduleFit()
+          return
+        }
+        adoptCanvasSizeWithoutFit()
       })
     }
 
