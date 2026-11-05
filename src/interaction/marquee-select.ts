@@ -1,15 +1,15 @@
 /**
- * Shift+empty-space drag: marquee select by intersecting node bounds.
+ * Shift or Ctrl/Cmd + empty-space drag: marquee select by node / group / edge bounds.
  */
 
-import { intersectsRect, type Rect } from '../geom.ts'
+import { containsRect, intersectsRect, type Point, type Rect } from '../geom.ts'
 import { nodeBounds } from '../ui/bounds.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
 const DRAG_THRESHOLD_PX = 4
 
 /** Normalize a drag start→current pair into a positive-size world rect. */
-function rectFromPoints(a: { x: number; y: number }, b: { x: number; y: number }): Rect {
+function rectFromPoints(a: Point, b: Point): Rect {
   const x = Math.min(a.x, b.x)
   const y = Math.min(a.y, b.y)
   return {
@@ -21,12 +21,28 @@ function rectFromPoints(a: { x: number; y: number }, b: { x: number; y: number }
 }
 
 /**
- * Marquee selection: Shift+primary drag on empty space.
- * Unmodified empty drag stays with PanZoom. Locked nodes may be selected.
+ * twaver DefaultInteraction: drag up-and-left → contain; otherwise intersect.
+ * @param start - pointer-down world point.
+ * @param end - pointer-up world point.
+ */
+function useIntersectMode(start: Point, end: Point): boolean {
+  return !(start.x > end.x && start.y > end.y)
+}
+
+function matchesBand(band: Rect, target: Rect, intersect: boolean): boolean {
+  return intersect ? intersectsRect(band, target) : containsRect(band, target)
+}
+
+/**
+ * Marquee selection: Shift or Ctrl/Cmd + primary drag on empty space.
+ * Unmodified empty drag stays with PanZoom. Locked elements may be selected.
+ *
+ * - Shift-only start → replace selection with matches.
+ * - Ctrl/Cmd start (with or without Shift) → XOR matches into selection.
  */
 export class MarqueeSelectInteraction implements Interaction {
   /**
-   * Attach pointer listeners for Shift-marquee select.
+   * Attach pointer listeners for marquee select.
    * @param network - host network.
    * @returns disposer.
    */
@@ -36,6 +52,8 @@ export class MarqueeSelectInteraction implements Interaction {
 
     let active = false
     let dragged = false
+    /** True when the gesture began with Ctrl/Cmd (XOR; do not clear first). */
+    let xorMode = false
     let startClientX = 0
     let startClientY = 0
     let startWorld = { x: 0, y: 0 }
@@ -47,6 +65,7 @@ export class MarqueeSelectInteraction implements Interaction {
     const reset = (): void => {
       active = false
       dragged = false
+      xorMode = false
       capturedPointerId = null
     }
 
@@ -85,8 +104,28 @@ export class MarqueeSelectInteraction implements Interaction {
       reset()
     }
 
+    const collectHits = (band: Rect, intersect: boolean): string[] => {
+      const ids: string[] = []
+      for (const node of network.getNodes()) {
+        if (matchesBand(band, nodeBounds(node), intersect)) ids.push(node.id)
+      }
+      for (const group of network.getGroups()) {
+        const box = network.getGroupBandBounds(group.id)
+        if (box !== undefined && matchesBand(band, box, intersect)) ids.push(group.id)
+      }
+      for (const edge of network.getEdges()) {
+        const box = network.getEdgePathBounds(edge.id)
+        if (box !== undefined && matchesBand(band, box, intersect)) ids.push(edge.id)
+      }
+      return ids
+    }
+
     const onPointerDown = (event: PointerEvent): void => {
-      if (event.button !== 0 || !event.shiftKey) return
+      if (event.button !== 0) return
+      const mod = event.shiftKey || event.ctrlKey || event.metaKey
+      if (!mod) return
+      // macOS Ctrl+click opens a context menu; keep Ctrl-marquee usable.
+      if (event.ctrlKey) event.preventDefault()
       const rect = canvas.getBoundingClientRect()
       const screenX = event.clientX - rect.left
       const screenY = event.clientY - rect.top
@@ -94,9 +133,15 @@ export class MarqueeSelectInteraction implements Interaction {
 
       active = true
       dragged = false
+      xorMode = event.ctrlKey || event.metaKey
       startClientX = event.clientX
       startClientY = event.clientY
       startWorld = network.screenToWorld(screenX, screenY)
+    }
+
+    const onContextMenu = (event: Event): void => {
+      const mouse = event as MouseEvent
+      if (mouse.ctrlKey) event.preventDefault()
     }
 
     const onPointerMove = (event: PointerEvent): void => {
@@ -130,18 +175,17 @@ export class MarqueeSelectInteraction implements Interaction {
           event.clientY - rect.top,
         )
         const band = rectFromPoints(startWorld, current)
-        const ids: string[] = []
-        for (const node of network.getNodes()) {
-          if (intersectsRect(band, nodeBounds(node))) ids.push(node.id)
-        }
-        if (event.ctrlKey || event.metaKey) {
-          const merged = [...network.getSelectedIds()]
-          for (const id of ids) {
-            if (!merged.includes(id)) merged.push(id)
+        const intersect = useIntersectMode(startWorld, current)
+        const hits = collectHits(band, intersect)
+        if (xorMode) {
+          const next = new Set(network.getSelectedIds())
+          for (const id of hits) {
+            if (next.has(id)) next.delete(id)
+            else next.add(id)
           }
-          network.setSelection(merged)
+          network.setSelection([...next])
         } else {
-          network.setSelection(ids)
+          network.setSelection(hits)
         }
         releaseCapture()
       }
@@ -157,6 +201,7 @@ export class MarqueeSelectInteraction implements Interaction {
     canvas.addEventListener('pointermove', onPointerMove)
     canvas.addEventListener('pointerup', onPointerUp)
     canvas.addEventListener('pointercancel', onPointerCancel)
+    canvas.addEventListener('contextmenu', onContextMenu)
 
     return () => {
       abort()
@@ -164,6 +209,7 @@ export class MarqueeSelectInteraction implements Interaction {
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerup', onPointerUp)
       canvas.removeEventListener('pointercancel', onPointerCancel)
+      canvas.removeEventListener('contextmenu', onContextMenu)
     }
   }
 }

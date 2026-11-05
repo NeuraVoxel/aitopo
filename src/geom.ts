@@ -47,6 +47,20 @@ export function intersectsRect(a: Rect, b: Rect): boolean {
 }
 
 /**
+ * Whether `outer` fully contains `inner` (edges touching counts).
+ * @param outer - candidate container.
+ * @param inner - candidate contained rect.
+ */
+export function containsRect(outer: Rect, inner: Rect): boolean {
+  return (
+    inner.x >= outer.x
+    && inner.y >= outer.y
+    && inner.x + inner.width <= outer.x + outer.width
+    && inner.y + inner.height <= outer.y + outer.height
+  )
+}
+
+/**
  * Point-in-rect test with optional padding.
  * @param point - world point.
  * @param rect - target.

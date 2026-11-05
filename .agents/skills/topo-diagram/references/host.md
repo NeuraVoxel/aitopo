@@ -70,8 +70,10 @@ If the host needs an engine capability that aitopo lacks, treat it as an **aitop
 |---|---|
 | Pan / zoom | Wheel / drag empty |
 | Select / activate | Click |
-| Move node / group | Drag |
-| Marquee select | Shift-drag |
+| Multi-select toggle | Ctrl/Cmd+click |
+| Select all | Ctrl/Cmd+A |
+| Move node / group | Drag selected |
+| Marquee select | Shift-drag empty (replace) or Ctrl/Cmd-drag empty (XOR); hits nodes, groups, edges |
 | Toggle group | Double-click group |
 | Enter SubNetwork | Double-click portal (`networkId`) |
 | Exit SubNetwork | Double-click empty canvas |

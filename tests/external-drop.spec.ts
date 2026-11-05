@@ -88,6 +88,7 @@ function createHost(options: {
     getEdges: () => [],
     getGroups: () => [],
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
+    getEdgePathBounds: () => undefined,
     getSelectedIds: () => [],
     hitTestGroupScreen,
     screenToWorld,

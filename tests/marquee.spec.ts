@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { MarqueeSelectInteraction } from '../src/interaction/marquee-select.ts'
 import type { InteractionHost } from '../src/interaction/types.ts'
-import type { GraphNode } from '../src/protocol/types.ts'
+import type { GraphEdge, GraphGroup, GraphNode } from '../src/protocol/types.ts'
 import type { Rect } from '../src/geom.ts'
 
 /** Minimal EventTarget-like canvas for node-env MarqueeSelect tests. */
@@ -58,6 +58,7 @@ class FakeHitCanvas {
       shiftKey: false,
       ctrlKey: false,
       metaKey: false,
+      preventDefault: () => {},
       ...partial,
     } as PointerEvent
     for (const listener of this.listeners.get(type) ?? []) listener(event)
@@ -78,7 +79,11 @@ function node(partial: Partial<GraphNode> & Pick<GraphNode, 'id'>): GraphNode {
 
 function createHost(options: {
   canvas: FakeHitCanvas
-  nodes: GraphNode[]
+  nodes?: GraphNode[]
+  groups?: GraphGroup[]
+  edges?: GraphEdge[]
+  groupBounds?: Record<string, Rect>
+  edgeBounds?: Record<string, Rect>
   hitId?: string
 }): InteractionHost & {
   setSelection: ReturnType<typeof vi.fn>
@@ -86,7 +91,9 @@ function createHost(options: {
   markGestureDragged: ReturnType<typeof vi.fn>
   marqueeRects: Array<Rect | undefined>
 } {
-  const nodes = [...options.nodes]
+  const nodes = [...(options.nodes ?? [])]
+  const groups = [...(options.groups ?? [])]
+  const edges = [...(options.edges ?? [])]
   const hitId = options.hitId
   let gestureDragged = false
   let selectedIds: string[] = []
@@ -147,16 +154,21 @@ function createHost(options: {
     updateCamera: vi.fn(),
     viewport: { state: { zoom: 1, x: 0, y: 0 } } as InteractionHost['viewport'],
     getNode: id => nodes.find(n => n.id === id),
+    getGroup: id => groups.find(g => g.id === id),
     getNodes: () => nodes,
-    getEdges: () => [],
-    getGroups: () => [],
-    getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
+    getEdges: () => edges,
+    getGroups: () => groups,
+    getGroupBandBounds: id => options.groupBounds?.[id],
+    getEdgePathBounds: id => options.edgeBounds?.[id],
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition: vi.fn(),
     previewNodeBounds: vi.fn(),
+    previewGroupMove: vi.fn(),
     commitNodeMove: vi.fn(),
+    commitGroupMove: vi.fn(),
+    toggleGroupExpanded: vi.fn(),
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
@@ -177,17 +189,21 @@ function createHost(options: {
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),
     apply: vi.fn(),
+    enterSubNetwork: vi.fn(),
+    exitSubNetwork: vi.fn(),
+    currentNetworkId: null,
   }
 }
 
-function shiftMarquee(
+function dragMarquee(
   canvas: FakeHitCanvas,
   from: { x: number; y: number },
   to: { x: number; y: number },
+  mods: { shiftKey?: boolean; ctrlKey?: boolean; metaKey?: boolean },
 ): void {
-  canvas.dispatch('pointerdown', { button: 0, clientX: from.x, clientY: from.y, shiftKey: true })
-  canvas.dispatch('pointermove', { button: 0, clientX: to.x, clientY: to.y, shiftKey: true })
-  canvas.dispatch('pointerup', { button: 0, clientX: to.x, clientY: to.y, shiftKey: true })
+  canvas.dispatch('pointerdown', { button: 0, clientX: from.x, clientY: from.y, ...mods })
+  canvas.dispatch('pointermove', { button: 0, clientX: to.x, clientY: to.y, ...mods })
+  canvas.dispatch('pointerup', { button: 0, clientX: to.x, clientY: to.y, ...mods })
 }
 
 describe('MarqueeSelectInteraction', () => {
@@ -202,10 +218,24 @@ describe('MarqueeSelectInteraction', () => {
     })
     const dispose = new MarqueeSelectInteraction().attach(host)
 
-    shiftMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 })
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { shiftKey: true })
 
     expect(host.setSelection).toHaveBeenCalledWith(['in'])
     expect(host.marqueeRects.at(-1)).toBeUndefined()
+    dispose()
+  })
+
+  it('Ctrl+empty drag starts marquee (twaver path)', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'a', x: 10, y: 10 })],
+    })
+    const dispose = new MarqueeSelectInteraction().attach(host)
+
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { ctrlKey: true })
+
+    expect(host.setSelection).toHaveBeenCalledWith(['a'])
     dispose()
   })
 
@@ -217,13 +247,49 @@ describe('MarqueeSelectInteraction', () => {
     })
     const dispose = new MarqueeSelectInteraction().attach(host)
 
-    shiftMarquee(canvas, { x: 0, y: 0 }, { x: 60, y: 60 })
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 60, y: 60 }, { shiftKey: true })
 
     expect(host.setSelection).toHaveBeenCalledWith(['locked'])
     dispose()
   })
 
-  it('without Shift does nothing', () => {
+  it('selects intersecting groups and edges', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'n', x: 200, y: 200 })],
+      groups: [{ id: 'g', label: 'G', memberIds: [], x: 10, y: 10, w: 50, h: 40 }],
+      edges: [{ id: 'e', from: 'a', to: 'b' }],
+      groupBounds: { g: { x: 10, y: 10, width: 50, height: 40 } },
+      edgeBounds: { e: { x: 15, y: 15, width: 20, height: 10 } },
+    })
+    const dispose = new MarqueeSelectInteraction().attach(host)
+
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { shiftKey: true })
+
+    expect(host.setSelection).toHaveBeenCalledWith(['g', 'e'])
+    dispose()
+  })
+
+  it('up-left drag uses contain mode (skips partial overlaps)', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [
+        node({ id: 'partial', x: 0, y: 0, w: 40, h: 40 }),
+        node({ id: 'inside', x: 30, y: 30, w: 20, h: 20 }),
+      ],
+    })
+    const dispose = new MarqueeSelectInteraction().attach(host)
+
+    // start (100,100) → end (20,20): up-left → contain
+    dragMarquee(canvas, { x: 100, y: 100 }, { x: 20, y: 20 }, { shiftKey: true })
+
+    expect(host.setSelection).toHaveBeenCalledWith(['inside'])
+    dispose()
+  })
+
+  it('without modifiers does nothing', () => {
     const canvas = new FakeHitCanvas()
     const host = createHost({
       canvas,
@@ -250,7 +316,7 @@ describe('MarqueeSelectInteraction', () => {
     })
     const dispose = new MarqueeSelectInteraction().attach(host)
 
-    shiftMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 })
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { shiftKey: true })
 
     expect(host.setSelection).not.toHaveBeenCalled()
     expect(host.addOverlayChrome).not.toHaveBeenCalled()
@@ -286,22 +352,22 @@ describe('MarqueeSelectInteraction', () => {
     dispose()
   })
 
-  it('Ctrl+Shift marquee appends intersecting ids to selection', () => {
+  it('Ctrl marquee XORs intersecting ids with the current selection', () => {
     const canvas = new FakeHitCanvas()
     const host = createHost({
       canvas,
       nodes: [
         node({ id: 'keep', x: 200, y: 200 }),
         node({ id: 'add', x: 20, y: 20 }),
+        node({ id: 'drop', x: 25, y: 25 }),
       ],
     })
-    host.setSelection(['keep'])
+    host.setSelection(['keep', 'drop'])
     const dispose = new MarqueeSelectInteraction().attach(host)
 
-    canvas.dispatch('pointerdown', { button: 0, clientX: 0, clientY: 0, shiftKey: true, ctrlKey: true })
-    canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 80, shiftKey: true, ctrlKey: true })
-    canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 80, shiftKey: true, ctrlKey: true })
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { ctrlKey: true })
 
+    // drop was selected and in band → removed; add was not → added; keep outside → stays
     expect(host.setSelection).toHaveBeenLastCalledWith(['keep', 'add'])
     dispose()
   })

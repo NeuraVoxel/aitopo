@@ -163,6 +163,7 @@ function createHost(options: {
     getEdges: () => [],
     getGroups: () => groups,
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
+    getEdgePathBounds: () => undefined,
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => groupOnUp,
     screenToWorld: (x, y) => ({ x, y }),

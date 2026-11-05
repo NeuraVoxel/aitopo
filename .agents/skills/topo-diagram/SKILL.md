@@ -40,7 +40,7 @@ SVG-track and explicit **defer** remain valid for statistical/geometric or out-o
 - Structure diagrams that should open immediately set Group `expanded: true` (engine default is collapsed; host **double-click** toggles). Collapsed card chrome: `showIcon: false` when mirroring a node.
 - Cross-group edges attach to **member** ids (穿透 = view remapping on collapse).
 - Nested groups allowed (`parentId` + child id in parent `memberIds`); prefer ≤1 nesting level. SubNetwork supports a stack (root → child → …); prefer shallow depth. Host fits **only on first enter** of a path (`direction: "enter"` && `!cameraRestored`); exit restores parent camera, re-enter restores last in-child camera — **never** fit on exit or restored re-enter.
-- Stock host **default** = pan/zoom + drag-move (basic). ⋯ → **Fullscreen** (page), **Edit mode** (bend / resize / Alt+drag create / Delete edge). Copy/Download JSON use `toRootJSON()` (full live document). ⋯ also exports Excalidraw / draw.io / PNG / SVG via `assets/host/export-diagram.js`.
+- Stock host **default** = pan/zoom + select (Ctrl multi-select / Shift or Ctrl marquee / Ctrl+A) + drag-move (basic). ⋯ → **Fullscreen** (page), **Edit mode** (bend / resize / Alt+drag create / Delete edge). Copy/Download JSON use `toRootJSON()` (full live document). ⋯ also exports Excalidraw / draw.io / PNG / SVG via `assets/host/export-diagram.js`.
 - Host may only use pinned `Aitopo` symbols listed in `references/host.md`.
 - Rebuild the bundle from the aitopo repo: `pnpm run bundle:topo-diagram-skill` — never hand-edit `assets/aitopo.iife.js`. Downstream pages share that asset tree; rebundling updates all diagrams that link to it.
 

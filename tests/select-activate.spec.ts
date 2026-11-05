@@ -33,8 +33,23 @@ class FakeHitCanvas {
     }
   }
 
-  dispatch(type: string, partial: Pick<PointerEvent, 'button' | 'clientX' | 'clientY'>): void {
-    const event = partial as PointerEvent
+  dispatch(
+    type: string,
+    partial: Pick<PointerEvent, 'button' | 'clientX' | 'clientY'> & {
+      ctrlKey?: boolean
+      metaKey?: boolean
+      shiftKey?: boolean
+      key?: string
+      preventDefault?: () => void
+    },
+  ): void {
+    const event = {
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+      preventDefault: () => {},
+      ...partial,
+    } as PointerEvent
     for (const listener of this.listeners.get(type) ?? []) listener(event)
   }
 }
@@ -52,18 +67,30 @@ function createHost(
   toggleGroupExpanded: ReturnType<typeof vi.fn>
   enterSubNetwork: ReturnType<typeof vi.fn>
   exitSubNetwork: ReturnType<typeof vi.fn>
+  setSelection: ReturnType<typeof vi.fn>
+  selectedIds: string[]
 } {
   let gestureDragged = false
+  let selectedIds: string[] = []
   const activateNode = vi.fn()
   const toggleGroupExpanded = vi.fn()
   const enterSubNetwork = vi.fn()
   const exitSubNetwork = vi.fn()
+  const setSelection = vi.fn((ids: readonly string[]) => {
+    selectedIds = [...ids]
+  })
   const host = {
     get gestureDragged() {
       return gestureDragged
     },
     set gestureDragged(value: boolean) {
       gestureDragged = value
+    },
+    get selectedIds() {
+      return selectedIds
+    },
+    set selectedIds(value: string[]) {
+      selectedIds = value
     },
     activateNode,
     toggleGroupExpanded,
@@ -73,20 +100,27 @@ function createHost(
       return options.currentNetworkId ?? null
     },
     getHitElement: () => canvas as unknown as HTMLCanvasElement,
-    getViewElement: () => null,
+    getViewElement: () => canvas as unknown as HTMLElement,
     hitTestScreen: () => hit,
-    setSelection: vi.fn(),
+    setSelection,
     setHover: vi.fn(),
     updateCamera: vi.fn(),
     viewport: {} as InteractionHost['viewport'],
     getNode: (id: string) =>
       options.node?.id === id ? options.node : undefined,
     getGroup: () => undefined,
-    getNodes: () => [],
-    getEdges: () => [],
-    getGroups: () => [],
+    getNodes: () =>
+      options.node !== undefined
+        ? [{ id: options.node.id, type: 'u', label: options.node.id }]
+        : [
+          { id: 'n1', type: 'u', label: 'n1' },
+          { id: 'n2', type: 'u', label: 'n2' },
+        ],
+    getEdges: () => [{ id: 'e1', from: 'n1', to: 'n2' }],
+    getGroups: () => [{ id: 'g1', label: 'G', memberIds: [] }],
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
-    getSelectedIds: () => [],
+    getEdgePathBounds: () => undefined,
+    getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: () => ({ x: 0, y: 0 }),
     previewNodePosition: vi.fn(),
@@ -244,6 +278,96 @@ describe('SelectActivate sub-network navigation', () => {
 
     expect(host.exitSubNetwork).not.toHaveBeenCalled()
     expect(host.activateNode).not.toHaveBeenCalled()
+    dispose()
+  })
+})
+
+describe('SelectActivate multi-select', () => {
+  it('Ctrl+click toggles an id in the selection', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'n2', kind: 'node' })
+    host.setSelection(['n1'])
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10, ctrlKey: true })
+    expect(host.setSelection).toHaveBeenLastCalledWith(['n1', 'n2'])
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10, ctrlKey: true })
+    expect(host.setSelection).toHaveBeenLastCalledWith(['n1'])
+    dispose()
+  })
+
+  it('plain click still replaces selection when the hit was not selected', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'n2', kind: 'node' })
+    host.setSelection(['n1'])
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    expect(host.setSelection).toHaveBeenLastCalledWith(['n2'])
+    dispose()
+  })
+
+  it('plain click on an already-selected id keeps the multi-select', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'n1', kind: 'node' })
+    host.setSelection(['n1', 'n2'])
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    expect(host.setSelection).toHaveBeenCalledTimes(1) // setup only
+    expect(host.getSelectedIds()).toEqual(['n1', 'n2'])
+    dispose()
+  })
+
+  it('Ctrl+A selects all nodes, groups, and edges', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas)
+    const dispose = new SelectActivateInteraction().attach(host)
+
+    canvas.dispatch('keydown', { button: 0, clientX: 0, clientY: 0, ctrlKey: true, key: 'a' })
+    expect(host.setSelection).toHaveBeenLastCalledWith(['n1', 'n2', 'g1', 'e1'])
+    dispose()
+  })
+
+  it('does not clear selection on Ctrl+empty pointerdown', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas, { id: 'n1', kind: 'node' })
+    host.setSelection(['n1'])
+    const hitHost = Object.assign(host, {
+      hitTestScreen: () => undefined,
+    })
+    const dispose = new SelectActivateInteraction().attach(hitHost)
+
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10, ctrlKey: true })
+    expect(host.setSelection).toHaveBeenCalledTimes(1) // only the setup call
+    dispose()
+  })
+
+  it('prevents the Ctrl+click context menu', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost(canvas)
+    const dispose = new SelectActivateInteraction().attach(host)
+    const preventDefault = vi.fn()
+
+    canvas.dispatch('contextmenu', {
+      button: 0,
+      clientX: 10,
+      clientY: 10,
+      ctrlKey: true,
+      preventDefault,
+    })
+    expect(preventDefault).toHaveBeenCalled()
+
+    const plain = vi.fn()
+    canvas.dispatch('contextmenu', {
+      button: 2,
+      clientX: 10,
+      clientY: 10,
+      ctrlKey: false,
+      preventDefault: plain,
+    })
+    expect(plain).not.toHaveBeenCalled()
     dispose()
   })
 })

@@ -349,7 +349,7 @@
       if (hintEl) {
         hintEl.textContent = on
           ? 'Edit: drag · bend · resize · Alt+drag link · Delete edge · double-click group/portal'
-          : 'Pan/zoom · drag nodes · Shift-marquee · double-click group/portal · empty to exit'
+          : 'Pan/zoom · drag · Ctrl multi-select · Shift/Ctrl marquee · Ctrl+A · double-click group/portal · empty to exit'
       }
     }
 

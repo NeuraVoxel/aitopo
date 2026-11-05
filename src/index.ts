@@ -68,4 +68,4 @@ export {
 } from './interaction/index.ts'
 export { layoutGrid, layoutFlowColumns } from './layout/index.ts'
 export type { Point, Rect } from './geom.ts'
-export { unionRect, hitRect, intersectsRect, growRect } from './geom.ts'
+export { unionRect, hitRect, intersectsRect, containsRect, growRect } from './geom.ts'

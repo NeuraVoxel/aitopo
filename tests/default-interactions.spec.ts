@@ -123,8 +123,8 @@ describe('Network default interactions', () => {
     canvas.dispatchEvent(pointer('pointermove', { clientX: 250, clientY: 30, shiftKey: true }))
     canvas.dispatchEvent(pointer('pointerup', { clientX: 250, clientY: 30, shiftKey: true }))
 
+    // Shift+empty no longer clears on pointerdown (marquee owns replace at up).
     expect(events.filter(e => e.type === 'selectionChanged')).toEqual([
-      { type: 'selectionChanged', selectedIds: [] },
       { type: 'selectionChanged', selectedIds: ['a', 'b'] },
     ])
   })

@@ -82,6 +82,12 @@ export interface InteractionQueryHost {
    * @returns world rect, or undefined when the group is inactive.
    */
   getGroupBandBounds(id: string): Rect | undefined
+  /**
+   * Validated edge path AABB (route + pad) for marquee / bend chrome.
+   * @param id - edge id.
+   * @returns world rect, or undefined when the edge is inactive.
+   */
+  getEdgePathBounds(id: string): Rect | undefined
 }
 
 /** Overlay chrome schedule (Wave E / H registry). */
