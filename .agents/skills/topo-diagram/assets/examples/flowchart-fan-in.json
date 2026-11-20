@@ -1,0 +1,123 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Fan-in merge",
+    "kind": "flow",
+    "eyebrow": "Flowchart · fan-in",
+    "diagramType": "flowchart-fan-in"
+  },
+  "nodes": [
+    {
+      "id": "a",
+      "type": "component",
+      "label": "Source A",
+      "x": 80,
+      "y": 80,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "b",
+      "type": "component",
+      "label": "Source B",
+      "x": 280,
+      "y": 80,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "c",
+      "type": "component",
+      "label": "Source C",
+      "x": 480,
+      "y": 80,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "merge",
+      "type": "merge",
+      "label": "Merge",
+      "x": 280,
+      "y": 240,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "sink",
+      "type": "component",
+      "label": "Sink",
+      "x": 280,
+      "y": 360,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "ea",
+      "from": "a",
+      "to": "merge",
+      "kind": "flow",
+      "fromAnchor": "bottom",
+      "toAnchor": "left",
+      "waypoints": [{ "x": 140, "y": 268 }],
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "eb",
+      "from": "b",
+      "to": "merge",
+      "kind": "flow",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "ec",
+      "from": "c",
+      "to": "merge",
+      "kind": "flow",
+      "fromAnchor": "bottom",
+      "toAnchor": "right",
+      "waypoints": [{ "x": 540, "y": 268 }],
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "es",
+      "from": "merge",
+      "to": "sink",
+      "kind": "flow",
+      "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight" }
+    }
+  ],
+  "groups": []
+}

@@ -1,0 +1,155 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Decision with merge",
+    "kind": "flow",
+    "eyebrow": "Flowchart · decision",
+    "diagramType": "flowchart-decision"
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "state",
+      "label": "Start",
+      "x": 200,
+      "y": 40,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "decide",
+      "type": "decision",
+      "label": "Valid?",
+      "x": 200,
+      "y": 160,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "yes",
+      "type": "component",
+      "label": "Accept",
+      "x": 400,
+      "y": 160,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "no",
+      "type": "component",
+      "label": "Reject",
+      "x": 200,
+      "y": 280,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "merge",
+      "type": "merge",
+      "label": "Join",
+      "x": 200,
+      "y": 400,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "end",
+      "type": "state",
+      "label": "Done",
+      "x": 200,
+      "y": 520,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e-start",
+      "from": "start",
+      "to": "decide",
+      "kind": "flow",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-yes",
+      "from": "decide",
+      "to": "yes",
+      "kind": "flow",
+      "label": "YES",
+      "fromAnchor": "right",
+      "toAnchor": "left",
+      "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-no",
+      "from": "decide",
+      "to": "no",
+      "kind": "flow",
+      "label": "NO",
+      "fromAnchor": "bottom",
+      "toAnchor": "top",
+      "style": { "stroke": "#6b7280", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-yes-merge",
+      "from": "yes",
+      "to": "merge",
+      "kind": "flow",
+      "fromAnchor": "bottom",
+      "toAnchor": "right",
+      "waypoints": [{ "x": 460, "y": 428 }],
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-no-merge",
+      "from": "no",
+      "to": "merge",
+      "kind": "flow",
+      "style": { "stroke": "#6b7280", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-end",
+      "from": "merge",
+      "to": "end",
+      "kind": "flow",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    }
+  ],
+  "groups": []
+}

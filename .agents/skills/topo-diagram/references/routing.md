@@ -14,12 +14,12 @@ Emit `diagram.graph.json` + host HTML (`assets/host/` template). Use Groups, mem
 | Architecture delta | Two docs or before/after groups; keep Changes in prose/meta |
 | Nested / tree / org | Groups (`parentId` nesting ≤1 preferred) or `parent` edges |
 | Dependency graph | `kind: dep` |
-| Data flow / flowchart | `kind: flow` |
-| Swimlane | One Group per lane |
+| Data flow / flowchart | `kind: flow` — use [`layout-recipes.md`](layout-recipes.md); goldens in `assets/examples/` |
+| Swimlane | One Group per lane — `flowchart-swimlane.json` |
 | Deployment / IT current-state | Groups + portals for environments |
 | Sequence | Weak: actors as nodes/lanes, ordered `kind: msg` edges |
-| State machine | Nodes = states, edges = transitions |
-| Loop / flywheel (with SubNetwork drill-down or live edit) | Ring nodes + `style.route: "arc"` / `"straight"`; see dialect |
+| State machine | Nodes = states, edges = transitions — `state-machine.json` |
+| Loop / flywheel (with SubNetwork drill-down or live edit) | Feedback U: `flowchart-feedback.json`; ring arcs: `style.route: "arc"` / `"straight"` |
 
 ## svg
 

@@ -1,0 +1,167 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Role × stage pipeline",
+    "kind": "flow",
+    "eyebrow": "Data flow · pipeline",
+    "diagramType": "data-flow-pipeline"
+  },
+  "nodes": [
+    {
+      "id": "adm-setup",
+      "type": "component",
+      "label": "Setup",
+      "label2": "roles",
+      "x": 80,
+      "y": 80,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "adm-acl",
+      "type": "component",
+      "label": "ACL",
+      "label2": "policy",
+      "x": 280,
+      "y": 80,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "eng-ingest",
+      "type": "component",
+      "label": "Ingest",
+      "label2": "raw",
+      "x": 80,
+      "y": 220,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "eng-store",
+      "type": "component",
+      "label": "Store",
+      "label2": "landing",
+      "x": 280,
+      "y": 220,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "eng-clean",
+      "type": "component",
+      "label": "Clean",
+      "label2": "stage",
+      "x": 480,
+      "y": 220,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "sci-model",
+      "type": "component",
+      "label": "Model",
+      "label2": "insights",
+      "x": 480,
+      "y": 360,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "con-query",
+      "type": "component",
+      "label": "Query",
+      "label2": "read",
+      "x": 680,
+      "y": 360,
+      "w": 120,
+      "h": 64,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label2Position": "insideBottom",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "label2": { "fontSize": 9, "color": "#6b7280" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e-adm", "from": "adm-setup", "to": "adm-acl", "kind": "flow", "style": { "stroke": "#6b7280", "labelSide": "aboveOrRight" } },
+    {
+      "id": "e-trigger",
+      "from": "adm-setup",
+      "to": "eng-ingest",
+      "kind": "dep",
+      "label": "OPEN",
+      "style": { "stroke": "#6b7280", "strokeDash": [5, 4], "labelSide": "aboveOrRight" }
+    },
+    { "id": "e-eng1", "from": "eng-ingest", "to": "eng-store", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    { "id": "e-eng2", "from": "eng-store", "to": "eng-clean", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    {
+      "id": "e-cross",
+      "from": "eng-clean",
+      "to": "sci-model",
+      "kind": "flow",
+      "label": "ANON",
+      "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-pub",
+      "from": "sci-model",
+      "to": "con-query",
+      "kind": "flow",
+      "label": "PUBLISH",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    }
+  ],
+  "groups": []
+}

@@ -121,6 +121,8 @@ Unsupported needs (bus/bundle routing, obstacle avoidance, freeform multi-contro
 
 ## Layout (grid first · 简洁规整)
 
+For flowchart / data-flow / swimlane / state / feedback, follow **[`layout-recipes.md`](layout-recipes.md)** (parameter → coordinates) and pass **[`layout-verify.md`](layout-verify.md)** before emit. Copy a matching golden under `assets/examples/` when possible.
+
 Skill default is a **regular orthogonal grid**, not freeform scatter.
 
 | Rule | Practice |

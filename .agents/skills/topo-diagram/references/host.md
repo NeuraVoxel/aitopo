@@ -35,6 +35,7 @@ Top bar (full width), then a flex-grown canvas that **fits content on load / res
 | Region | Element | Content |
 |---|---|---|
 | Left | `#page-eyebrow`, `#page-title`, optional `#page-lede` / `#page-lede-more` | `meta.eyebrow` (or `meta.kind`) + `meta.title`; `meta.summary` (optional `\n` → second line) |
+| Mid | `#example-select` (skill smoke host) | Switch embedded sample ↔ `assets/examples/*.json`; `?example=<id>` deep-link |
 | Center-right | `#legend` | Project/diagram legend swatches (edit HTML; not inferred from JSON) |
 | Far right | `#toolbar` | **⋯** menu |
 
@@ -116,4 +117,4 @@ No property panel, no Undo UI in v1.
 
 ## Reference sample
 
-Open `assets/host/index.html` via a static file server (not always reliable as raw `file://` depending on browser). Golden data: `sample.graph.json` (groups, cross edge `cross`, SubNetwork `detail`).
+Open `assets/host/index.html` via a static file server (not `file://` — example switcher uses `fetch`). Default chrome embeds the host sample (groups, cross edge, SubNetwork). Use the **Example** select (or `?example=flowchart-decision`) to load goldens from [`../examples/`](../examples/README.md). Product diagram pages may omit `#example-select`; the control is optional.

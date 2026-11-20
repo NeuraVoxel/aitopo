@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Order state machine",
+    "kind": "flow",
+    "eyebrow": "State machine",
+    "diagramType": "state-machine"
+  },
+  "nodes": [
+    {
+      "id": "draft",
+      "type": "state",
+      "label": "Draft",
+      "x": 80,
+      "y": 120,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "submitted",
+      "type": "state",
+      "label": "Submitted",
+      "x": 280,
+      "y": 120,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "approved",
+      "type": "state",
+      "label": "Approved",
+      "x": 480,
+      "y": 120,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "shipped",
+      "type": "state",
+      "label": "Shipped",
+      "x": 680,
+      "y": 120,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "rejected",
+      "type": "state",
+      "label": "Rejected",
+      "x": 280,
+      "y": 280,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "t1",
+      "from": "draft",
+      "to": "submitted",
+      "kind": "flow",
+      "label": "SUBMIT",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight", "arrowTo": true }
+    },
+    {
+      "id": "t2",
+      "from": "submitted",
+      "to": "approved",
+      "kind": "flow",
+      "label": "APPROVE",
+      "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight", "arrowTo": true }
+    },
+    {
+      "id": "t3",
+      "from": "approved",
+      "to": "shipped",
+      "kind": "flow",
+      "label": "SHIP",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight", "arrowTo": true }
+    },
+    {
+      "id": "t4",
+      "from": "submitted",
+      "to": "rejected",
+      "kind": "flow",
+      "label": "REJECT",
+      "fromAnchor": "bottom",
+      "toAnchor": "top",
+      "style": { "stroke": "#6b7280", "labelSide": "aboveOrRight", "arrowTo": true }
+    },
+    {
+      "id": "t5",
+      "from": "rejected",
+      "to": "draft",
+      "kind": "dep",
+      "label": "REVISE",
+      "fromAnchor": "left",
+      "toAnchor": "bottom",
+      "waypoints": [{ "x": 140, "y": 308 }],
+      "style": {
+        "stroke": "#6b7280",
+        "strokeDash": [5, 4],
+        "labelSide": "aboveOrRight",
+        "arrowTo": true
+      }
+    }
+  ],
+  "groups": []
+}

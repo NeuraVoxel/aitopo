@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Two-lane handoff",
+    "kind": "flow",
+    "eyebrow": "Flowchart · swimlane",
+    "diagramType": "flowchart-swimlane"
+  },
+  "nodes": [
+    {
+      "id": "req",
+      "type": "component",
+      "label": "Request",
+      "x": 120,
+      "y": 100,
+      "w": 120,
+      "h": 56,
+      "groupId": "lane-ops",
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "triage",
+      "type": "component",
+      "label": "Triage",
+      "x": 320,
+      "y": 100,
+      "w": 120,
+      "h": 56,
+      "groupId": "lane-ops",
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "build",
+      "type": "component",
+      "label": "Build",
+      "x": 320,
+      "y": 320,
+      "w": 120,
+      "h": 56,
+      "groupId": "lane-eng",
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "ship",
+      "type": "component",
+      "label": "Ship",
+      "x": 520,
+      "y": 320,
+      "w": 120,
+      "h": 56,
+      "groupId": "lane-eng",
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    {
+      "id": "e1",
+      "from": "req",
+      "to": "triage",
+      "kind": "flow",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e-handoff",
+      "from": "triage",
+      "to": "build",
+      "kind": "flow",
+      "label": "HANDOFF",
+      "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight" }
+    },
+    {
+      "id": "e3",
+      "from": "build",
+      "to": "ship",
+      "kind": "flow",
+      "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" }
+    }
+  ],
+  "groups": [
+    {
+      "id": "lane-ops",
+      "label": "Operations",
+      "memberIds": ["req", "triage"],
+      "expanded": true,
+      "x": 80,
+      "y": 40,
+      "style": {
+        "fill": "#eef0f3",
+        "stroke": "#2d3142",
+        "labelPosition": "insideTop",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "paddingTop": 44,
+        "padding": 28,
+        "showIcon": false
+      }
+    },
+    {
+      "id": "lane-eng",
+      "label": "Engineering",
+      "memberIds": ["build", "ship"],
+      "expanded": true,
+      "x": 80,
+      "y": 260,
+      "style": {
+        "fill": "#eef0f3",
+        "stroke": "#2d3142",
+        "labelPosition": "insideTop",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "paddingTop": 44,
+        "padding": 28,
+        "showIcon": false
+      }
+    }
+  ]
+}

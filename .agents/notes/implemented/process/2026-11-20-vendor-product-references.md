@@ -32,6 +32,7 @@ Neither tree is a workspace package; `src/` and `demo/` must not import them. `.
 
 - Fresh clones need `git submodule update --init --depth 1`.
 - Product UX proposals may cite `vendor/archify` / `vendor/diagram-design`; engine PRs still justify against twaver clean-room rules.
+- topo-diagram layout recipes/goldens port authoring discipline from these trees without importing them — see [topo-diagram layout recipes](../feature/2026-11-20-topo-diagram-layout-recipes.md).
 
 ## Testing
 

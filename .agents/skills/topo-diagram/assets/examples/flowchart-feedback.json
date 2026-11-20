@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Feedback loop",
+    "kind": "flow",
+    "eyebrow": "Flowchart · feedback",
+    "diagramType": "flowchart-feedback"
+  },
+  "nodes": [
+    {
+      "id": "intake",
+      "type": "component",
+      "label": "Intake",
+      "x": 80,
+      "y": 80,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "process",
+      "type": "component",
+      "label": "Process",
+      "x": 280,
+      "y": 80,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "ship",
+      "type": "component",
+      "label": "Ship",
+      "x": 480,
+      "y": 80,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "measure",
+      "type": "component",
+      "label": "Measure",
+      "x": 480,
+      "y": 240,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "learn",
+      "type": "component",
+      "label": "Learn",
+      "x": 80,
+      "y": 240,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "from": "intake", "to": "process", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    { "id": "e2", "from": "process", "to": "ship", "kind": "flow", "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight" } },
+    { "id": "e3", "from": "ship", "to": "measure", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    { "id": "e4", "from": "measure", "to": "learn", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    {
+      "id": "e-feedback",
+      "from": "learn",
+      "to": "intake",
+      "kind": "dep",
+      "label": "RETRY",
+      "fromAnchor": "top",
+      "toAnchor": "bottom",
+      "style": {
+        "stroke": "#6b7280",
+        "strokeDash": [5, 4],
+        "labelSide": "aboveOrRight"
+      }
+    }
+  ],
+  "groups": []
+}

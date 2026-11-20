@@ -212,6 +212,39 @@
       min-height: 0;
       background: var(--paper);
     }
+    .example-picker {
+      flex: 0 1 16rem;
+      min-width: 12rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+      padding-top: 0.1rem;
+    }
+    .example-picker label {
+      font-family: var(--font-mono);
+      font-size: 0.66rem;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .example-picker select {
+      width: 100%;
+      max-width: 18rem;
+      padding: 0.4rem 0.55rem;
+      border: 1px solid var(--chrome);
+      border-radius: 4px;
+      background: var(--node-fill);
+      color: var(--ink);
+      font-family: var(--font-sans);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    .example-picker select:focus {
+      outline: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+      outline-offset: 1px;
+    }
   </style>
 </head>
 <body>
@@ -219,6 +252,10 @@
     <div class="topbar-titles">
       <p class="eyebrow" id="page-eyebrow">Topology</p>
       <h1 id="page-title">topo-diagram sample</h1>
+    </div>
+    <div class="example-picker">
+      <label for="example-select">Example</label>
+      <select id="example-select" aria-label="Diagram example"></select>
     </div>
     <div class="legend" id="legend" aria-label="Legend">
       <span class="legend-item"><span class="swatch swatch-focal"></span>Focal</span>

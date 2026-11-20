@@ -191,6 +191,21 @@
       scheduleFit()
     }
 
+    /**
+     * Replace the live document and the Reset snapshot (example switcher).
+     * @param {object} doc GraphDocument-like JSON
+     */
+    function loadDocument(doc) {
+      initial = JSON.parse(JSON.stringify(doc))
+      viewReady = false
+      if (shouldFit) conceal()
+      network.load(parseDocument(JSON.parse(JSON.stringify(doc))))
+      if (typeof network.setEditing === 'function') {
+        network.setEditing(editing)
+      }
+      scheduleFit()
+    }
+
     function destroy() {
       network.destroy()
     }
@@ -216,6 +231,7 @@
       fitContent: fitContent,
       fitIfSizeChanged: fitIfSizeChanged,
       reset: reset,
+      loadDocument: loadDocument,
       destroy: destroy,
     }
   }
@@ -224,14 +240,26 @@
    * Wire a page that has #canvas, topbar/menu, and #diagram-data JSON.
    * @param {Document} document
    */
+  /** Catalog for `#example-select` (skill host smoke page). path null = embedded #diagram-data. */
+  var HOST_EXAMPLES = [
+    { id: 'host-sample', label: 'Host sample (groups + SubNetwork)', path: null },
+    { id: 'flowchart-linear', label: 'Linear process', path: '../examples/flowchart-linear.json' },
+    { id: 'flowchart-decision', label: 'Decision + merge', path: '../examples/flowchart-decision.json' },
+    { id: 'flowchart-feedback', label: 'Feedback loop', path: '../examples/flowchart-feedback.json' },
+    { id: 'flowchart-swimlane', label: 'Swimlane handoff', path: '../examples/flowchart-swimlane.json' },
+    { id: 'flowchart-fan-in', label: 'Fan-in merge', path: '../examples/flowchart-fan-in.json' },
+    { id: 'data-flow-pipeline', label: 'Data-flow pipeline', path: '../examples/data-flow-pipeline.json' },
+    { id: 'state-machine', label: 'State machine', path: '../examples/state-machine.json' },
+  ]
+
   function bootFromPage(document) {
     var dataEl = document.getElementById('diagram-data')
     var canvas = document.getElementById('canvas')
     if (!dataEl || !canvas) {
       throw new Error('host page needs #diagram-data and #canvas')
     }
-    var doc = JSON.parse(dataEl.textContent || '{}')
-    var host = boot(canvas, doc)
+    var embeddedDoc = JSON.parse(dataEl.textContent || '{}')
+    var host = boot(canvas, embeddedDoc)
 
     function downloadJson() {
       var blob = new Blob([JSON.stringify(host.exportDocument(), null, 2)], {
@@ -289,7 +317,82 @@
         : null
 
     // Root chrome snapshot — exit SubNetwork / reset restore this.
-    var rootMeta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {}
+    var rootMeta = embeddedDoc.meta && typeof embeddedDoc.meta === 'object'
+      ? embeddedDoc.meta
+      : {}
+    var activeExampleId = 'host-sample'
+    var exampleSelect = byId('example-select')
+
+    function findExample(id) {
+      for (var i = 0; i < HOST_EXAMPLES.length; i++) {
+        if (HOST_EXAMPLES[i].id === id) return HOST_EXAMPLES[i]
+      }
+      return HOST_EXAMPLES[0]
+    }
+
+    function syncExampleQuery(id) {
+      if (!global.history || typeof global.history.replaceState !== 'function') return
+      try {
+        var url = new URL(global.location.href)
+        if (id === 'host-sample') url.searchParams.delete('example')
+        else url.searchParams.set('example', id)
+        global.history.replaceState({}, '', url.pathname + url.search + url.hash)
+      } catch (_) {
+        // ignore URL API gaps
+      }
+    }
+
+    function applyLoadedDoc(doc, exampleId) {
+      activeExampleId = exampleId
+      rootMeta = doc.meta && typeof doc.meta === 'object' ? doc.meta : {}
+      host.loadDocument(doc)
+      applyChrome(rootMeta)
+      syncEditChrome()
+      if (exampleSelect) exampleSelect.value = exampleId
+      syncExampleQuery(exampleId)
+    }
+
+    function loadExampleById(id) {
+      var entry = findExample(id)
+      if (!entry.path) {
+        applyLoadedDoc(JSON.parse(JSON.stringify(embeddedDoc)), entry.id)
+        return Promise.resolve(entry.id)
+      }
+      return global.fetch(entry.path, { cache: 'no-store' }).then(function (res) {
+        if (!res.ok) throw new Error('Failed to load ' + entry.path + ' (' + res.status + ')')
+        return res.json()
+      }).then(function (doc) {
+        applyLoadedDoc(doc, entry.id)
+        return entry.id
+      })
+    }
+
+    if (exampleSelect) {
+      exampleSelect.innerHTML = ''
+      for (var ei = 0; ei < HOST_EXAMPLES.length; ei++) {
+        var opt = document.createElement('option')
+        opt.value = HOST_EXAMPLES[ei].id
+        opt.textContent = HOST_EXAMPLES[ei].label
+        exampleSelect.appendChild(opt)
+      }
+      exampleSelect.addEventListener('change', function () {
+        loadExampleById(exampleSelect.value).catch(function (err) {
+          console.error(err)
+        })
+      })
+      var wanted = 'host-sample'
+      try {
+        wanted = new URL(global.location.href).searchParams.get('example') || 'host-sample'
+      } catch (_) {}
+      if (wanted !== 'host-sample' && findExample(wanted).id === wanted) {
+        loadExampleById(wanted).catch(function (err) {
+          console.error(err)
+          exampleSelect.value = 'host-sample'
+        })
+      } else {
+        exampleSelect.value = 'host-sample'
+      }
+    }
 
     /**
      * Apply GraphDocument meta to the topbar.

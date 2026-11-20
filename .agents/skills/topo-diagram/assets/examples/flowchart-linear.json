@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "meta": {
+    "title": "Linear process",
+    "kind": "flow",
+    "eyebrow": "Flowchart · linear",
+    "diagramType": "flowchart-linear"
+  },
+  "nodes": [
+    {
+      "id": "start",
+      "type": "state",
+      "label": "Start",
+      "x": 280,
+      "y": 40,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "collect",
+      "type": "component",
+      "label": "Collect",
+      "x": 280,
+      "y": 160,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "review",
+      "type": "component",
+      "label": "Review",
+      "x": 280,
+      "y": 280,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#bf4520" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "publish",
+      "type": "component",
+      "label": "Publish",
+      "x": 280,
+      "y": 400,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#ffffff", "stroke": "#2d3142" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    },
+    {
+      "id": "end",
+      "type": "state",
+      "label": "Done",
+      "x": 280,
+      "y": 520,
+      "w": 120,
+      "h": 56,
+      "data": { "fill": "#eef0f3", "stroke": "#6b7280" },
+      "style": {
+        "labelPosition": "center",
+        "label": { "fontSize": 13, "fontWeight": "bold", "color": "#000000" },
+        "showIcon": false
+      }
+    }
+  ],
+  "edges": [
+    { "id": "e1", "from": "start", "to": "collect", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    { "id": "e2", "from": "collect", "to": "review", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } },
+    { "id": "e3", "from": "review", "to": "publish", "kind": "flow", "style": { "stroke": "#bf4520", "labelSide": "aboveOrRight" } },
+    { "id": "e4", "from": "publish", "to": "end", "kind": "flow", "style": { "stroke": "#2d3142", "labelSide": "aboveOrRight" } }
+  ],
+  "groups": []
+}
