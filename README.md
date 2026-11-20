@@ -26,7 +26,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Performance roadmap (Waves J–N, proposed): [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
 - Demo showcase shell (catalog / modes / property panel): [.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md](.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md)
 
-Design ideas come from `twaver.vector` at `/home/jeff/Documents/DT/SDK2D/twaver` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver`; not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
+**Render-engine** ideas come from `twaver.vector` at `/home/jeff/Documents/DT/SDK2D/twaver` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver`; not shipped here). **Product-level** UX / diagram-design references live as shallow git submodules under [`vendor/`](vendor/README.md) (`archify`, `diagram-design`). This package is a **clean-room** TypeScript rewrite: no SDK2D or vendor-submodule imports, no twaver / upstream public API names.
 
 ## Status
 

@@ -1,0 +1,8 @@
+[submodule "vendor/archify"]
+	path = vendor/archify
+	url = https://github.com/tt-a1i/archify.git
+	shallow = true
+[submodule "vendor/diagram-design"]
+	path = vendor/diagram-design
+	url = https://github.com/cathrynlavery/diagram-design.git
+	shallow = true

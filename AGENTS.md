@@ -18,8 +18,9 @@ Product-specific runtime rules belong in this file only when this repository own
 <!-- ai-eng:end -->
 ## Design reference
 
-- **Original reference project:** `twaver.vector` (ideas only; clean-room rewrite — no SDK2D imports, no twaver public API names).
+- **Render engine reference:** `twaver.vector` (ideas only; clean-room rewrite — no SDK2D imports, no twaver public API names).
 - **Authoritative local path (twaver root):** Ubuntu `/home/jeff/Documents/DT/SDK2D/twaver`; Mac `/Users/macff/Documents/DT/SDK2D/twaver` (vector sources under `vector/`).
+- **Product-level UX references (git submodules):** `vendor/archify` ([tt-a1i/archify](https://github.com/tt-a1i/archify)) and `vendor/diagram-design` ([cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)) — ideas only for authoring / presentation UX; do not import or copy their APIs into `src/`. See [vendor/README.md](vendor/README.md).
 - Do not use or recreate `vendor/SDK2D` under deepseek-harness; that path is retired.
 - **topo-diagram ↔ aitopo:** prefer **unchanged engine + demo defaults**. Skill styling uses supported `GraphDocument` / `Network` params. Only when a capability is missing: propose → implement in aitopo (twaver clean-room) → rebundle. Do not change global engine defaults merely to restyle the skill, or hand-edit the vendored IIFE.
 
