@@ -65,6 +65,14 @@ export interface GraphChromeStyle {
   readonly color?: string
   readonly width?: number
   readonly padding?: number
+  /**
+   * Soft outer glow (twaver `outer.style: glow` idea).
+   * Selection overlay defaults to `true` when omitted; hover defaults to `false`
+   * (dashed ring only unless `glow: true`).
+   */
+  readonly glow?: boolean
+  /** Glow blur radius in world px. Omitted → `16`. */
+  readonly glowBlur?: number
 }
 
 /** Canvas shadow used once on the node body. */

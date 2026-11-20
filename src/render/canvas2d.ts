@@ -139,9 +139,9 @@ export interface Renderer {
   drawEdge(edge: GraphEdge, view: EdgePaintView): void
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
-  /** Overlay: selection ring (no-op OK for headless fakes). */
+  /** Overlay: selection glow + solid ring (no-op OK for headless fakes). */
   drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle'], alpha?: number): void
-  /** Overlay: hover ring (lighter than selection; no-op OK for fakes). */
+  /** Overlay: hover dashed ring; optional glow (no-op OK for fakes). */
   drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle'], alpha?: number): void
   /** Overlay attachment ops (hover tooltip). */
   drawOverlayAttachments?(ops: readonly AttachmentPaintOp[], alpha?: number): void
@@ -413,9 +413,9 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   /**
-   * Draw selection strokes on the overlay canvas (call after beginFrame).
+   * Draw selection chrome on the overlay: soft glow (default) plus a solid ring.
    * @param bounds - selected node body bounds.
-   * @param style - optional chrome overrides.
+   * @param style - optional chrome overrides (`glow` defaults true).
    * @param alpha - whole-node opacity.
    */
   drawSelectionOverlay(
@@ -425,26 +425,28 @@ export class Canvas2DRenderer implements Renderer {
   ): void {
     const ctx = this.overlayCtx
     const pad = style?.padding ?? 2
-    const width = (style?.width ?? 2) / this.viewport.zoom
+    const color = style?.color ?? '#3b82f6'
+    const x = bounds.x - pad
+    const y = bounds.y - pad
+    const w = bounds.width + pad * 2
+    const h = bounds.height + pad * 2
+    const radius = Math.min(8, w / 2, h / 2)
     ctx.save()
     ctx.globalAlpha = alpha
-    ctx.strokeStyle = style?.color ?? '#3b82f6'
-    ctx.lineWidth = width
+    paintChromeGlow(ctx, { x, y, w, h, radius, color, alpha, style, enabledDefault: true })
+    ctx.strokeStyle = color
+    ctx.lineWidth = (style?.width ?? 2) / this.viewport.zoom
     ctx.setLineDash([])
-    ctx.strokeRect(
-      bounds.x - pad,
-      bounds.y - pad,
-      bounds.width + pad * 2,
-      bounds.height + pad * 2,
-    )
+    roundRect(ctx, x, y, w, h, radius)
+    ctx.stroke()
     ctx.restore()
   }
 
   /**
-   * Draw a hover ring on the overlay (lighter than selection).
-   * @param bounds - hovered node body bounds.
-   * @param style - optional chrome overrides.
-   * @param alpha - whole-node opacity.
+   * Draw hover chrome on the overlay: dashed ring by default; optional glow.
+   * @param bounds - hovered node / group body bounds.
+   * @param style - optional chrome overrides (`glow` defaults false).
+   * @param alpha - whole-element opacity.
    */
   drawHoverOverlay(
     bounds: Rect,
@@ -453,17 +455,21 @@ export class Canvas2DRenderer implements Renderer {
   ): void {
     const ctx = this.overlayCtx
     const pad = style?.padding ?? 2
+    const color = style?.color ?? 'rgba(59, 130, 246, 0.65)'
+    const x = bounds.x - pad
+    const y = bounds.y - pad
+    const w = bounds.width + pad * 2
+    const h = bounds.height + pad * 2
+    const radius = Math.min(8, w / 2, h / 2)
     ctx.save()
     ctx.globalAlpha = alpha
-    ctx.strokeStyle = style?.color ?? 'rgba(59, 130, 246, 0.65)'
+    paintChromeGlow(ctx, { x, y, w, h, radius, color, alpha, style, enabledDefault: false })
+    ctx.strokeStyle = color
     ctx.lineWidth = (style?.width ?? 1.5) / this.viewport.zoom
     ctx.setLineDash([4 / this.viewport.zoom, 3 / this.viewport.zoom])
-    ctx.strokeRect(
-      bounds.x - pad,
-      bounds.y - pad,
-      bounds.width + pad * 2,
-      bounds.height + pad * 2,
-    )
+    roundRect(ctx, x, y, w, h, radius)
+    ctx.stroke()
+    ctx.setLineDash([])
     ctx.restore()
   }
 
@@ -848,6 +854,40 @@ function roundRect(
   ctx.arcTo(x, y + h, x, y, radius)
   ctx.arcTo(x, y, x + w, y, radius)
   ctx.closePath()
+}
+
+/**
+ * Soft outer glow via canvas shadowBlur (twaver outer.style glow).
+ * @param enabledDefault - when style.glow is omitted: selection true, hover false.
+ */
+function paintChromeGlow(
+  ctx: CanvasRenderingContext2D,
+  args: {
+    readonly x: number
+    readonly y: number
+    readonly w: number
+    readonly h: number
+    readonly radius: number
+    readonly color: string
+    readonly alpha: number
+    readonly style?: NodePaintView['hoverStyle'] | NodePaintView['selectStyle']
+    readonly enabledDefault: boolean
+  },
+): void {
+  const enabled = args.style?.glow ?? args.enabledDefault
+  if (!enabled) return
+  const blur = args.style?.glowBlur ?? 16
+  ctx.shadowColor = args.color
+  ctx.shadowBlur = blur
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+  ctx.fillStyle = args.color
+  roundRect(ctx, args.x, args.y, args.w, args.h, args.radius)
+  ctx.globalAlpha = args.alpha * 0.35
+  ctx.fill()
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.globalAlpha = args.alpha
 }
 
 function drawPlainPolyline(

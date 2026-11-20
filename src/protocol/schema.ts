@@ -39,6 +39,8 @@ const graphChromeStyleSchema = z.object({
   color: z.string().optional(),
   width: z.number().positive().optional(),
   padding: z.number().nonnegative().optional(),
+  glow: z.boolean().optional(),
+  glowBlur: z.number().nonnegative().optional(),
 })
 
 const graphShadowStyleSchema = z.object({
