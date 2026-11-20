@@ -12,10 +12,10 @@ The dual-canvas layout already paints selection rings, marquee, ghosts, and drop
 
 Wave E ships **scene vs overlay paint channels** without changing Document / Patch / Events:
 
-1. **Dual schedule flags** — `needsScenePaint` / `needsOverlayPaint` drained by one rAF loop. Scene paint always implies overlay refresh. Overlay-only frames call `beginFrame(cam, 'overlay')` and never clear or redraw the root canvas. Empty scene dirty no longer coerces to `'all'` when only overlay paint is pending.
-2. **Host API** — `requestOverlayPaint()` sets overlay only. `requestPaint()` aliases it for chrome-era call sites. `addOverlayChrome`, marquee / create-edge / move chrome updates, `setSelection`, and `setHover` use overlay scheduling. Camera, resize, load, nav, paint-error fallback, drag paint filter, and live preview still `markAll` + scene schedule.
+1. **Dual schedule flags** — `needsScenePaint` / `needsOverlayPaint` drained by one rAF loop. Scene paint always implies overlay refresh. Overlay-only frames call `beginFrame(cam, 'overlay')` and never clear or redraw the root canvas. Empty scene dirty no longer coerces to `'all'` when only overlay paint is pending. Partial dirty scene frames also **skip** `drawGroup` / `drawEdge` / `drawNode` when View bounds miss the dirty union (draw culling; canvas clip alone is not enough for CPU).
+2. **Host API** — `requestOverlayPaint()` sets overlay only. `requestPaint()` aliases it for chrome-era call sites. `addOverlayChrome`, marquee / create-edge / move chrome updates, and `setHover` use overlay scheduling. `setSelection` schedules a scene paint (grown dirty for previous + next selection) because selection glow paints under the body fill on the root canvas — see [selection glow](../feature/2026-11-20-hover-glow.md). Camera, resize, load, nav, paint-error fallback, drag paint filter, and live preview still `markAll` + scene schedule.
 3. **Renderer** — `FrameDirty` includes `'overlay'`. `Canvas2DRenderer.beginFrame` skips root clear/clip/save for that mode; `endFrame` restores root only when a root frame was opened. `drawHoverOverlay` paints a dashed hover ring.
-4. **Select / hover visual** — Root `drawNode` stroke ignores `view.selected` / `view.hovered` (status/data/active only). `paintOverlayPass` draws selection rings, hover rings, and highlighted edges after scene bodies (or alone on overlay-only frames).
+4. **Select / hover visual** — Root `drawNode` / `drawGroup` apply selection glow as `shadowBlur` on the body fill when selected; stroke color still ignores select/hover. `paintOverlayPass` draws the solid selection ring, hover rings, and highlighted edges after scene bodies (or alone on overlay-only frames).
 
 ### Deferred (not Wave E)
 
@@ -31,13 +31,13 @@ Apply op→id dirty and preview dirty-rect narrowing (Wave F); View label/alarm/
 
 ## Consequences
 
-- Chrome, selection, and hover no longer rebake the root canvas when the scene is otherwise clean.
-- Selected/hovered nodes no longer change root body stroke color; rings on the overlay are the primary cue (product-visible in demo/hosts).
+- Hover and transient chrome no longer rebake the root canvas when the scene is otherwise clean; selection changes do scene-paint for under-body glow.
+- Selected/hovered nodes no longer change root body stroke color; selection uses under-body glow + solid overlay ring; hover uses the dashed overlay ring.
 - Out-of-tree `Renderer` implementers must accept `FrameDirty = … | 'overlay'` and provide `drawHoverOverlay`.
 - Live move/resize preview and `apply` still full-frame or broadly dirty until Wave F.
 
 ## Testing
 
-- `tests/paint-channels.spec.ts` (happy-dom) — selection/hover/chrome → `beginFrame(..., 'overlay')` with zero scene body draws; camera → `'all'`.
+- `tests/paint-channels.spec.ts` (happy-dom) — `setHover`/chrome → `beginFrame(..., 'overlay')` with zero scene body draws; `setSelection` scene-paints with dirty-rect culling; camera → `'all'`.
 - Existing interaction fakes updated for `requestOverlayPaint` + `drawHoverOverlay`.
 - Full package: `pnpm test`, `pnpm run typecheck`, `pnpm run verify-notes`.

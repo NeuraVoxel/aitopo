@@ -157,7 +157,7 @@ Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-
 - SubNetwork drill-down is single-level (root ↔ one child).
 - Alarm badges cover display only; no propagation tree; `setAlarms` emits `alarmChanged`.
 - Pan/zoom triggers full-frame invalidate; element edits use dirty-rect.
-- Selection / hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); `apply` and live move/resize preview use dirty-rect when possible (Wave F).
+- Hover / overlay chrome use overlay-only paint (`requestOverlayPaint`); selection scene-paints under-body glow with dirty-rect culling; `apply` and live move/resize preview use dirty-rect when possible (Wave F).
 - Selected/hovered nodes use overlay rings; root body stroke no longer turns blue for select/hover.
 - Open **Debug** while dragging a node in Edit: red rects should track the mover (not full-frame).
 - Performance follow-ups (demand rAF, culling, pan ladder, spatial hit, gated WebGL): [performance roadmap](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md) (proposed; not implemented).

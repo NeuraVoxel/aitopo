@@ -38,11 +38,17 @@ export interface NodePaintView {
     readonly color?: string
     readonly width?: number
     readonly padding?: number
+    /** Soft under-body glow; default on when selected. */
+    readonly glow?: boolean
+    readonly glowBlur?: number
   }
   readonly hoverStyle?: {
     readonly color?: string
     readonly width?: number
     readonly padding?: number
+    /** Soft overlay glow; default off on hover. */
+    readonly glow?: boolean
+    readonly glowBlur?: number
   }
   /** Body outline dash pattern; omitted → solid. */
   readonly strokeDash?: readonly number[]
@@ -139,7 +145,7 @@ export interface Renderer {
   drawEdge(edge: GraphEdge, view: EdgePaintView): void
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
-  /** Overlay: selection glow + solid ring (no-op OK for headless fakes). */
+  /** Overlay: solid selection ring (no-op OK for headless fakes). Body glow paints under fill on root. */
   drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle'], alpha?: number): void
   /** Overlay: hover dashed ring; optional glow (no-op OK for fakes). */
   drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle'], alpha?: number): void
@@ -250,22 +256,14 @@ export class Canvas2DRenderer implements Renderer {
     const ctx = this.rootCtx
     ctx.save()
     ctx.globalAlpha = view.alpha
-    if (view.shadow !== undefined) {
-      ctx.shadowColor = view.shadow.color ?? 'rgba(0, 0, 0, 0.35)'
-      ctx.shadowBlur = view.shadow.blur ?? 6
-      ctx.shadowOffsetX = view.shadow.offsetX ?? 0
-      ctx.shadowOffsetY = view.shadow.offsetY ?? 2
-    }
+    applyBodyOuterShadow(ctx, view)
     const strokeWidth = view.strokeWidth / this.viewport.zoom
     // Collapsed: node-like radius 8; expanded band: larger corner radius.
     const radius = view.expanded ? 12 : 8
     roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, radius)
     ctx.fillStyle = view.fill
     ctx.fill()
-    ctx.shadowColor = 'transparent'
-    ctx.shadowBlur = 0
-    ctx.shadowOffsetX = 0
-    ctx.shadowOffsetY = 0
+    clearBodyOuterShadow(ctx)
     ctx.strokeStyle = view.stroke
     ctx.lineWidth = strokeWidth
     const dash = view.strokeDash
@@ -352,12 +350,7 @@ export class Canvas2DRenderer implements Renderer {
 
     ctx.save()
     ctx.globalAlpha = view.alpha
-    if (view.shadow !== undefined) {
-      ctx.shadowColor = view.shadow.color ?? 'rgba(0, 0, 0, 0.35)'
-      ctx.shadowBlur = view.shadow.blur ?? 6
-      ctx.shadowOffsetX = view.shadow.offsetX ?? 0
-      ctx.shadowOffsetY = view.shadow.offsetY ?? 2
-    }
+    applyBodyOuterShadow(ctx, view)
 
     const dash = view.strokeDash
     if (view.circular) {
@@ -368,7 +361,7 @@ export class Canvas2DRenderer implements Renderer {
       ctx.arc(cx, cy, r, 0, Math.PI * 2)
       ctx.fillStyle = fill
       ctx.fill()
-      ctx.shadowColor = 'transparent'
+      clearBodyOuterShadow(ctx)
       ctx.strokeStyle = stroke
       ctx.lineWidth = lineWidth
       if (dash !== undefined && dash.length > 0) ctx.setLineDash([...dash])
@@ -379,7 +372,7 @@ export class Canvas2DRenderer implements Renderer {
       roundRect(ctx, bounds.x, bounds.y, bounds.width, bounds.height, radius)
       ctx.fillStyle = fill
       ctx.fill()
-      ctx.shadowColor = 'transparent'
+      clearBodyOuterShadow(ctx)
       ctx.strokeStyle = stroke
       ctx.lineWidth = lineWidth
       if (dash !== undefined && dash.length > 0) ctx.setLineDash([...dash])
@@ -413,9 +406,10 @@ export class Canvas2DRenderer implements Renderer {
   }
 
   /**
-   * Draw selection chrome on the overlay: soft glow (default) plus a solid ring.
+   * Draw selection chrome on the overlay: solid ring only.
+   * Soft glow paints under the body fill on the root canvas (twaver outer glow).
    * @param bounds - selected node body bounds.
-   * @param style - optional chrome overrides (`glow` defaults true).
+   * @param style - optional chrome overrides.
    * @param alpha - whole-node opacity.
    */
   drawSelectionOverlay(
@@ -433,7 +427,6 @@ export class Canvas2DRenderer implements Renderer {
     const radius = Math.min(8, w / 2, h / 2)
     ctx.save()
     ctx.globalAlpha = alpha
-    paintChromeGlow(ctx, { x, y, w, h, radius, color, alpha, style, enabledDefault: true })
     ctx.strokeStyle = color
     ctx.lineWidth = (style?.width ?? 2) / this.viewport.zoom
     ctx.setLineDash([])
@@ -857,8 +850,9 @@ function roundRect(
 }
 
 /**
- * Soft outer glow via canvas shadowBlur (twaver outer.style glow).
- * @param enabledDefault - when style.glow is omitted: selection true, hover false.
+ * Soft overlay glow via a padded fill + shadowBlur (hover opt-in only).
+ * Selection glow uses {@link applyBodyOuterShadow} under the body fill instead.
+ * @param enabledDefault - when style.glow is omitted: hover false.
  */
 function paintChromeGlow(
   ctx: CanvasRenderingContext2D,
@@ -888,6 +882,40 @@ function paintChromeGlow(
   ctx.shadowColor = 'transparent'
   ctx.shadowBlur = 0
   ctx.globalAlpha = args.alpha
+}
+
+/**
+ * Selection glow (twaver outer.style glow) or drop shadow, applied before body fill
+ * so the halo sits under the opaque fill rather than as an overlay veil.
+ */
+function applyBodyOuterShadow(
+  ctx: CanvasRenderingContext2D,
+  view: {
+    readonly selected: boolean
+    readonly selectStyle?: NodePaintView['selectStyle']
+    readonly shadow?: NodePaintView['shadow']
+  },
+): void {
+  const glowOn = view.selected && (view.selectStyle?.glow ?? true)
+  if (glowOn) {
+    ctx.shadowColor = view.selectStyle?.color ?? '#3b82f6'
+    ctx.shadowBlur = view.selectStyle?.glowBlur ?? 16
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    return
+  }
+  if (view.shadow === undefined) return
+  ctx.shadowColor = view.shadow.color ?? 'rgba(0, 0, 0, 0.35)'
+  ctx.shadowBlur = view.shadow.blur ?? 6
+  ctx.shadowOffsetX = view.shadow.offsetX ?? 0
+  ctx.shadowOffsetY = view.shadow.offsetY ?? 2
+}
+
+function clearBodyOuterShadow(ctx: CanvasRenderingContext2D): void {
+  ctx.shadowColor = 'transparent'
+  ctx.shadowBlur = 0
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
 }
 
 function drawPlainPolyline(

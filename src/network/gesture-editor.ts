@@ -11,6 +11,7 @@ import {
   listOwningGroupChain,
 } from '../ui/group-state.ts'
 import type { DirtyAccumulator } from './dirty.ts'
+import { elementPaintPad } from './paint-pad.ts'
 import type { ViewSet } from '../ui/view-set.ts'
 
 /** Collaborators GestureEditor needs from Network. */
@@ -473,7 +474,9 @@ export class GestureEditor {
   private captureNodeGeometryRects(nodeId: string): Rect[] {
     const rects: Rect[] = []
     const nodeView = this.deps.views.getNode(nodeId)
-    if (nodeView?.isActive === true) rects.push(growRect(nodeView.bounds, 8))
+    if (nodeView?.isActive === true) {
+      rects.push(growRect(nodeView.bounds, this.nodePaintPad(nodeId)))
+    }
     const groupIds = new Set(listOwningGroupChain(this.deps.scene, nodeId))
     for (const edge of this.deps.scene.edges.values()) {
       if (
@@ -484,8 +487,48 @@ export class GestureEditor {
       ) continue
       const edgeView = this.deps.views.getEdge(edge.id)
       if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
+      // Edge dirty often clips only a strip of the far endpoint. Partial clear +
+      // clip through that body leaves shadow / AA seams (hello From residual).
+      const otherId = edge.from === nodeId || groupIds.has(edge.from)
+        ? edge.to
+        : edge.from
+      this.pushEndpointPaintRect(rects, otherId)
     }
     return rects
+  }
+
+  /** Grow pad covering drop shadow and selection glow for a node id. */
+  private nodePaintPad(nodeId: string): number {
+    const paint = this.deps.views.getNode(nodeId)?.toPaintView(
+      this.deps.scene.selectedIds.has(nodeId),
+      false,
+    )
+    return elementPaintPad({
+      shadowBlur: paint?.shadow?.blur,
+      shadowOffsetY: paint?.shadow?.offsetY,
+      selected: paint?.selected,
+      glow: paint?.selectStyle?.glow,
+      glowBlur: paint?.selectStyle?.glowBlur,
+    })
+  }
+
+  private pushEndpointPaintRect(rects: Rect[], endpointId: string): void {
+    const nodeView = this.deps.views.getNode(endpointId)
+    if (nodeView?.isActive === true) {
+      rects.push(growRect(nodeView.bounds, this.nodePaintPad(endpointId)))
+      return
+    }
+    const groupView = this.deps.views.getGroup(endpointId)
+    if (groupView?.isActive !== true) return
+    const selected = this.deps.scene.selectedIds.has(endpointId)
+    const paint = groupView.toPaintView(selected, false)
+    rects.push(growRect(groupView.bounds, elementPaintPad({
+      shadowBlur: paint.shadow?.blur,
+      shadowOffsetY: paint.shadow?.offsetY,
+      selected,
+      glow: paint.selectStyle?.glow,
+      glowBlur: paint.selectStyle?.glowBlur,
+    })))
   }
 
   /** Bounds of owning groups and ancestors (auto-fit chain). */

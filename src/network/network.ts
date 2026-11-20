@@ -2,7 +2,14 @@
  * Network: mount, RAF validate loop, protocol API, event fan-out.
  */
 
-import { growRect, hitRect, unionRect, distanceToPolyline, type Rect } from '../geom.ts'
+import {
+  growRect,
+  hitRect,
+  intersectsRect,
+  unionRect,
+  distanceToPolyline,
+  type Rect,
+} from '../geom.ts'
 import { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
@@ -32,6 +39,7 @@ import { layoutFlowColumns, layoutGrid } from '../layout/index.ts'
 import { DirtyAccumulator } from './dirty.ts'
 import { GestureEditor } from './gesture-editor.ts'
 import { OverlayChromeRegistry } from './overlay-chrome-registry.ts'
+import { elementPaintPad } from './paint-pad.ts'
 import { Viewport } from './viewport.ts'
 
 export type GraphEventHandler = (event: GraphEvent) => void
@@ -469,11 +477,39 @@ export class Network {
 
   /**
    * Select nodes and emit selectionChanged.
+   * Selection glow paints under body fill on the root canvas, so selection
+   * changes schedule a scene paint (not overlay-only).
    * @param ids - selected ids.
    */
   setSelection(ids: readonly string[]): void {
+    const previous = [...this.scene.selectedIds]
     this.scene.setSelection(ids)
-    this.requestOverlayPaint()
+    const touched = new Set([...previous, ...ids])
+    for (const id of touched) {
+      const nodeView = this.views.getNode(id)
+      if (nodeView?.isActive === true) {
+        const paint = nodeView.toPaintView(true, false)
+        this.dirty.add(growRect(nodeView.bounds, elementPaintPad({
+          shadowBlur: paint.shadow?.blur,
+          shadowOffsetY: paint.shadow?.offsetY,
+          selected: true,
+          glow: paint.selectStyle?.glow,
+          glowBlur: paint.selectStyle?.glowBlur,
+        })))
+      }
+      const groupView = this.views.getGroup(id)
+      if (groupView?.isActive === true) {
+        const paint = groupView.toPaintView(true, false)
+        this.dirty.add(growRect(groupView.bounds, elementPaintPad({
+          shadowBlur: paint.shadow?.blur,
+          shadowOffsetY: paint.shadow?.offsetY,
+          selected: true,
+          glow: paint.selectStyle?.glow,
+          glowBlur: paint.selectStyle?.glowBlur,
+        })))
+      }
+    }
+    this.scheduleScenePaint()
     this.emit({ type: 'selectionChanged', selectedIds: ids })
   }
 
@@ -939,9 +975,15 @@ export class Network {
     const oldRects: Rect[] = []
     for (const id of peek.ids) {
       const nodeView = this.views.getNode(id)
-      if (nodeView?.isActive === true) oldRects.push(growRect(nodeView.bounds, 8))
+      if (nodeView?.isActive === true) {
+        oldRects.push(growRect(nodeView.bounds, this.nodePaintPad(id)))
+        this.pushIncidentEdgeAndEndpointRects(oldRects, id)
+      }
       const edgeView = this.views.getEdge(id)
-      if (edgeView?.isActive === true) oldRects.push(growRect(edgeView.bounds, 8))
+      if (edgeView?.isActive === true) {
+        oldRects.push(growRect(edgeView.bounds, 8))
+        this.pushEdgeEndpointRects(oldRects, id)
+      }
       if (this.scene.groups.has(id)) {
         for (const rect of this.captureGroupTopologyRects(id)) oldRects.push(rect)
       } else {
@@ -964,17 +1006,14 @@ export class Network {
     for (const id of peek.ids) {
       const nodeView = this.views.getNode(id)
       if (nodeView?.isActive === true) {
-        this.dirty.add(growRect(nodeView.bounds, 8))
-        for (const edge of this.scene.edges.values()) {
-          if (edge.from !== id && edge.to !== id) continue
-          const edgeView = this.views.getEdge(edge.id)
-          if (edgeView?.isActive === true) this.dirty.add(growRect(edgeView.bounds, 8))
-        }
+        this.dirty.add(growRect(nodeView.bounds, this.nodePaintPad(id)))
+        this.pushIncidentEdgeAndEndpointRects(undefined, id)
         continue
       }
       const edgeView = this.views.getEdge(id)
       if (edgeView?.isActive === true) {
         this.dirty.add(growRect(edgeView.bounds, 8))
+        this.pushEdgeEndpointRects(undefined, id)
         continue
       }
       if (this.scene.groups.has(id)) {
@@ -984,6 +1023,68 @@ export class Network {
       const groupView = this.views.getGroup(id)
       if (groupView?.isActive === true) this.dirty.add(growRect(groupView.bounds, 8))
     }
+  }
+
+  /** Grow pad covering drop shadow and selection glow for a node id. */
+  private nodePaintPad(nodeId: string): number {
+    const selected = this.scene.selectedIds.has(nodeId)
+    const paint = this.views.getNode(nodeId)?.toPaintView(selected, false)
+    return elementPaintPad({
+      shadowBlur: paint?.shadow?.blur,
+      shadowOffsetY: paint?.shadow?.offsetY,
+      selected,
+      glow: paint?.selectStyle?.glow,
+      glowBlur: paint?.selectStyle?.glowBlur,
+    })
+  }
+
+  /**
+   * Incident edges plus far endpoints (full body). Edge AABB alone often clips
+   * only a strip of the far node and leaves shadow/AA residuals.
+   */
+  private pushIncidentEdgeAndEndpointRects(
+    into: Rect[] | undefined,
+    nodeId: string,
+  ): void {
+    for (const edge of this.scene.edges.values()) {
+      if (edge.from !== nodeId && edge.to !== nodeId) continue
+      const edgeView = this.views.getEdge(edge.id)
+      if (edgeView?.isActive === true) {
+        this.pushPaintRect(into, growRect(edgeView.bounds, 8))
+      }
+      this.pushEndpointPaintRect(into, edge.from === nodeId ? edge.to : edge.from)
+    }
+  }
+
+  private pushEdgeEndpointRects(into: Rect[] | undefined, edgeId: string): void {
+    const edge = this.scene.edges.get(edgeId)
+    if (edge === undefined) return
+    this.pushEndpointPaintRect(into, edge.from)
+    this.pushEndpointPaintRect(into, edge.to)
+  }
+
+  private pushEndpointPaintRect(into: Rect[] | undefined, endpointId: string): void {
+    const nodeView = this.views.getNode(endpointId)
+    if (nodeView?.isActive === true) {
+      this.pushPaintRect(into, growRect(nodeView.bounds, this.nodePaintPad(endpointId)))
+      return
+    }
+    const groupView = this.views.getGroup(endpointId)
+    if (groupView?.isActive !== true) return
+    const selected = this.scene.selectedIds.has(endpointId)
+    const paint = groupView.toPaintView(selected, false)
+    this.pushPaintRect(into, growRect(groupView.bounds, elementPaintPad({
+      shadowBlur: paint.shadow?.blur,
+      shadowOffsetY: paint.shadow?.offsetY,
+      selected,
+      glow: paint.selectStyle?.glow,
+      glowBlur: paint.selectStyle?.glowBlur,
+    })))
+  }
+
+  private pushPaintRect(into: Rect[] | undefined, rect: Rect): void {
+    if (into !== undefined) into.push(rect)
+    else this.dirty.add(rect)
   }
 
   /**
@@ -1092,11 +1193,22 @@ export class Network {
         const dirtyRects: Rect[] | 'all' = filter !== undefined || snapshot.invalidateAll
           ? 'all'
           : snapshot.rect === undefined ? 'all' : [snapshot.rect]
+        // Partial dirty: skip draw calls whose bounds miss the cleared hole.
+        // (Canvas clip alone still paid O(n) CPU; selection glow relies on this cull.)
+        const cullRects = dirtyRects === 'all' ? undefined : dirtyRects
+        const inDirty = (bounds: Rect): boolean => {
+          if (cullRects === undefined) return true
+          for (const rect of cullRects) {
+            if (intersectsRect(bounds, rect)) return true
+          }
+          return false
+        }
         renderer.beginFrame(cam, dirtyRects)
         if (filter === undefined) {
           for (const group of this.scene.groups.values()) {
             const view = this.views.getGroup(group.id)
             if (view === undefined || !view.isVisible) continue
+            if (!inDirty(view.bounds)) continue
             const selected = this.scene.selectedIds.has(group.id)
             const hovered = this.scene.hover === group.id
             renderer.drawGroup(group, view.toPaintView(selected, hovered))
@@ -1106,6 +1218,7 @@ export class Network {
           if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
           const view = this.views.getEdge(edge.id)
           if (view === undefined || !view.isActive) continue
+          if (!inDirty(view.bounds)) continue
           // Base paint always lands on the root layer; select/hover styling is
           // stacked on top by the overlay pass. Skipping highlighted edges here
           // would leave root holes that unhover (overlay-only) never refills.
@@ -1115,6 +1228,7 @@ export class Network {
           if (filter !== undefined && !filter.has(node.id)) continue
           const view = this.views.getNode(node.id)
           if (view === undefined || !view.isVisible) continue
+          if (!inDirty(view.bounds)) continue
           renderer.drawNode(node, view.toPaintView(
             this.scene.selectedIds.has(node.id),
             this.scene.hover === node.id,

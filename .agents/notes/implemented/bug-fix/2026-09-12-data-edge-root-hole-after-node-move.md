@@ -8,11 +8,11 @@ After moving a node, its `kind: 'data'` edges rendered partially or not at all. 
 
 ## Decision
 
-`Network.validate`'s scene pass now always draws every active edge with its base paint (`toPaintView(false, false)`), regardless of selection or hover state; the overlay pass keeps stacking select/hover styling on top. This preserves the paint-channels contract (`setSelection`/`setHover` remain overlay-only frames) while guaranteeing the root layer never loses edge pixels, so overlay-only transitions cannot expose holes. The same fix covers the latent variants: directly hovered edges and selected edges skipped by any scene paint (pan/zoom/move) while highlighted.
+`Network.validate`'s scene pass now always draws every active edge with its base paint (`toPaintView(false, false)`), regardless of selection or hover state; the overlay pass keeps stacking select/hover styling on top. This keeps `setHover` overlay-only while guaranteeing the root layer never loses edge pixels, so overlay-only unhover transitions cannot expose holes. (`setSelection` later scene-paints for under-body glow — see [selection glow](../feature/2026-11-20-hover-glow.md) — but the base edge paint rule still covers hover-related holes.) The same fix covers the latent variants: directly hovered edges and selected edges skipped by any scene paint (pan/zoom/move) while highlighted.
 
 ## Alternatives considered
 
-**Schedule a scene repaint in `setHover`/`setSelection` covering affected edge rects.** Heals holes at transition time but breaks the tested contract that hover/selection changes are overlay-only frames, adds per-hover-change scene work, and still needs old+new edge bookkeeping on every hover change.
+**Schedule a scene repaint in `setHover`/`setSelection` covering affected edge rects.** Heals holes at transition time but would have broken the overlay-only hover contract, adds per-hover-change scene work, and still needs old+new edge bookkeeping on every hover change. (Selection later gained scene paint for body glow for an unrelated reason; hover stayed overlay-only.)
 
 **Restrict the skip to directly hovered/selected edges (keep skipping only related-data ones).** Smaller diff but keeps the root-hole class for selected/directly-hovered edges; the unconditional base paint removes the whole class at the cost of one redundant root draw that the overlay highlight already covers visually.
 

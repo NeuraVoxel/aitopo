@@ -86,7 +86,7 @@ describe('paint channels', () => {
     host = undefined
   })
 
-  it('setSelection and setHover schedule overlay-only frames', async () => {
+  it('setSelection scene-paints under-body glow; setHover stays overlay-only', async () => {
     const renderer = recordingRenderer()
     network = new Network({
       defaultInteractions: false,
@@ -107,16 +107,22 @@ describe('paint channels', () => {
     network.mount(host)
     await flushFrames(3)
     renderer.reset()
+    vi.mocked(renderer.drawNode).mockClear()
+    vi.mocked(renderer.drawSelectionOverlay).mockClear()
 
     network.setSelection(['a'])
     await flushFrames(2)
-    expect(renderer.beginDirties).toEqual(['overlay'])
-    expect(renderer.sceneDraws).toBe(0)
+    expect(renderer.beginDirties.some(d => d !== 'overlay' && d !== 'all')).toBe(true)
+    expect(renderer.sceneDraws).toBeGreaterThan(0)
     expect(renderer.drawSelectionOverlay).toHaveBeenCalled()
+    const drawnNodeIds = vi.mocked(renderer.drawNode).mock.calls.map(call => call[0].id)
+    expect(drawnNodeIds).toContain('a')
+    expect(drawnNodeIds).not.toContain('b')
 
     renderer.reset()
     vi.mocked(renderer.drawSelectionOverlay).mockClear()
     vi.mocked(renderer.drawHoverOverlay).mockClear()
+    vi.mocked(renderer.drawNode).mockClear()
 
     network.setHover('b')
     await flushFrames(2)
@@ -307,5 +313,49 @@ describe('paint channels', () => {
       maxX = Math.max(maxX, r.x + r.width)
     }
     expect(maxX).toBeGreaterThan(450)
+  })
+
+  it('preview move of To dirties full From bounds (no strip residual)', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'agent', label: 'From', x: 80, y: 0 },
+        { id: 'b', type: 'agent', label: 'To', x: 280, y: 120 },
+      ],
+      edges: [{ id: 'e1', from: 'a', to: 'b', label: 'link' }],
+      groups: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '640px'
+    host.style.height = '400px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+    vi.mocked(renderer.drawNode).mockClear()
+
+    network.setSelection(['b'])
+    await flushFrames(2)
+    renderer.reset()
+    vi.mocked(renderer.drawNode).mockClear()
+
+    network.previewNodePosition('b', 280, 220)
+    await flushFrames(2)
+
+    const dirty = renderer.beginDirties[0]
+    expect(Array.isArray(dirty)).toBe(true)
+    const rects = dirty as { x: number; y: number; width: number; height: number }[]
+    const minX = Math.min(...rects.map(r => r.x))
+    // Far endpoint must be fully cleared (body starts at x=80), not only the
+    // edge-strip clip (~x≥118) that left a From residual in hello demo.
+    expect(minX).toBeLessThanOrEqual(80)
+    const drawn = vi.mocked(renderer.drawNode).mock.calls.map(call => call[0].id)
+    expect(drawn).toContain('b')
+    expect(drawn).toContain('a')
   })
 })

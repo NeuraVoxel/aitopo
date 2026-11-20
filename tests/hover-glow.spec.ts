@@ -1,12 +1,14 @@
 // @vitest-environment happy-dom
 
 /**
- * Selection glow + hover ring (twaver outer.style glow on select).
+ * Selection under-body glow + hover ring (twaver outer.style glow on select).
  */
 
 import { describe, expect, it, vi } from 'vitest'
 import { Canvas2DRenderer } from '../src/render/canvas2d.ts'
+import type { NodePaintView } from '../src/render/canvas2d.ts'
 import { parseDocument } from '../src/protocol/parse.ts'
+import type { GraphNode } from '../src/protocol/types.ts'
 
 function mockContext(): CanvasRenderingContext2D & { blurAtFill: number } {
   const ctx = {
@@ -17,6 +19,7 @@ function mockContext(): CanvasRenderingContext2D & { blurAtFill: number } {
     moveTo: vi.fn(),
     lineTo: vi.fn(),
     arcTo: vi.fn(),
+    arc: vi.fn(),
     closePath: vi.fn(),
     fill: vi.fn(function (this: { shadowBlur: number; blurAtFill: number }) {
       this.blurAtFill = this.shadowBlur
@@ -41,8 +44,9 @@ function mockContext(): CanvasRenderingContext2D & { blurAtFill: number } {
   return ctx as unknown as CanvasRenderingContext2D & { blurAtFill: number }
 }
 
-function rendererWithMockOverlay(): {
+function rendererWithMockCanvases(): {
   renderer: Canvas2DRenderer
+  rootCtx: ReturnType<typeof mockContext>
   overlayCtx: ReturnType<typeof mockContext>
 } {
   const root = document.createElement('canvas')
@@ -51,7 +55,32 @@ function rendererWithMockOverlay(): {
   const overlayCtx = mockContext()
   Object.defineProperty(root, 'getContext', { value: () => rootCtx })
   Object.defineProperty(overlay, 'getContext', { value: () => overlayCtx })
-  return { renderer: new Canvas2DRenderer({ root, overlay }), overlayCtx }
+  return { renderer: new Canvas2DRenderer({ root, overlay }), rootCtx, overlayCtx }
+}
+
+const sampleNode: GraphNode = {
+  id: 'n',
+  type: 'agent',
+  label: 'N',
+  x: 10,
+  y: 20,
+  w: 40,
+  h: 30,
+}
+
+function bodyView(overrides: Partial<NodePaintView> = {}): NodePaintView {
+  return {
+    bounds: { x: 10, y: 20, width: 40, height: 30 },
+    bodyBounds: { x: 10, y: 20, width: 40, height: 30 },
+    unionBounds: { x: 10, y: 20, width: 40, height: 30 },
+    selected: false,
+    hovered: false,
+    circular: false,
+    alpha: 1,
+    attachments: [],
+    overlayAttachments: [],
+    ...overrides,
+  }
 }
 
 describe('selection / hover glow', () => {
@@ -72,41 +101,46 @@ describe('selection / hover glow', () => {
     expect(doc.nodes[0]!.style?.select?.glowBlur).toBe(20)
   })
 
-  it('applies shadowBlur on default selection overlay', () => {
-    const { renderer, overlayCtx } = rendererWithMockOverlay()
+  it('applies shadowBlur under body fill for default selection', () => {
+    const { renderer, rootCtx, overlayCtx } = rendererWithMockCanvases()
+    renderer.drawNode(sampleNode, bodyView({ selected: true }))
+    expect(rootCtx.fill).toHaveBeenCalled()
+    expect(rootCtx.blurAtFill).toBe(16)
     renderer.drawSelectionOverlay(
       { x: 10, y: 20, width: 40, height: 30 },
       undefined,
-      1,
-    )
-    expect(overlayCtx.fill).toHaveBeenCalled()
-    expect(overlayCtx.blurAtFill).toBe(16)
-    expect(overlayCtx.stroke).toHaveBeenCalled()
-  })
-
-  it('honors select.glowBlur', () => {
-    const { renderer, overlayCtx } = rendererWithMockOverlay()
-    renderer.drawSelectionOverlay(
-      { x: 0, y: 0, width: 50, height: 40 },
-      { glowBlur: 24, color: '#3b82f6' },
-      1,
-    )
-    expect(overlayCtx.blurAtFill).toBe(24)
-  })
-
-  it('skips selection glow when select.glow is false', () => {
-    const { renderer, overlayCtx } = rendererWithMockOverlay()
-    renderer.drawSelectionOverlay(
-      { x: 0, y: 0, width: 50, height: 40 },
-      { glow: false, color: '#3b82f6' },
       1,
     )
     expect(overlayCtx.fill).not.toHaveBeenCalled()
     expect(overlayCtx.stroke).toHaveBeenCalled()
   })
 
+  it('honors select.glowBlur on body fill', () => {
+    const { renderer, rootCtx } = rendererWithMockCanvases()
+    renderer.drawNode(
+      sampleNode,
+      bodyView({
+        selected: true,
+        selectStyle: { glowBlur: 24, color: '#3b82f6' },
+      }),
+    )
+    expect(rootCtx.blurAtFill).toBe(24)
+  })
+
+  it('skips selection glow when select.glow is false', () => {
+    const { renderer, rootCtx } = rendererWithMockCanvases()
+    renderer.drawNode(
+      sampleNode,
+      bodyView({
+        selected: true,
+        selectStyle: { glow: false, color: '#3b82f6' },
+      }),
+    )
+    expect(rootCtx.blurAtFill).toBe(0)
+  })
+
   it('keeps hover as dashed ring without glow by default', () => {
-    const { renderer, overlayCtx } = rendererWithMockOverlay()
+    const { renderer, overlayCtx } = rendererWithMockCanvases()
     renderer.drawHoverOverlay(
       { x: 10, y: 20, width: 40, height: 30 },
       undefined,
@@ -118,7 +152,7 @@ describe('selection / hover glow', () => {
   })
 
   it('allows opt-in hover glow via hover.glow true', () => {
-    const { renderer, overlayCtx } = rendererWithMockOverlay()
+    const { renderer, overlayCtx } = rendererWithMockCanvases()
     renderer.drawHoverOverlay(
       { x: 0, y: 0, width: 50, height: 40 },
       { glow: true, glowBlur: 18 },
