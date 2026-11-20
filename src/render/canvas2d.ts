@@ -80,6 +80,12 @@ export interface EdgePaintView {
   readonly stroke: string
   readonly lineWidth: number
   readonly strokeDash?: readonly number[]
+  /** Animated dash offset (flow). */
+  readonly flowDashOffset?: number
+  /** Corner join. Omitted → `round`. */
+  readonly corner?: 'none' | 'round' | 'bevel'
+  /** Corner radius / bevel inset. Omitted → `8`. */
+  readonly cornerRadius?: number
   readonly arrowFrom?: EdgeArrowPaint
   readonly arrowTo?: EdgeArrowPaint
   readonly attachments: readonly AttachmentPaintOp[]
@@ -94,6 +100,8 @@ export interface EdgeArrowPaint {
   readonly size: number
   readonly fill: string
   readonly stroke: string
+  /** Omitted → `standard`. */
+  readonly shape?: 'standard' | 'delta' | 'diamond' | 'short' | 'slant'
 }
 
 /** Cached geometry for a group band. */
@@ -295,7 +303,15 @@ export class Canvas2DRenderer implements Renderer {
         anticlockwise,
       )
     } else if (points !== undefined && points.length >= 2) {
-      drawRoundedPolyline(ctx, points, 8)
+      const corner = view.corner ?? 'round'
+      const radius = view.cornerRadius ?? 8
+      if (corner === 'none') {
+        drawPlainPolyline(ctx, points)
+      } else if (corner === 'bevel') {
+        drawBevelPolyline(ctx, points, radius)
+      } else {
+        drawRoundedPolyline(ctx, points, radius)
+      }
     } else {
       ctx.moveTo(view.from.x, view.from.y)
       if (view.orientation === 'horizontal') {
@@ -308,14 +324,18 @@ export class Canvas2DRenderer implements Renderer {
     }
     ctx.strokeStyle = view.stroke
     ctx.lineWidth = view.lineWidth / this.viewport.zoom
-    ctx.lineJoin = 'round'
+    ctx.lineJoin = view.corner === 'bevel' ? 'bevel' : 'round'
     ctx.lineCap = 'round'
     const dash = view.strokeDash
     if (dash !== undefined && dash.length > 0) {
       ctx.setLineDash([...dash])
+      if (view.flowDashOffset !== undefined) {
+        ctx.lineDashOffset = view.flowDashOffset
+      }
     }
     ctx.stroke()
     ctx.setLineDash([])
+    ctx.lineDashOffset = 0
     if (view.arrowFrom !== undefined) drawEdgeArrow(ctx, view.arrowFrom, this.viewport.zoom)
     if (view.arrowTo !== undefined) drawEdgeArrow(ctx, view.arrowTo, this.viewport.zoom)
     paintAttachmentOps(ctx, view.attachments)
@@ -568,18 +588,36 @@ function drawEdgeArrow(
   zoom: number,
 ): void {
   const { tip, direction, size, fill, stroke } = arrow
+  const shape = arrow.shape ?? 'standard'
   const len = Math.hypot(direction.x, direction.y)
   const ux = len <= 1e-9 ? 1 : direction.x / len
   const uy = len <= 1e-9 ? 0 : direction.y / len
   const px = -uy
   const py = ux
-  const backX = tip.x - ux * size
-  const backY = tip.y - uy * size
-  const half = size * 0.45
+  const s = shape === 'short' ? size * 0.7 : size
+  const half = shape === 'delta' ? s * 0.55 : s * 0.45
+  const backX = tip.x - ux * s
+  const backY = tip.y - uy * s
   ctx.beginPath()
-  ctx.moveTo(tip.x, tip.y)
-  ctx.lineTo(backX + px * half, backY + py * half)
-  ctx.lineTo(backX - px * half, backY - py * half)
+  if (shape === 'diamond') {
+    const midX = tip.x - ux * s * 0.5
+    const midY = tip.y - uy * s * 0.5
+    const tailX = tip.x - ux * s
+    const tailY = tip.y - uy * s
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(midX + px * half, midY + py * half)
+    ctx.lineTo(tailX, tailY)
+    ctx.lineTo(midX - px * half, midY - py * half)
+  } else if (shape === 'slant') {
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(backX + px * half, backY + py * half * 0.2)
+    ctx.lineTo(backX - px * half * 0.35, backY - py * half)
+  } else {
+    // standard / delta / short — filled triangle
+    ctx.moveTo(tip.x, tip.y)
+    ctx.lineTo(backX + px * half, backY + py * half)
+    ctx.lineTo(backX - px * half, backY - py * half)
+  }
   ctx.closePath()
   ctx.fillStyle = fill
   ctx.fill()
@@ -810,6 +848,51 @@ function roundRect(
   ctx.arcTo(x, y + h, x, y, radius)
   ctx.arcTo(x, y, x + w, y, radius)
   ctx.closePath()
+}
+
+function drawPlainPolyline(
+  ctx: CanvasRenderingContext2D,
+  points: readonly { x: number; y: number }[],
+): void {
+  if (points.length === 0) return
+  ctx.moveTo(points[0]!.x, points[0]!.y)
+  for (let i = 1; i < points.length; i += 1) {
+    ctx.lineTo(points[i]!.x, points[i]!.y)
+  }
+}
+
+function drawBevelPolyline(
+  ctx: CanvasRenderingContext2D,
+  points: readonly { x: number; y: number }[],
+  inset: number,
+): void {
+  if (points.length < 3) {
+    drawPlainPolyline(ctx, points)
+    return
+  }
+  ctx.moveTo(points[0]!.x, points[0]!.y)
+  for (let i = 1; i < points.length - 1; i += 1) {
+    const prev = points[i - 1]!
+    const curr = points[i]!
+    const next = points[i + 1]!
+    const d1 = Math.hypot(curr.x - prev.x, curr.y - prev.y)
+    const d2 = Math.hypot(next.x - curr.x, next.y - curr.y)
+    const r = Math.min(inset, d1 / 2, d2 / 2)
+    if (r < 0.5) {
+      ctx.lineTo(curr.x, curr.y)
+      continue
+    }
+    ctx.lineTo(
+      curr.x - ((curr.x - prev.x) / d1) * r,
+      curr.y - ((curr.y - prev.y) / d1) * r,
+    )
+    ctx.lineTo(
+      curr.x + ((next.x - curr.x) / d2) * r,
+      curr.y + ((next.y - curr.y) / d2) * r,
+    )
+  }
+  const last = points[points.length - 1]!
+  ctx.lineTo(last.x, last.y)
 }
 
 /**

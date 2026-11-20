@@ -25,6 +25,17 @@ import {
   unionPoint,
 } from './bounds.ts'
 import { resolveEdgeEndpoint } from './edge-endpoint.ts'
+import type { EdgeAnchorHints } from './bounds.ts'
+import {
+  buildBoxPairRoute,
+  buildBundleShapeRoute,
+  buildLoopedRoute,
+  buildShapeRoute,
+  DEFAULT_BUNDLE_OFFSET,
+  DEFAULT_LOOPED_GAP,
+  DEFAULT_ROUTE_EXTEND,
+  isBoxPairRoute,
+} from './edge-link-route.ts'
 import {
   buildCircularArc,
   straightRoute,
@@ -36,6 +47,13 @@ const DEFAULT_STROKE = '#5a6478'
 const DEFAULT_STROKE_HOVER = '#3b82f6'
 const DEFAULT_LINE_WIDTH = 1.25
 const DEFAULT_ARROW_SIZE = 10
+const DEFAULT_CORNER_RADIUS = 8
+
+/** Per-frame extras that do not require geometry rebuild. */
+export interface EdgePaintExtras {
+  readonly bundleYOffset?: number
+  readonly flowPhase?: number
+}
 
 /** Per-edge View: invalidate → validate attachments → paint DTO. */
 export class EdgeView {
@@ -59,12 +77,34 @@ export class EdgeView {
   private arrowFrom = false
   private arrowTo = true
   private arrowStyle: GraphEdgeArrowStyle | undefined
+  private corner: 'none' | 'round' | 'bevel' = 'round'
+  private cornerRadius = DEFAULT_CORNER_RADIUS
+  private flow = false
+  private flowConverse = false
+  private bundleYOffset = 0
+  private flowPhase = 0
   private attachments: Attachment[] = []
   private sceneOps: AttachmentPaintOp[] = []
   private overlayOps: AttachmentPaintOp[] = []
 
   constructor(id: string) {
     this.id = id
+  }
+
+  /** Update paint extras; bundle offset changes re-dirty geometry. */
+  setPaintExtras(extras: EdgePaintExtras): void {
+    if (
+      extras.bundleYOffset !== undefined
+      && Math.abs(extras.bundleYOffset - this.bundleYOffset) > 1e-9
+    ) {
+      this.bundleYOffset = extras.bundleYOffset
+      this.dirty = true
+    }
+    if (extras.flowPhase !== undefined) this.flowPhase = extras.flowPhase
+  }
+
+  get hasFlow(): boolean {
+    return this.flow && this.active
   }
 
   /** Union bounds (dirty); excludes hover-only tooltip. */
@@ -124,19 +164,31 @@ export class EdgeView {
     }
     const fromBox = fromEp.box
     const toBox = toEp.box
-    const hints = {
-      from: edge.fromAnchor,
-      to: edge.toAnchor,
-      fromOutset: edge.fromOutset,
-      toOutset: edge.toOutset,
+    const hints: EdgeAnchorHints = {
+      ...(edge.fromAnchor !== undefined ? { from: edge.fromAnchor } : {}),
+      ...(edge.toAnchor !== undefined ? { to: edge.toAnchor } : {}),
+      ...(edge.fromOutset !== undefined ? { fromOutset: edge.fromOutset } : {}),
+      ...(edge.toOutset !== undefined ? { toOutset: edge.toOutset } : {}),
     }
-    const route = edge.style?.route ?? 'orthogonal'
+    const style = edge.style
+    const route = style?.route ?? 'orthogonal'
     let fromPt: Point
     let toPt: Point
     let orientation: 'horizontal' | 'vertical'
     let points: readonly Point[]
     this.arcDraw = undefined
-    if (route === 'arc' || route === 'straight') {
+
+    if (edge.from === edge.to) {
+      points = buildLoopedRoute(
+        fromBox,
+        style?.loopedType ?? 'arc',
+        style?.loopedDirection ?? 'northwest',
+        style?.loopedGap ?? DEFAULT_LOOPED_GAP,
+      )
+      fromPt = points[0]!
+      toPt = points[points.length - 1]!
+      orientation = 'horizontal'
+    } else if (route === 'arc' || route === 'straight') {
       const ends = edgeEndpointsFromRects(fromBox, toBox, hints)
       orientation = ends.orientation
       if (route === 'straight') {
@@ -144,7 +196,7 @@ export class EdgeView {
         toPt = ends.to
         points = straightRoute(fromPt, toPt)
       } else {
-        const center = edge.style?.arcCenter
+        const center = style?.arcCenter
         if (center === undefined) {
           throw new Error(`edge "${edge.id}": style.route "arc" requires style.arcCenter`)
         }
@@ -152,19 +204,56 @@ export class EdgeView {
           center,
           ends.from,
           ends.to,
-          edge.style?.arcClockwise !== false,
-          edge.style?.arcRadius,
+          style?.arcClockwise !== false,
+          style?.arcRadius,
         )
         points = built.points
         this.arcDraw = built.draw
         fromPt = points[0]!
         toPt = points[points.length - 1]!
       }
+    } else if (route === 'shape') {
+      const ends = edgeEndpointsFromRects(fromBox, toBox, hints)
+      const shapePoints = edge.shapePoints
+      if (shapePoints === undefined || shapePoints.length === 0) {
+        throw new Error(`edge "${edge.id}": style.route "shape" requires shapePoints`)
+      }
+      points = buildShapeRoute(ends.from, ends.to, shapePoints, style?.shapeKind ?? 'lineto')
+      fromPt = points[0]!
+      toPt = points[points.length - 1]!
+      orientation = ends.orientation
+    } else if (
+      route === 'bundleArc'
+      || route === 'triangle'
+      || route === 'parallel'
+    ) {
+      const ends = edgeEndpointsFromRects(fromBox, toBox, hints)
+      const yOffset = this.bundleYOffset + (style?.routeOffset ?? 0)
+      points = buildBundleShapeRoute(
+        ends.from,
+        ends.to,
+        route,
+        yOffset,
+        style?.bundleOffset ?? DEFAULT_BUNDLE_OFFSET,
+      )
+      fromPt = points[0]!
+      toPt = points[points.length - 1]!
+      orientation = ends.orientation
+    } else if (route !== 'orthogonal' && isBoxPairRoute(route)) {
+      points = buildBoxPairRoute({
+        fromBox,
+        toBox,
+        route,
+        routeExtend: style?.routeExtend ?? DEFAULT_ROUTE_EXTEND,
+      })
+      fromPt = points[0]!
+      toPt = points[points.length - 1]!
+      orientation = Math.abs(fromPt.y - toPt.y) >= Math.abs(fromPt.x - toPt.x)
+        ? 'vertical'
+        : 'horizontal'
     } else {
-      // Remapped / group endpoints route from live boxes. Complementary anchors
-      // (e.g. bottom→right) get a relative two-segment elbow in bounds.ts.
-      // Non-complementary remaps still drop absolute corridor waypoints so an
-      // expanded layout elbow does not float off the collapsed card.
+      // Default orthogonal: remapped / group endpoints route from live boxes.
+      // Complementary anchors get a relative two-segment elbow in bounds.ts.
       const remapped = (fromEp.kind === 'node' && fromEp.remappedGroupId !== undefined)
         || (toEp.kind === 'node' && toEp.remappedGroupId !== undefined)
       const usesBoxRoute = fromEp.kind === 'group'
@@ -187,6 +276,12 @@ export class EdgeView {
         orientation = anchors.orientation
         points = anchors.points
       }
+      // Sibling fan: offset orthogonal polyline along its average normal.
+      if (Math.abs(this.bundleYOffset) > 1e-6) {
+        points = offsetPolylineNormal(points, this.bundleYOffset)
+        fromPt = points[0]!
+        toPt = points[points.length - 1]!
+      }
     }
     this.active = true
     this.fromPt = fromPt
@@ -201,7 +296,6 @@ export class EdgeView {
       pathBounds ?? { x: fromPt.x, y: fromPt.y, width: 1, height: 1 },
       PATH_BOUNDS_PAD,
     )
-    const style = edge.style
     this.alpha = clampAlpha(style?.alpha)
     this.stroke = style?.stroke ?? DEFAULT_STROKE
     this.strokeHover = style?.strokeHover ?? DEFAULT_STROKE_HOVER
@@ -212,6 +306,10 @@ export class EdgeView {
     this.arrowFrom = style?.arrowFrom === true
     this.arrowTo = style?.arrowTo !== false
     this.arrowStyle = style?.arrow
+    this.corner = style?.corner ?? 'round'
+    this.cornerRadius = style?.cornerRadius ?? DEFAULT_CORNER_RADIUS
+    this.flow = style?.flow === true
+    this.flowConverse = style?.flowConverse === true
     this.attachments = syncAttachments(edge, this.attachments)
     const ctx = { edge, points: this.pointsCache }
     let union: Rect | undefined = this.path
@@ -253,8 +351,17 @@ export class EdgeView {
     const arrowSize = this.arrowStyle?.size ?? DEFAULT_ARROW_SIZE
     const arrowFill = this.arrowStyle?.fill ?? resolvedStroke
     const arrowStroke = this.arrowStyle?.stroke ?? resolvedStroke
+    const arrowShape = this.arrowStyle?.shape ?? 'standard'
     const fromSample = samplePolylineAt(this.pointsCache, 0)
     const toSample = samplePolylineAt(this.pointsCache, 1)
+    const flowDash = this.flow
+      ? (this.strokeDash !== undefined && this.strokeDash.length > 0
+        ? this.strokeDash
+        : [10, 6] as const)
+      : this.strokeDash
+    const flowOffset = this.flow
+      ? (this.flowConverse ? -this.flowPhase : this.flowPhase) * 0.04
+      : 0
 
     return {
       from: this.fromPt,
@@ -269,7 +376,10 @@ export class EdgeView {
       alpha: this.alpha,
       stroke: resolvedStroke,
       lineWidth: paintWidth,
-      ...(this.strokeDash !== undefined ? { strokeDash: this.strokeDash } : {}),
+      corner: this.corner,
+      cornerRadius: this.cornerRadius,
+      ...(flowDash !== undefined ? { strokeDash: flowDash } : {}),
+      ...(this.flow ? { flowDashOffset: flowOffset } : {}),
       ...(this.arrowFrom
         ? {
           arrowFrom: {
@@ -278,6 +388,7 @@ export class EdgeView {
             size: arrowSize,
             fill: arrowFill,
             stroke: arrowStroke,
+            shape: arrowShape,
           },
         }
         : {}),
@@ -289,6 +400,7 @@ export class EdgeView {
             size: arrowSize,
             fill: arrowFill,
             stroke: arrowStroke,
+            shape: arrowShape,
           },
         }
         : {}),
@@ -313,11 +425,38 @@ export class EdgeView {
     this.arrowFrom = false
     this.arrowTo = true
     this.arrowStyle = undefined
+    this.corner = 'round'
+    this.cornerRadius = DEFAULT_CORNER_RADIUS
+    this.flow = false
+    this.flowConverse = false
     this.attachments = []
     this.sceneOps = []
     this.overlayOps = []
     this.dirty = false
   }
+}
+
+/** Offset each segment of a polyline along its left normal by `offset`. */
+function offsetPolylineNormal(
+  points: readonly Point[],
+  offset: number,
+): Point[] {
+  if (points.length < 2 || Math.abs(offset) < 1e-9) return [...points]
+  const out: Point[] = []
+  for (let i = 0; i < points.length; i += 1) {
+    const prev = points[Math.max(0, i - 1)]!
+    const next = points[Math.min(points.length - 1, i + 1)]!
+    const dx = next.x - prev.x
+    const dy = next.y - prev.y
+    const len = Math.hypot(dx, dy)
+    const nx = len < 1e-9 ? 0 : -dy / len
+    const ny = len < 1e-9 ? 0 : dx / len
+    out.push({
+      x: points[i]!.x + nx * offset,
+      y: points[i]!.y + ny * offset,
+    })
+  }
+  return out
 }
 
 /** Clamp style.alpha into `[0, 1]`; omitted → opaque. */

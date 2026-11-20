@@ -157,6 +157,11 @@ function invertEdgePatch(edge: GraphEdge, patch: UpdateEdgePatch): UpdateEdgePat
       ? edge.waypoints.map(p => ({ x: p.x, y: p.y }))
       : []
   }
+  if (patch.shapePoints !== undefined) {
+    inv.shapePoints = edge.shapePoints !== undefined
+      ? edge.shapePoints.map(p => ({ x: p.x, y: p.y }))
+      : []
+  }
   if (patch.fromAnchor !== undefined && edge.fromAnchor !== undefined) inv.fromAnchor = edge.fromAnchor
   if (patch.toAnchor !== undefined && edge.toAnchor !== undefined) inv.toAnchor = edge.toAnchor
   if (patch.fromOutset !== undefined && edge.fromOutset !== undefined) inv.fromOutset = edge.fromOutset
@@ -237,6 +242,13 @@ function cloneEdge(edge: GraphEdge): PatchEdge {
     ...(edge.waypoints !== undefined
       ? { waypoints: edge.waypoints.map(p => ({ x: p.x, y: p.y })) }
       : {}),
+    ...(edge.shapePoints !== undefined
+      ? { shapePoints: edge.shapePoints.map(p => ({ x: p.x, y: p.y })) }
+      : {}),
+    ...(edge.fromAnchor !== undefined ? { fromAnchor: edge.fromAnchor } : {}),
+    ...(edge.toAnchor !== undefined ? { toAnchor: edge.toAnchor } : {}),
+    ...(edge.fromOutset !== undefined ? { fromOutset: edge.fromOutset } : {}),
+    ...(edge.toOutset !== undefined ? { toOutset: edge.toOutset } : {}),
     ...(edge.label !== undefined ? { label: edge.label } : {}),
     ...(edge.label2 !== undefined ? { label2: edge.label2 } : {}),
     ...(edge.tooltip !== undefined ? { tooltip: edge.tooltip } : {}),

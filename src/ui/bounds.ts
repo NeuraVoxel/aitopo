@@ -354,15 +354,15 @@ export function edgeAnchorsAutoFromRects(a: Rect, b: Rect): {
   }
 }
 
-/** Horizontal-then-vertical orthognal: leave X, travel Y, enter X (H.V). */
-function orthogonalHV(from: Point, to: Point): Point[] {
+/** Horizontal-then-vertical orthogonal: leave X, travel Y, enter X (H.V). */
+export function orthogonalHV(from: Point, to: Point): Point[] {
   if (Math.abs(from.y - to.y) < 0.5) return [from, to]
   const midX = (from.x + to.x) / 2
   return [from, { x: midX, y: from.y }, { x: midX, y: to.y }, to]
 }
 
 /** Vertical-then-horizontal orthogonal: leave Y, travel X, enter Y (V.H). */
-function orthogonalVH(from: Point, to: Point): Point[] {
+export function orthogonalVH(from: Point, to: Point): Point[] {
   if (Math.abs(from.x - to.x) < 0.5) return [from, to]
   const midY = (from.y + to.y) / 2
   return [from, { x: from.x, y: midY }, { x: to.x, y: midY }, to]

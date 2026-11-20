@@ -153,11 +153,21 @@ export interface GraphNode {
   readonly data?: Readonly<Record<string, unknown>>
 }
 
+/** Arrow head silhouette (twaver `arrow.*.shape` ideas; clean-room names). */
+export type EdgeArrowShape =
+  | 'standard'
+  | 'delta'
+  | 'diamond'
+  | 'short'
+  | 'slant'
+
 /** Shared arrow head paint for both ends of an edge. */
 export interface GraphEdgeArrowStyle {
   readonly size?: number
   readonly fill?: string
   readonly stroke?: string
+  /** Omitted → `standard`. */
+  readonly shape?: EdgeArrowShape
 }
 
 /**
@@ -168,13 +178,57 @@ export interface GraphEdgeArrowStyle {
  */
 export type EdgeLabelSide = 'pathLeft' | 'pathRight' | 'aboveOrRight'
 
+/** Polyline corner treatment (twaver `link.corner` ideas). */
+export type EdgeCorner = 'none' | 'round' | 'bevel'
+
+/** Self-loop path family when `from === to`. */
+export type EdgeLoopedType = 'arc' | 'rectangle'
+
+/** Self-loop exit quadrant. */
+export type EdgeLoopedDirection =
+  | 'north'
+  | 'south'
+  | 'east'
+  | 'west'
+  | 'northeast'
+  | 'northwest'
+  | 'southeast'
+  | 'southwest'
+
+/** ShapeLink segment interpolation (`shapelink.type` ideas). */
+export type EdgeShapeKind = 'lineto' | 'quadto' | 'cubicto' | 'orthogonalto'
+
 /**
  * Edge path geometry mode.
- * - `orthogonal` (default): H/V polyline (demo + skill corridors).
- * - `straight`: chord between anchors (radial spokes).
+ * - `orthogonal` (default): auto H/V polyline (demo + skill corridors).
+ * - `orthogonalHV` / `orthogonalVH`: fixed corridor order.
+ * - `orthogonalHorizontal` / `orthogonalVertical`: side-to-side / top-to-bottom split.
+ * - `flexional` (+ H/V): stub-out then fold (twaver flexional ideas).
+ * - `extend*`: route around a shared outer side.
+ * - `straight`: chord between anchors.
  * - `arc`: circular arc around {@link GraphEdgeStyle.arcCenter} (ring layouts).
+ * - `bundleArc` / `triangle` / `parallel`: chord bulge (twaver link.type arc/triangle/parallel).
+ * - `shape`: author path via {@link GraphEdge.shapePoints} + {@link GraphEdgeStyle.shapeKind}.
  */
-export type EdgeRoute = 'orthogonal' | 'straight' | 'arc'
+export type EdgeRoute =
+  | 'orthogonal'
+  | 'orthogonalHV'
+  | 'orthogonalVH'
+  | 'orthogonalHorizontal'
+  | 'orthogonalVertical'
+  | 'flexional'
+  | 'flexionalHorizontal'
+  | 'flexionalVertical'
+  | 'extendTop'
+  | 'extendLeft'
+  | 'extendBottom'
+  | 'extendRight'
+  | 'straight'
+  | 'arc'
+  | 'bundleArc'
+  | 'triangle'
+  | 'parallel'
+  | 'shape'
 
 /** Optional per-edge visual overrides (one-level merge on updateEdge). */
 export interface GraphEdgeStyle {
@@ -190,7 +244,7 @@ export interface GraphEdgeStyle {
   readonly alpha?: number
   /**
    * Path geometry. Omitted → `orthogonal`.
-   * `arc` requires `arcCenter` (parse fails loud when missing).
+   * `arc` requires `arcCenter`; `shape` requires `shapePoints` (parse fails loud).
    */
   readonly route?: EdgeRoute
   /** Circle center for `route: "arc"` (world). */
@@ -204,6 +258,40 @@ export interface GraphEdgeStyle {
    * Sweep direction for `route: "arc"`. Default `true` (clockwise on canvas y-down).
    */
   readonly arcClockwise?: boolean
+  /**
+   * Flexional stub length / extend outer distance (world px). Omitted → `20`.
+   */
+  readonly routeExtend?: number
+  /**
+   * Perpendicular chord offset for `bundleArc` / `triangle` / `parallel` when alone
+   * (or added on top of auto bundle fan). Omitted → `0`.
+   */
+  readonly routeOffset?: number
+  /** Corner join. Omitted → `round` (current Canvas default). */
+  readonly corner?: EdgeCorner
+  /** Corner radius / bevel inset (world px). Omitted → `8`. */
+  readonly cornerRadius?: number
+  /** Animate dash offset along the stroke. Default `false`. */
+  readonly flow?: boolean
+  /** Reverse flow direction. Default `false`. */
+  readonly flowConverse?: boolean
+  /** Self-loop geometry when `from === to`. Omitted → `arc`. */
+  readonly loopedType?: EdgeLoopedType
+  /** Self-loop quadrant. Omitted → `northwest`. */
+  readonly loopedDirection?: EdgeLoopedDirection
+  /** Self-loop size gap (world px). Omitted → `6` (+ box-derived radius). */
+  readonly loopedGap?: number
+  /**
+   * Participate in same-endpoint multi-edge fan-out. Omitted → `true`.
+   * Set `false` to keep the geometric route without sibling offset.
+   */
+  readonly bundle?: boolean
+  /** Sibling gap (world px). Omitted → `12`. */
+  readonly bundleGap?: number
+  /** Chord inset before bulge for bundle shapes. Omitted → `20`. */
+  readonly bundleOffset?: number
+  /** ShapeLink interpolation when `route: "shape"`. Omitted → `lineto`. */
+  readonly shapeKind?: EdgeShapeKind
   /** Arc-length ratio along the polyline for label (0=from, 1=to). Default `0.5`. */
   readonly labelAt?: number
   /** Default `0.15`. */
@@ -249,6 +337,11 @@ export interface GraphEdge {
    * Absent or empty → orthogonal auto-route from node boxes.
    */
   readonly waypoints?: readonly { readonly x: number; readonly y: number }[]
+  /**
+   * Interior control / path points for `style.route: "shape"` (between endpoint anchors).
+   * Required when route is `shape` (parse fails loud when missing or empty).
+   */
+  readonly shapePoints?: readonly { readonly x: number; readonly y: number }[]
   /**
    * Pin the source anchor side. Omitted → auto from relative box position.
    * `"radial"` — exit point of the center→peer ray on this box (ring spokes).

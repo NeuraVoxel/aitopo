@@ -6,6 +6,10 @@ import type { Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphNode } from '../protocol/types.ts'
 import { nodeBounds } from './bounds.ts'
+import {
+  bundleFanOffset,
+  DEFAULT_BUNDLE_GAP,
+} from './edge-link-route.ts'
 import { EdgeView } from './edge-view.ts'
 import {
   listDescendantGroupIds,
@@ -93,13 +97,37 @@ export class ViewSet {
    * Validate every dirty View against the live scene. Groups auto-fit from
    * member paint extents (body ∪ attachments), so nodes validate first.
    * @param scene - active graph scene.
+   * @param paintOpts - optional flow phase for animated dashes.
    */
-  validateDirty(scene: GraphScene): void {
+  validateDirty(
+    scene: GraphScene,
+    paintOpts?: { readonly flowPhase?: number },
+  ): void {
     const opts = { showNodeIconsDefault: this.showNodeIconsDefault }
     // Nodes first (member unions), then groups (auto-fit), then edges (agent remap).
     for (const view of this.nodes.values()) view.validate(scene, opts)
     for (const view of this.groups.values()) view.validate(scene, n => this.nodeUnionBounds(n))
-    for (const view of this.edges.values()) view.validate(scene)
+    const fan = computeBundleFanOffsets(scene)
+    const flowPhase = paintOpts?.flowPhase ?? 0
+    for (const view of this.edges.values()) {
+      view.setPaintExtras({
+        bundleYOffset: fan.get(view.id) ?? 0,
+        flowPhase,
+      })
+      view.validate(scene)
+    }
+  }
+
+  /** True when any active edge requested flow animation. */
+  hasFlowingEdges(scene: GraphScene): boolean {
+    for (const edge of scene.edges.values()) {
+      if (edge.style?.flow === true) {
+        const view = this.edges.get(edge.id)
+        if (view?.isActive) return true
+        if (view === undefined) return true
+      }
+    }
+    return false
   }
 
   /**
@@ -166,6 +194,31 @@ export class ViewSet {
   groupViews(): IterableIterator<GroupView> {
     return this.groups.values()
   }
+}
+
+/**
+ * Same directed (from,to) edges that opt into bundle fan-out get centered offsets.
+ */
+function computeBundleFanOffsets(scene: GraphScene): Map<string, number> {
+  const groups = new Map<string, string[]>()
+  for (const edge of scene.edges.values()) {
+    if (edge.style?.bundle === false) continue
+    if (edge.from === edge.to) continue
+    const key = `${edge.from}\0${edge.to}`
+    const list = groups.get(key)
+    if (list === undefined) groups.set(key, [edge.id])
+    else list.push(edge.id)
+  }
+  const out = new Map<string, number>()
+  for (const ids of groups.values()) {
+    if (ids.length < 2) continue
+    ids.sort()
+    const gap = scene.edges.get(ids[0]!)?.style?.bundleGap ?? DEFAULT_BUNDLE_GAP
+    for (let i = 0; i < ids.length; i += 1) {
+      out.set(ids[i]!, bundleFanOffset(i, ids.length, gap))
+    }
+  }
+  return out
 }
 
 function syncMap<T extends { markDirty(): void }>(

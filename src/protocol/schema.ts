@@ -90,10 +90,32 @@ const graphNodeSchema = z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 })
 
+const edgeRouteSchema = z.enum([
+  'orthogonal',
+  'orthogonalHV',
+  'orthogonalVH',
+  'orthogonalHorizontal',
+  'orthogonalVertical',
+  'flexional',
+  'flexionalHorizontal',
+  'flexionalVertical',
+  'extendTop',
+  'extendLeft',
+  'extendBottom',
+  'extendRight',
+  'straight',
+  'arc',
+  'bundleArc',
+  'triangle',
+  'parallel',
+  'shape',
+])
+
 const graphEdgeArrowStyleSchema = z.object({
   size: z.number().positive().optional(),
   fill: z.string().optional(),
   stroke: z.string().optional(),
+  shape: z.enum(['standard', 'delta', 'diamond', 'short', 'slant']).optional(),
 })
 
 const graphEdgeStyleSchema = z.object({
@@ -109,10 +131,32 @@ const graphEdgeStyleSchema = z.object({
   tooltipMode: z.enum(['hover', 'always']).optional(),
   labelSide: z.enum(['pathLeft', 'pathRight', 'aboveOrRight']).optional(),
   labelGap: z.number().nonnegative().optional(),
-  route: z.enum(['orthogonal', 'straight', 'arc']).optional(),
+  route: edgeRouteSchema.optional(),
   arcCenter: z.object({ x: z.number(), y: z.number() }).optional(),
   arcRadius: z.number().positive().optional(),
   arcClockwise: z.boolean().optional(),
+  routeExtend: z.number().nonnegative().optional(),
+  routeOffset: z.number().optional(),
+  corner: z.enum(['none', 'round', 'bevel']).optional(),
+  cornerRadius: z.number().nonnegative().optional(),
+  flow: z.boolean().optional(),
+  flowConverse: z.boolean().optional(),
+  loopedType: z.enum(['arc', 'rectangle']).optional(),
+  loopedDirection: z.enum([
+    'north',
+    'south',
+    'east',
+    'west',
+    'northeast',
+    'northwest',
+    'southeast',
+    'southwest',
+  ]).optional(),
+  loopedGap: z.number().nonnegative().optional(),
+  bundle: z.boolean().optional(),
+  bundleGap: z.number().nonnegative().optional(),
+  bundleOffset: z.number().nonnegative().optional(),
+  shapeKind: z.enum(['lineto', 'quadto', 'cubicto', 'orthogonalto']).optional(),
   label: graphTextStyleSchema.optional(),
   label2: graphTextStyleSchema.optional(),
   tooltip: graphTextStyleSchema.optional(),
@@ -131,12 +175,14 @@ const graphEdgeStyleSchema = z.object({
   }
 })
 
-const graphEdgeSchema = z.object({
+/** Base edge object (no refinements) so `updateEdge` can `.partial()`. */
+const graphEdgeObjectSchema = z.object({
   id: z.string().min(1),
   from: z.string().min(1),
   to: z.string().min(1),
   kind: z.string().optional(),
   waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
+  shapePoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
   fromAnchor: z.enum(['top', 'bottom', 'left', 'right', 'radial']).optional(),
   toAnchor: z.enum(['top', 'bottom', 'left', 'right', 'radial']).optional(),
   fromOutset: z.number().nonnegative().optional(),
@@ -147,6 +193,18 @@ const graphEdgeSchema = z.object({
   alarms: z.array(alarmSchema).optional(),
   style: graphEdgeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
+})
+
+const graphEdgeSchema = graphEdgeObjectSchema.superRefine((edge, ctx) => {
+  if (edge.style?.route === 'shape') {
+    if (edge.shapePoints === undefined || edge.shapePoints.length === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'style.route "shape" requires non-empty shapePoints',
+        path: ['shapePoints'],
+      })
+    }
+  }
 })
 
 const graphGroupStyleSchema = z.object({
@@ -231,7 +289,11 @@ const patchOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({ op: z.literal('removeNode'), id: z.string().min(1) }),
   z.object({ op: z.literal('addEdge'), edge: graphEdgeSchema }),
-  z.object({ op: z.literal('updateEdge'), id: z.string().min(1), patch: graphEdgeSchema.partial().omit({ id: true }) }),
+  z.object({
+    op: z.literal('updateEdge'),
+    id: z.string().min(1),
+    patch: graphEdgeObjectSchema.partial().omit({ id: true }),
+  }),
   z.object({ op: z.literal('removeEdge'), id: z.string().min(1) }),
   z.object({ op: z.literal('addGroup'), group: graphGroupSchema }),
   z.object({ op: z.literal('updateGroup'), id: z.string().min(1), patch: graphGroupSchema.partial().omit({ id: true }) }),

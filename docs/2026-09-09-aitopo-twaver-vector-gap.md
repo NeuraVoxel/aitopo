@@ -43,7 +43,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 |---|---|---|---|
 | `ElementUI.js` | Validate bounds → paint | `done` | `NodeView` / `EdgeView` / `GroupView` + `ViewSet` |
 | `NodeUI.js` | Node body paint | `done` | `NodeView` + `Canvas2DRenderer.drawNode` |
-| `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + orthogonal polylines + `GraphEdgeStyle` / attachments |
+| `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + route catalog (`orthogonal*` / flexional / extend / bundleArc / triangle / parallel / ring `arc` / `straight`) + corner / flow / looped / bundle fan + attachments |
 | `GroupUI.js` | Group band + expand/collapse + outline styles | `done` | `GroupView` + `GraphGroup.expanded` / `style` / attachments; agent-link remap when collapsed |
 | `Attachment.js` | Attachment base | `done` | `src/ui/attachment/Attachment` under NodeView / EdgeView |
 | `BasicAttachment.js` | Shared attachment paint | `done` (lean) | Fixed positions + path ratios + paint ops; no pointer/glow stack |
@@ -52,14 +52,14 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `Label2Attachment.js` | Secondary label | `done` | Node `Label2Attachment`; Edge `EdgeLabel2Attachment` |
 | `IconsAttachment.js` | Icon strip | `done` (single) | `IconsAttachment` + `IconRegistry` (`icon` key, center); edges deferred |
 | `EditAttachment.js` | Resize/rotate handles | `done` (resize) | Overlay handles via `ResizeNodeInteraction`; rotate still `later` |
-| `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction`; bend handles via Wave I; bundle still deferred |
+| `LinkHandlerAttachment.js` | On-link click handle | `later` | Delete path covered by `DeleteEdgeInteraction`; bend handles via Wave I; multi-edge fan via `bundle*` styles |
 | `HTMLNodeUI.js` | HTML overlay node | `wont` | |
 | `HTMLLinkUI.js` | HTML overlay link | `wont` | |
 | `HTMLLabelAttachment.js` | HTML label | `wont` | |
 | `HTMLLabel2Attachment.js` | HTML secondary label | `wont` | |
 | `HTMLAlarmAttachment.js` | HTML alarm | `wont` | |
 | `ShapeNodeUI.js` | Shape / polyline node | `later` | |
-| `ShapeLinkUI.js` | Shape link | `later` | |
+| `ShapeLinkUI.js` | Shape link | `done` | `route: "shape"` + `shapePoints` + `shapeKind` (`lineto`/`quadto`/`cubicto`/`orthogonalto`) |
 | `RotatableNodeUI.js` | Rotatable node | `later` | |
 | `GridUI.js` | Grid element UI | `wont` | |
 

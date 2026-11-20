@@ -106,6 +106,7 @@ export class Network {
   private rootCanvas: HTMLCanvasElement | null = null
   private renderer: Renderer | null = null
   private rafId = 0
+  private flowPhase = 0
   private needsScenePaint = true
   private needsOverlayPaint = true
   private disposed = false
@@ -425,9 +426,12 @@ export class Network {
     this.resizeObserver.observe(view)
     this.attachInteractions()
     const loop = (time: number): void => {
-      void time
       if (this.disposed) return
       this.rafId = requestAnimationFrame(loop)
+      if (this.views.hasFlowingEdges(this.scene)) {
+        this.flowPhase = time
+        this.needsScenePaint = true
+      }
       if (this.needsScenePaint || this.needsOverlayPaint) this.validate()
     }
     this.rafId = requestAnimationFrame(loop)
@@ -1076,7 +1080,7 @@ export class Network {
     const paintOverlay = this.needsOverlayPaint || paintScene
     this.needsScenePaint = false
     this.needsOverlayPaint = false
-    this.views.validateDirty(this.scene)
+    this.views.validateDirty(this.scene, { flowPhase: this.flowPhase })
     const cam = this.viewport.state
 
     try {

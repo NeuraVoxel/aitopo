@@ -31,7 +31,8 @@ describe('demo sample registry', () => {
       expect(sample?.group).toBe('elements')
       const doc = parseDocument(sample!.document)
       const count = doc.nodes.length + doc.edges.length + (doc.groups?.length ?? 0)
-      expect(count).toBeLessThanOrEqual(15)
+      // Edge is a full style.route catalog; other element demos stay compact.
+      expect(count).toBeLessThanOrEqual(id === 'edge' ? 120 : 15)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
     }
     const edge = parseDocument(getSample('edge')!.document)
@@ -40,6 +41,7 @@ describe('demo sample registry', () => {
     expect(edge.edges.some(e => e.from === 'a' && e.to === 'b')).toBe(true)
     expect(edge.edges.some(e => e.from === 'a' && e.to === 'out')).toBe(true)
     expect(edge.edges.some(e => e.from === 'band' && e.to === 'out')).toBe(true)
+    expect(new Set(edge.edges.map(e => e.style?.route).filter(Boolean)).size).toBeGreaterThanOrEqual(10)
     const group = parseDocument(getSample('group')!.document)
     expect(group.groups?.[0]?.expanded).toBe(true)
     expect(group.groups?.map(g => g.id).sort()).toEqual(['band', 'band2'])

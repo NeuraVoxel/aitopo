@@ -336,6 +336,11 @@ function asEdge(raw: {
   to: string
   kind?: string | undefined
   waypoints?: Array<{ x: number; y: number }> | undefined
+  shapePoints?: Array<{ x: number; y: number }> | undefined
+  fromAnchor?: GraphEdge['fromAnchor']
+  toAnchor?: GraphEdge['toAnchor']
+  fromOutset?: number | undefined
+  toOutset?: number | undefined
   label?: string | undefined
   label2?: string | undefined
   tooltip?: string | undefined
@@ -356,6 +361,13 @@ function asEdge(raw: {
     ...(raw.waypoints !== undefined
       ? { waypoints: raw.waypoints.map(p => ({ x: p.x, y: p.y })) }
       : {}),
+    ...(raw.shapePoints !== undefined
+      ? { shapePoints: raw.shapePoints.map(p => ({ x: p.x, y: p.y })) }
+      : {}),
+    ...(raw.fromAnchor !== undefined ? { fromAnchor: raw.fromAnchor } : {}),
+    ...(raw.toAnchor !== undefined ? { toAnchor: raw.toAnchor } : {}),
+    ...(raw.fromOutset !== undefined ? { fromOutset: raw.fromOutset } : {}),
+    ...(raw.toOutset !== undefined ? { toOutset: raw.toOutset } : {}),
     ...(raw.label !== undefined ? { label: raw.label } : {}),
     ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
     ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
@@ -372,6 +384,11 @@ function mergeEdge(
     to?: string | undefined
     kind?: string | undefined
     waypoints?: Array<{ x: number; y: number }> | undefined
+    shapePoints?: Array<{ x: number; y: number }> | undefined
+    fromAnchor?: GraphEdge['fromAnchor']
+    toAnchor?: GraphEdge['toAnchor']
+    fromOutset?: number | undefined
+    toOutset?: number | undefined
     label?: string | undefined
     label2?: string | undefined
     tooltip?: string | undefined
@@ -390,12 +407,22 @@ function mergeEdge(
     : current.waypoints !== undefined
       ? current.waypoints.map(p => ({ x: p.x, y: p.y }))
       : undefined
+  const shapePoints = patch.shapePoints !== undefined
+    ? patch.shapePoints
+    : current.shapePoints !== undefined
+      ? current.shapePoints.map(p => ({ x: p.x, y: p.y }))
+      : undefined
   const edge = asEdge({
     id: current.id,
     from: patch.from ?? current.from,
     to: patch.to ?? current.to,
     kind: patch.kind ?? current.kind,
     ...(waypoints !== undefined ? { waypoints } : {}),
+    ...(shapePoints !== undefined ? { shapePoints } : {}),
+    fromAnchor: patch.fromAnchor ?? current.fromAnchor,
+    toAnchor: patch.toAnchor ?? current.toAnchor,
+    fromOutset: patch.fromOutset ?? current.fromOutset,
+    toOutset: patch.toOutset ?? current.toOutset,
     label: patch.label ?? current.label,
     label2: patch.label2 ?? current.label2,
     tooltip: patch.tooltip ?? current.tooltip,
@@ -408,6 +435,11 @@ function mergeEdge(
   // Empty waypoints clear custom routing back to auto.
   if (patch.waypoints !== undefined && patch.waypoints.length === 0) {
     const { waypoints: _cleared, ...rest } = edge
+    void _cleared
+    return rest
+  }
+  if (patch.shapePoints !== undefined && patch.shapePoints.length === 0) {
+    const { shapePoints: _cleared, ...rest } = edge
     void _cleared
     return rest
   }
