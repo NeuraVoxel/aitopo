@@ -19,7 +19,7 @@ Product-specific runtime rules belong in this file only when this repository own
 ## Design reference
 
 - **Original reference project:** `twaver.vector` (ideas only; clean-room rewrite — no SDK2D imports, no twaver public API names).
-- **Authoritative local path:** `/home/jeff/Documents/AI/coding-agent/SDK2D` (vector sources under `twaver/vector/`).
+- **Authoritative local path (twaver root):** Ubuntu `/home/jeff/Documents/DT/SDK2D/twaver`; Mac `/Users/macff/Documents/DT/SDK2D/twaver` (vector sources under `vector/`).
 - Do not use or recreate `vendor/SDK2D` under deepseek-harness; that path is retired.
 - **topo-diagram ↔ aitopo:** prefer **unchanged engine + demo defaults**. Skill styling uses supported `GraphDocument` / `Network` params. Only when a capability is missing: propose → implement in aitopo (twaver clean-room) → rebundle. Do not change global engine defaults merely to restyle the skill, or hand-edit the vendored IIFE.
 

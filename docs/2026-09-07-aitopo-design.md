@@ -8,7 +8,7 @@
 
 ## Summary
 
-AITopo is a Canvas topology engine for AI graphs (fleet, flow, teams, and later custom kinds). Humans and models share a versioned **Document / Patch / Events** protocol. Internally, a lean Scene + View layer (invalidate / validate / dirty-rect paint) drives a pluggable **Renderer** (Canvas 2D first; WebGL later). Design ideas come from `twaver.vector` in `/home/jeff/Documents/AI/coding-agent/SDK2D`; implementation is a clean-room TypeScript rewrite with no twaver source, runtime dependency, or public API names.
+AITopo is a Canvas topology engine for AI graphs (fleet, flow, teams, and later custom kinds). Humans and models share a versioned **Document / Patch / Events** protocol. Internally, a lean Scene + View layer (invalidate / validate / dirty-rect paint) drives a pluggable **Renderer** (Canvas 2D first; WebGL later). Design ideas come from `twaver.vector` in `/home/jeff/Documents/DT/SDK2D/twaver`; implementation is a clean-room TypeScript rewrite with no twaver source, runtime dependency, or public API names.
 
 Phase 1 ships the engine and a vanilla DOM demo. Phase 2 adapts `plugins/agent-observe` behind a feature flag and retires the SVG path once behavior matches.
 
@@ -23,7 +23,7 @@ Phase 1 ships the engine and a vanilla DOM demo. Phase 2 adapts `plugins/agent-o
 
 - React bindings (vanilla demo only; React host lives in the plugin in phase 2).
 - Model-visible DSH tools (`aitopo_*`) unless a later product request adds them.
-- Importing or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D` code.
+- Importing or wrapping `/home/jeff/Documents/DT/SDK2D/twaver` code.
 - Undo stack, PropertyBox, GIS, DXF, HTML node/link UI, Overview widget.
 - Making the graph the Agent orchestration source of truth.
 
@@ -34,7 +34,7 @@ Phase 1 ships the engine and a vanilla DOM demo. Phase 2 adapts `plugins/agent-o
 | Architecture | Dual-face: Protocol (AI/plugin) + internal Scene/View/Renderer |
 | Package home | `vendor/aitopo` (first-party; not an upstream Cordis pin) |
 | npm name | `@neuravoxel/aitopo` |
-| twaver relationship | Clean-room; `/home/jeff/Documents/AI/coding-agent/SDK2D` is design reference only |
+| twaver relationship | Clean-room; `/home/jeff/Documents/DT/SDK2D/twaver` is design reference only |
 | Render | Canvas 2D implementation + `Renderer` interface for future WebGL |
 | Paint strategy | Dirty-rect from day one (full-frame on camera/resize) |
 | Alarm | In scope — workflow errors / node alerts |
@@ -96,7 +96,7 @@ vendor/aitopo/
 **Boundaries**
 
 - No dependency on Cordis, React, or `@deepseek-ai/dsh-*`.
-- No import from `/home/jeff/Documents/AI/coding-agent/SDK2D`.
+- No import from `/home/jeff/Documents/DT/SDK2D/twaver`.
 - Public exports: protocol types, Network API, built-in layouts/interactions, Canvas2D renderer factory.
 - `model` / `ui` stay package-private (or `@internal`) unless a later API review opens them.
 - README must state: first-party engine under `vendor/`; do not run Cordis/SDK2D sync procedures against it.

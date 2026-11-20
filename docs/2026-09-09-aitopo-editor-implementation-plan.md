@@ -10,7 +10,7 @@
 
 **Tech Stack:** TypeScript ESM, zod, Canvas 2D, Vite demo, vitest (`environment: 'node'` + mocked `InteractionHost`).
 
-**Design reference (read-only):** `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` — ideas only. Clean-room rewrite: **no** SDK2D imports, **no** twaver public names (`DataBox`, `ElementBox`, `ElementUI`, `s()` / `c()`, `DefaultInteraction`, etc.).
+**Design reference (read-only):** `/home/jeff/Documents/DT/SDK2D/twaver/vector/` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver/vector/`) — ideas only. Clean-room rewrite: **no** SDK2D imports, **no** twaver public names (`DataBox`, `ElementBox`, `ElementUI`, `s()` / `c()`, `DefaultInteraction`, etc.).
 
 **Out of scope here:** AT-E7 (CreateEdge — orchestrator F2); orchestrator F1 UI; agent-observe changes; View-class rewrite from Phase 1; twaver `EditInteraction` resize/rotate/link-point editing.
 
@@ -18,18 +18,18 @@
 
 ## Design reference map (`twaver.vector` → AITopo)
 
-Primary sources under `/home/jeff/Documents/AI/coding-agent/SDK2D/`:
+Primary sources under `/home/jeff/Documents/DT/SDK2D/twaver/` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver/`):
 
 | Reference path | Idea to borrow |
 |---|---|
-| `twaver/vector/interaction/BaseInteraction.js` | Marker/overlay paint hook; logical↔view point conversion; attach/tearDown listener pattern → `Interaction.attach → disposer` |
-| `twaver/vector/interaction/DefaultInteraction.js` | Live vs lazy move; move **selected movable** set; rect-select overlay; empty-space pan; parenting during move |
-| `twaver/vector/Network.js` | `isMovable` gate; `moveSelectedElements`; `setEditInteractions` / interaction list; dual canvas + top-canvas markers |
-| `twaver/vector/GroupUI.js` | Group outline via style (`vector.outline.pattern` / shape) → `GraphGroup.style.strokeDash` |
-| `twaver/Element.js` (`_movable`) | Per-element movable flag → `GraphNode.locked` (inverted: locked means not movable) |
-| `twaver/UndoManager.js` | Stack of reversible box mutations → **protocol-level** `PatchHistory` (patches, not property-change listeners) |
-| `twaver/vector/interaction/CreateLinkInteraction.js` | From/to rubber-band (AT-E7 later only) |
-| `twaver/vector/interaction/EditInteraction.js` | Resize/rotate handles — **not** in Editor F1 |
+| `vector/interaction/BaseInteraction.js` | Marker/overlay paint hook; logical↔view point conversion; attach/tearDown listener pattern → `Interaction.attach → disposer` |
+| `vector/interaction/DefaultInteraction.js` | Live vs lazy move; move **selected movable** set; rect-select overlay; empty-space pan; parenting during move |
+| `vector/Network.js` | `isMovable` gate; `moveSelectedElements`; `setEditInteractions` / interaction list; dual canvas + top-canvas markers |
+| `vector/GroupUI.js` | Group outline via style (`vector.outline.pattern` / shape) → `GraphGroup.style.strokeDash` |
+| `Element.js` (`_movable`) | Per-element movable flag → `GraphNode.locked` (inverted: locked means not movable) |
+| `UndoManager.js` | Stack of reversible box mutations → **protocol-level** `PatchHistory` (patches, not property-change listeners) |
+| `vector/interaction/CreateLinkInteraction.js` | From/to rubber-band (AT-E7 later only) |
+| `vector/interaction/EditInteraction.js` | Resize/rotate handles — **not** in Editor F1 |
 
 ### Behavioral notes (implement against these, not twaver names)
 
@@ -55,7 +55,7 @@ Primary sources under `/home/jeff/Documents/AI/coding-agent/SDK2D/`:
 | Pointer composition | Drag threshold (4px screen) before move/marquee; `SelectActivate` suppresses activation when a drag gesture consumed the pointer; PanZoom still only on empty space |
 | Multi-select move | Drag moves **all selected unlocked** nodes by one delta (twaver `moveSelectedElements` idea); emit one `nodeMoved` per moved id **or** a single batch documented in events — **choose:** emit `nodeMoved` per id for simple host mirroring |
 | Feature detection | Export named interaction classes; hosts check `typeof MoveNodeInteraction === 'function'` (or import) before enabling edit chrome |
-| SDK2D reference | Consult `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/interaction/{Base,Default}Interaction.js` + `Network.js` while coding; never import or copy identifiers into `vendor/aitopo/src` |
+| SDK2D reference | Consult `/home/jeff/Documents/DT/SDK2D/twaver/vector/interaction/{Base,Default}Interaction.js` + `Network.js` while coding; never import or copy identifiers into `vendor/aitopo/src` |
 
 ---
 
@@ -341,8 +341,8 @@ Membership rules:
 - [x] **Step 4: While coding, skim reference (do not copy)**
 
 Read for behavior only:
-- `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/interaction/DefaultInteraction.js` — `handle_mousedown` / `handle_mousemove` / `end` move + select paths; `paint` rect-select + lazy outline
-- `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/Network.js` — `isMovable`, `moveSelectedElements`
+- `/home/jeff/Documents/DT/SDK2D/twaver/vector/interaction/DefaultInteraction.js` — `handle_mousedown` / `handle_mousemove` / `end` move + select paths; `paint` rect-select + lazy outline
+- `/home/jeff/Documents/DT/SDK2D/twaver/vector/Network.js` — `isMovable`, `moveSelectedElements`
 Confirm: no `twaver` / `SDK2D` strings in `vendor/aitopo/src` except README/docs.
 
 **Verify:** `pnpm --filter @neuravoxel/aitopo test -- tests/move-node.spec.ts`

@@ -26,7 +26,7 @@ Humans and models share a versioned **Document / Patch / Events** protocol. Inte
 - Performance roadmap (Waves J–N, proposed): [.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md](.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md)
 - Demo showcase shell (catalog / modes / property panel): [.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md](.agents/notes/implemented/feature/2026-09-12-demo-showcase-shell.md)
 
-Design ideas come from `twaver.vector` at `/home/jeff/Documents/AI/coding-agent/SDK2D` (not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
+Design ideas come from `twaver.vector` at `/home/jeff/Documents/DT/SDK2D/twaver` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver`; not shipped here). This package is a **clean-room** TypeScript rewrite: no SDK2D imports, no twaver public API names.
 
 ## Status
 
@@ -147,10 +147,10 @@ Fleet / Flow / Teams / Editor are no longer primary toolbar entries. `fixtures/*
 - React bindings (plugin adapter later)
 - WebGL renderer (interface reserved)
 - Overview / HTML node UI
-- Copying or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D`
+- Copying or wrapping `/home/jeff/Documents/DT/SDK2D/twaver` (or the Mac twin under `/Users/macff/Documents/DT/SDK2D/twaver`)
 - Rotate handles; freeform (non-orthogonal) edge polylines
 
-Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-editor-requirements.md), [Editor plan](docs/2026-09-09-aitopo-editor-implementation-plan.md). Implementation borrows **ideas** from `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` under the same clean-room rules as the observation engine.
+Editor requirements and decisions: [Editor requirements](docs/2026-09-08-aitopo-editor-requirements.md), [Editor plan](docs/2026-09-09-aitopo-editor-implementation-plan.md). Implementation borrows **ideas** from `/home/jeff/Documents/DT/SDK2D/twaver/vector/` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver/vector/`) under the same clean-room rules as the observation engine.
 
 ## Known Limitations and Deferred Work
 

@@ -69,6 +69,6 @@ Editor milestone is done when:
 | AT-E8 | Optional in-engine `PatchHistory` (inverse patch apply); host may own its own stack |
 | Marquee | Shift+empty-space drag (unmodified empty drag stays pan) |
 | `locked` | First-class `GraphNode.locked?: boolean` |
-| Design reference | `/home/jeff/Documents/AI/coding-agent/SDK2D/twaver/vector/` ideas only (DefaultInteraction live move / rect-select / movable gate / GroupUI outline styles / UndoManager → PatchHistory). Clean-room: no SDK2D import or twaver API names |
+| Design reference | `/home/jeff/Documents/DT/SDK2D/twaver/vector/` ideas only (DefaultInteraction live move / rect-select / movable gate / GroupUI outline styles / UndoManager → PatchHistory). Clean-room: no SDK2D import or twaver API names |
 
 See the [implementation plan](./2026-09-09-aitopo-editor-implementation-plan.md) for the full reference map, file map, and tasks.

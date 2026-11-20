@@ -6,7 +6,7 @@
 
 **Design:** [vendor/aitopo/docs/2026-09-07-aitopo-design.md](./2026-09-07-aitopo-design.md)
 
-**Tech:** TypeScript ESM, zod, Canvas 2D, Vite demo, vitest. No React, Cordis, or `@deepseek-ai/dsh-*` in the engine package. Zero imports from `/home/jeff/Documents/AI/coding-agent/SDK2D`.
+**Tech:** TypeScript ESM, zod, Canvas 2D, Vite demo, vitest. No React, Cordis, or `@deepseek-ai/dsh-*` in the engine package. Zero imports from `/home/jeff/Documents/DT/SDK2D/twaver`.
 
 ---
 
@@ -383,7 +383,7 @@ Keep `vendor/README.md` staged in every commit that touches `vendor/aitopo/src/*
 - Alarm propagation trees.
 - UndoManager / Overview / HTML node UI.
 - Model-visible DSH tools (`aitopo_*`).
-- Copying or wrapping `/home/jeff/Documents/AI/coding-agent/SDK2D`.
+- Copying or wrapping `/home/jeff/Documents/DT/SDK2D/twaver`.
 
 ---
 
