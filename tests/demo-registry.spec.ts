@@ -11,7 +11,7 @@ describe('demo sample registry', () => {
     expect(doc.edges).toHaveLength(1)
   })
 
-  it('lists started, elements, agents, dsh in order', () => {
+  it('lists started, elements, agents, dsh, flows in order', () => {
     const samples = listSamples()
     expect(samples[0]?.id).toBe(DEFAULT_SAMPLE_ID)
     const groupIndexes = samples.map(s => s.group)
@@ -20,6 +20,7 @@ describe('demo sample registry', () => {
     expect(last('started')).toBeLessThan(first('elements'))
     expect(last('elements')).toBeLessThan(first('agents'))
     expect(last('agents')).toBeLessThan(first('dsh'))
+    expect(last('dsh')).toBeLessThan(first('flows'))
     expect(samples.filter(s => s.group === 'business')).toEqual([])
   })
 
@@ -126,5 +127,50 @@ describe('demo sample registry', () => {
     expect(doc.meta.kind).toBe('topology')
     expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
     expect(doc.nodes.some(n => n.label === 'No dsh web connected')).toBe(true)
+  })
+
+  it('registers the flows group with nine flowchart samples', () => {
+    const flowSamples = listSamples().filter(s => s.group === 'flows')
+    expect(flowSamples.map(s => s.id)).toEqual([
+      'flow-linear',
+      'flow-decision',
+      'flow-feedback',
+      'flow-swimlane',
+      'flow-fan-in',
+      'flow-data',
+      'flow-state',
+      'flow-process',
+      'flow-loop',
+    ])
+
+    for (const sample of flowSamples) {
+      const doc = parseDocument(sample.document)
+      expect(doc.meta.kind).toBe('flow')
+      expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
+      expect(doc.nodes.length).toBeLessThanOrEqual(9)
+      expect(doc.edges.length).toBeLessThanOrEqual(12)
+      expect(doc.nodes.every(n => n.data?.fill !== undefined)).toBe(true)
+    }
+
+    const swimlane = parseDocument(getSample('flow-swimlane')!.document)
+    expect(swimlane.groups?.map(g => g.id).sort()).toEqual(['lane-eng', 'lane-ops'])
+    expect(swimlane.groups?.every(g => g.expanded === true)).toBe(true)
+    expect(swimlane.edges.some(e => e.label === 'HANDOFF')).toBe(true)
+
+    const process = parseDocument(getSample('flow-process')!.document)
+    expect(process.groups?.map(g => g.label)).toEqual([
+      'Product',
+      'Engineering',
+      'Operations',
+    ])
+
+    const loop = parseDocument(getSample('flow-loop')!.document)
+    expect(loop.nodes.some(n => n.id === 'hub')).toBe(true)
+    expect(loop.edges.filter(e => e.kind === 'dep').length).toBe(5)
+    expect(loop.edges.some(e => e.from === 'learn' && e.to === 'capture')).toBe(true)
+
+    const feedback = parseDocument(getSample('flow-feedback')!.document)
+    expect(feedback.edges.filter(e => e.kind === 'dep')).toHaveLength(1)
+    expect(feedback.edges.find(e => e.kind === 'dep')?.style?.strokeDash).toEqual([5, 4])
   })
 })

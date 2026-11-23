@@ -12,6 +12,7 @@ const GROUP_ORDER: readonly DemoSampleGroupId[] = [
   'elements',
   'agents',
   'dsh',
+  'flows',
   'business',
 ]
 
@@ -20,6 +21,7 @@ const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
   elements: 'Elements',
   agents: 'Agents',
   dsh: 'DeepSeek Harness',
+  flows: '流程图',
   business: 'Business (soon)',
 }
 
