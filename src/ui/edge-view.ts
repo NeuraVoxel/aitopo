@@ -127,6 +127,19 @@ export class EdgeView {
     return this.pointsCache
   }
 
+  /**
+   * True when `point` hits a scene attachment that joins union bounds
+   * (label / label2 / alarm / always-tooltip) — twaver attachment hit idea.
+   */
+  hitsAttachment(point: Point): boolean {
+    if (!this.active) return false
+    for (const attachment of this.attachments) {
+      if (!attachment.contributesToUnion()) continue
+      if (attachment.hit(point)) return true
+    }
+    return false
+  }
+
   get isActive(): boolean {
     return this.active
   }

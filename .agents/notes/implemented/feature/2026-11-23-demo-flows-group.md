@@ -1,4 +1,4 @@
-# Agent Note: Demo flowchart group (流程图)
+# Agent Note: Demo flowchart group (WorkFlow)
 
 Status: implemented
 
@@ -8,7 +8,7 @@ The demo catalog had element, agent, and DSH showcases, but no nav column for th
 
 ## Decision
 
-- `DemoSampleGroupId` gains `flows`; `SampleNav` renders it as **流程图** between DeepSeek Harness and Business.
+- `DemoSampleGroupId` gains `flows`; `SampleNav` renders it as **WorkFlow** between DeepSeek Harness and Business.
 - Nine static samples under `demo/samples/flows/` (shared chrome helpers in `shared.ts`), registered after the DSH rows:
   1. `flow-linear` — single-column top→down process
   2. `flow-decision` — Yes right / No down + merge
@@ -36,4 +36,4 @@ Nav order is `started < elements < agents < dsh < flows < business`. Future flow
 
 ## Testing
 
-`tests/demo-registry.spec.ts` "registers the flows group with nine flowchart samples" and the updated group-order test. Manual: open demo, expand 流程图, switch each sample and confirm layout/labels.
+`tests/demo-registry.spec.ts` "registers the flows group with nine flowchart samples" and the updated group-order test. Manual: open demo, expand WorkFlow, switch each sample and confirm layout/labels.

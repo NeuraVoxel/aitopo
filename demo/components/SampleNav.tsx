@@ -21,7 +21,7 @@ const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
   elements: 'Elements',
   agents: 'Agents',
   dsh: 'DeepSeek Harness',
-  flows: '流程图',
+  flows: 'WorkFlow',
   business: 'Business (soon)',
 }
 

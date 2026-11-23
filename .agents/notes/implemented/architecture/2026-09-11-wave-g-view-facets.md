@@ -12,7 +12,7 @@ Wave G thickens Views **without** an Attachment tree or twaver names:
 
 1. **NodeView facets** — On validate, cache truncated primary label, optional meta line, circular flag, and optional alarm badge (`level` + world center/radius matching the Canvas2D badge). `NodePaintView` carries these fields; `drawNode` paints from the DTO (fill/stroke still from node `data` / status).
 2. **EdgeView route exposure** — `points` getter for the validated polyline used by paint.
-3. **Hit-test via Views** — `Network.hitTestScreen` / `hitTestGroupScreen` validate dirty Views first, then hit node/group `bounds` and edge `points` from Views (same geometry as the last validate). Helpers remain in `ui/bounds.ts` for unit tests and non-Network callers.
+3. **Hit-test via Views** — `Network.hitTestScreen` / `hitTestGroupScreen` validate dirty Views first, then hit node/group `bounds` and edge `points` from Views (same geometry as the last validate). Helpers remain in `ui/bounds.ts` for unit tests and non-Network callers. Screen hit order is nodes → edges → groups (reverse of paint); see [intra-group edge hit](../bug-fix/2026-11-23-group-edge-hit-order.md).
 
 Document / Patch / Events unchanged. No `measureText` (truncation stays character-budget based).
 

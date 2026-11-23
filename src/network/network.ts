@@ -586,7 +586,12 @@ export class Network {
     })
   }
 
-  /** Hit-test at a screen point relative to the hit canvas (nodes first, then groups, then edges). */
+  /**
+   * Hit-test at a screen point relative to the hit canvas.
+   * Order matches reverse paint (twaver `getElementAt` top-down): nodes → edges → groups.
+   * Edges paint above group bands, so polyline hits must win over band fill.
+   * Edge labels / alarms (union attachments) are hittable like twaver link attachments.
+   */
   hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' | 'group' } | undefined {
     const world = this.viewport.screenToWorld({ x: screenX, y: screenY })
     const zoom = this.viewport.state.zoom
@@ -598,6 +603,24 @@ export class Network {
       if (view === undefined || !view.isVisible) continue
       if (hitRect(world, view.bounds, 2 / zoom)) return { id: node.id, kind: 'node' }
     }
+    const pad = 4 / zoom
+    let bestId: string | undefined
+    let bestDist = pad
+    for (const edge of this.scene.edges.values()) {
+      const view = this.views.getEdge(edge.id)
+      if (view === undefined || !view.isActive) continue
+      if (view.hitsAttachment(world)) {
+        bestDist = 0
+        bestId = edge.id
+        continue
+      }
+      const dist = distanceToPolyline(world, view.points)
+      if (dist <= bestDist) {
+        bestDist = dist
+        bestId = edge.id
+      }
+    }
+    if (bestId !== undefined) return { id: bestId, kind: 'edge' }
     const groups = [...this.scene.groups.values()].sort((a, b) => {
       // Prefer deeper (nested) groups when bands overlap.
       const depth = (id: string): number => {
@@ -616,19 +639,7 @@ export class Network {
       if (view === undefined || !view.isVisible) continue
       if (hitRect(world, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
     }
-    const pad = 4 / zoom
-    let bestId: string | undefined
-    let bestDist = pad
-    for (const edge of this.scene.edges.values()) {
-      const view = this.views.getEdge(edge.id)
-      if (view === undefined || !view.isActive) continue
-      const dist = distanceToPolyline(world, view.points)
-      if (dist <= bestDist) {
-        bestDist = dist
-        bestId = edge.id
-      }
-    }
-    return bestId === undefined ? undefined : { id: bestId, kind: 'edge' }
+    return undefined
   }
 
   /**
