@@ -1,8 +1,8 @@
 /*!
  * topo-diagram skill — aitopo IIFE bundle
  * engine: @neuravoxel/aitopo@0.1.0
- * git: 4628fb2
- * packed: 2026-11-24T02:37:47.342Z
+ * git: e6ef4ae
+ * packed: 2026-11-24T02:52:42.549Z
  * contract: Network, parseDocument, CreateEdgeInteraction, layoutGrid, layoutFlowColumns
  * Do not hand-edit. Regenerate: pnpm run bundle:topo-diagram-skill
  */
