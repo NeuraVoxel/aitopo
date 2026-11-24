@@ -13,8 +13,11 @@ export {
   hitTestEdges,
   hitTestGroups,
   hitTestNodes,
+  isHorizontalSide,
+  isVerticalSide,
   nodeBounds,
 } from './bounds.ts'
+export type { EdgeAnchorSide, OrthogonalAnchorSide } from './bounds.ts'
 export {
   collapsedGroupForNode,
   computeExpandedBandBounds,

@@ -18,7 +18,7 @@ Run mentally or as a punch-list after drafting `diagram.graph.json`. Inspired by
 ## Connectors
 
 - [ ] No diagonal intent; `style.route` omitted or `"orthogonal"` (except documented arc/radial)
-- [ ] `waypoints` only axis-aligned; prefer moving nodes over elbows
+- [ ] Link config used engine params first (auto-route / anchors / `style.route` / restructure); `waypoints` only as last-resort axis-aligned elbows
 - [ ] Cross-group edges use **member** ids
 - [ ] Labels only on non-obvious edges; `labelSide: "aboveOrRight"`
 - [ ] Anchors only when side meaning matters

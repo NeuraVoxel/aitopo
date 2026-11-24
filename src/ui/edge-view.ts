@@ -481,7 +481,12 @@ function clampAlpha(value: number | undefined): number {
 function isVerticalAnchor(
   side: import('../protocol/types.ts').GraphEdge['fromAnchor'],
 ): boolean {
-  return side === 'top' || side === 'bottom'
+  return side === 'top'
+    || side === 'bottom'
+    || side === 'topLeft'
+    || side === 'topRight'
+    || side === 'bottomLeft'
+    || side === 'bottomRight'
 }
 
 function isHorizontalAnchor(

@@ -29,11 +29,11 @@ Same row → same `y`; same column → same `x`. Neighbors that share an edge mu
 Adapted from diagram-design §6; expressed in aitopo fields:
 
 1. **Orthogonal only** — omit `style.route` (or `"orthogonal"`). No diagonal intent; do not invent host Beziers.
-2. **Align before waypoints** — if auto-route would cross a box, move nodes onto the grid first; `waypoints` only as axis-aligned elbows when unavoidable.
+2. **Engine params before waypoints** — auto-route → `fromAnchor`/`toAnchor` → `style.route` (`arc` / `straight`+`radial`) / outset → restructure grid. Add axis-aligned `waypoints` **only** when those still cannot avoid a box cross (see dialect Link routing).
 3. **Sparse** — one primary path; feedback / return = **one** dashed `kind: "dep"` with `style.strokeDash: [5, 4]`.
 4. **No spider-web** — many→one uses a merge node (small step) or parallel aligned sources, not N edges into one corner.
 5. **Labels** — only on non-obvious edges; `style.labelSide: "aboveOrRight"`; ≤14 chars preferred.
-6. **Anchors** — set `fromAnchor` / `toAnchor` only when side carries meaning (Yes→`right`, No→`bottom`, feedback→open side of a U).
+6. **Anchors** — set `fromAnchor` / `toAnchor` when the port carries meaning (Yes→`right`, No→`bottom`, feedback→open side of a U). Stagger same-side leaves with corners (`bottomRight` etc.).
 
 ## Skill node chrome (copy into every example)
 

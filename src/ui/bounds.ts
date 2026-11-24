@@ -39,10 +39,23 @@ export function groupBounds(group: GraphGroup): Rect {
 }
 
 /**
- * Explicit endpoint side override. Omitted → auto from relative box position.
+ * Explicit endpoint override. Omitted → auto from relative box position.
+ * Corners pin the box corner (twaver `link.from.position` / `bottomright` idea).
  * `radial` — ray from own center toward peer, exit on own AABB (ring spokes).
  */
-export type EdgeAnchorSide = 'top' | 'bottom' | 'left' | 'right' | 'radial'
+export type EdgeAnchorSide =
+  | 'top'
+  | 'bottom'
+  | 'left'
+  | 'right'
+  | 'topLeft'
+  | 'topRight'
+  | 'bottomLeft'
+  | 'bottomRight'
+  | 'radial'
+
+/** Non-radial pins used for orthogonal leave/arrive. */
+export type OrthogonalAnchorSide = Exclude<EdgeAnchorSide, 'radial'>
 
 /** Per-edge anchor side hints (GraphEdge `fromAnchor` / `toAnchor`). */
 export interface EdgeAnchorHints {
@@ -54,12 +67,20 @@ export interface EdgeAnchorHints {
   readonly toOutset?: number
 }
 
-export function anchorPoint(side: Exclude<EdgeAnchorSide, 'radial'>, box: Rect): Point {
+export function anchorPoint(side: OrthogonalAnchorSide, box: Rect): Point {
+  const right = box.x + box.width
+  const bottom = box.y + box.height
+  const cx = box.x + box.width / 2
+  const cy = box.y + box.height / 2
   switch (side) {
-    case 'top': return { x: box.x + box.width / 2, y: box.y }
-    case 'bottom': return { x: box.x + box.width / 2, y: box.y + box.height }
-    case 'left': return { x: box.x, y: box.y + box.height / 2 }
-    case 'right': return { x: box.x + box.width, y: box.y + box.height / 2 }
+    case 'top': return { x: cx, y: box.y }
+    case 'bottom': return { x: cx, y: bottom }
+    case 'left': return { x: box.x, y: cy }
+    case 'right': return { x: right, y: cy }
+    case 'topLeft': return { x: box.x, y: box.y }
+    case 'topRight': return { x: right, y: box.y }
+    case 'bottomLeft': return { x: box.x, y: bottom }
+    case 'bottomRight': return { x: right, y: bottom }
   }
 }
 
@@ -208,8 +229,8 @@ export function edgeAnchorsFromRects(
   const toSide = hints?.to !== undefined && hints.to !== 'radial' ? hints.to : undefined
   const fromPt = fromSide === undefined ? auto.from : anchorPoint(fromSide, fromBox)
   const toPt = toSide === undefined ? auto.to : anchorPoint(toSide, toBox)
-  const fromVertical = fromSide === 'top' || fromSide === 'bottom'
-  const toVertical = toSide === 'top' || toSide === 'bottom'
+  const fromVertical = fromSide !== undefined && isVerticalSide(fromSide)
+  const toVertical = toSide !== undefined && isVerticalSide(toSide)
   const orientation: 'horizontal' | 'vertical' = fromSide === undefined && toSide === undefined
     ? auto.orientation
     : fromVertical || (!toVertical && auto.orientation === 'vertical')
@@ -370,13 +391,21 @@ export function orthogonalVH(from: Point, to: Point): Point[] {
 
 const AXIS_EPS = 0.5
 
-type CardinalSide = 'top' | 'bottom' | 'left' | 'right'
-
-function isVerticalSide(side: CardinalSide): boolean {
-  return side === 'top' || side === 'bottom'
+/**
+ * Top/bottom edges and the four box corners leave/arrive primarily on ±Y.
+ * Corners still pin the geometric corner; only the corridor axis is vertical.
+ */
+export function isVerticalSide(side: OrthogonalAnchorSide): boolean {
+  return side === 'top'
+    || side === 'bottom'
+    || side === 'topLeft'
+    || side === 'topRight'
+    || side === 'bottomLeft'
+    || side === 'bottomRight'
 }
 
-function isHorizontalSide(side: CardinalSide): boolean {
+/** Left/right edge midpoints leave/arrive on ±X. */
+export function isHorizontalSide(side: OrthogonalAnchorSide): boolean {
   return side === 'left' || side === 'right'
 }
 
@@ -384,16 +413,17 @@ function isHorizontalSide(side: CardinalSide): boolean {
  * Minimal orthogonal path for complementary leave/arrive sides
  * (vertical leave + horizontal arrive, or the reverse): one corner, two segments.
  * Parallel sides return undefined so callers keep the mid Z (H.V / V.H).
+ * Corner pins (`bottomRight` etc.) count as vertical leave/arrive.
  * @param from - pinned leave point.
  * @param to - pinned arrive point.
- * @param fromSide - leave side.
- * @param toSide - arrive side.
+ * @param fromSide - leave side or corner.
+ * @param toSide - arrive side or corner.
  */
 export function complementaryElbow(
   from: Point,
   to: Point,
-  fromSide: CardinalSide,
-  toSide: CardinalSide,
+  fromSide: OrthogonalAnchorSide,
+  toSide: OrthogonalAnchorSide,
 ): Point[] | undefined {
   if (Math.abs(from.x - to.x) < AXIS_EPS && Math.abs(from.y - to.y) < AXIS_EPS) {
     return [from, to]

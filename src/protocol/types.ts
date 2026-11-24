@@ -352,15 +352,34 @@ export interface GraphEdge {
    */
   readonly shapePoints?: readonly { readonly x: number; readonly y: number }[]
   /**
-   * Pin the source anchor side. Omitted → auto from relative box position.
+   * Pin the source anchor. Omitted → auto from relative box position.
+   * Four sides + four box corners (twaver `link.from.position` corner idea).
    * `"radial"` — exit point of the center→peer ray on this box (ring spokes).
    */
-  readonly fromAnchor?: 'top' | 'bottom' | 'left' | 'right' | 'radial'
+  readonly fromAnchor?:
+    | 'top'
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'radial'
   /**
-   * Pin the target anchor side. Omitted → auto from relative box position.
-   * `"radial"` — entry point of the peer→center ray on this box.
+   * Pin the target anchor. Omitted → auto from relative box position.
+   * Same enum as `fromAnchor` (sides, corners, or `"radial"`).
    */
-  readonly toAnchor?: 'top' | 'bottom' | 'left' | 'right' | 'radial'
+  readonly toAnchor?:
+    | 'top'
+    | 'bottom'
+    | 'left'
+    | 'right'
+    | 'topLeft'
+    | 'topRight'
+    | 'bottomLeft'
+    | 'bottomRight'
+    | 'radial'
   /**
    * Nudge a `"radial"` `fromAnchor` outward along the ray (world px, toward peer).
    * Default `0` (exactly on the box edge).

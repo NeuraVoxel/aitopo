@@ -185,8 +185,32 @@ const graphEdgeObjectSchema = z.object({
   kind: z.string().optional(),
   waypoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
   shapePoints: z.array(z.object({ x: z.number(), y: z.number() })).optional(),
-  fromAnchor: z.enum(['top', 'bottom', 'left', 'right', 'radial']).optional(),
-  toAnchor: z.enum(['top', 'bottom', 'left', 'right', 'radial']).optional(),
+  fromAnchor: z
+    .enum([
+      'top',
+      'bottom',
+      'left',
+      'right',
+      'topLeft',
+      'topRight',
+      'bottomLeft',
+      'bottomRight',
+      'radial',
+    ])
+    .optional(),
+  toAnchor: z
+    .enum([
+      'top',
+      'bottom',
+      'left',
+      'right',
+      'topLeft',
+      'topRight',
+      'bottomLeft',
+      'bottomRight',
+      'radial',
+    ])
+    .optional(),
   fromOutset: z.number().nonnegative().optional(),
   toOutset: z.number().nonnegative().optional(),
   label: z.string().optional(),
