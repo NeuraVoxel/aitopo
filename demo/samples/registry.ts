@@ -7,6 +7,7 @@ import { edgeSample } from './elements/edge.ts'
 import { groupSample } from './elements/group.ts'
 import { nodeSample } from './elements/node.ts'
 import { subnetworkSample } from './elements/subnetwork.ts'
+import { adasSamples } from './adas/index.ts'
 import { businessPlaceholders } from './business/placeholders.ts'
 import { dshEventTopoSample } from './dsh/event-topo.ts'
 import { dshSessionSample } from './dsh/session.ts'
@@ -33,6 +34,7 @@ const SAMPLES: readonly DemoSample[] = [
   groupSample,
   alarmSample,
   subnetworkSample,
+  ...adasSamples,
   codeAgentsSample,
   subagentSample,
   skillWorkflowSample,
@@ -51,7 +53,7 @@ const SAMPLES: readonly DemoSample[] = [
   ...businessPlaceholders,
 ]
 
-/** Ordered demo catalog: started, elements, agents, DSH, flows, then business rows. */
+/** Ordered demo catalog: started, elements, ADAS, agents, DSH, flows, then business rows. */
 export function listSamples(): readonly DemoSample[] {
   return SAMPLES
 }

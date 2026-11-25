@@ -125,7 +125,8 @@ Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply
 
 - **Getting started** — `hello-world` (default): two nodes, one edge, explicit coordinates (no layout).
 - **Elements** — Node, Edge, Group, Alarm, SubNetwork (one page each).
-- **Business (soon)** — reserved rows such as `dsh-event-topo` (status message only; no document load).
+- **ADAS** — after Elements: loadable BEV demos (ego, boxes, VRU, signals, parking, occupancy, junction, …); reserved where freestanding path / FOV / trajectory primitives are missing.
+- **Business (soon)** — reserved domain rows (status message only when reserved; no document load).
 
 Fleet / Flow / Teams / Editor are no longer primary toolbar entries. `fixtures/*.json` remain for engine tests.
 

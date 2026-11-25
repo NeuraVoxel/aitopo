@@ -11,14 +11,15 @@ describe('demo sample registry', () => {
     expect(doc.edges).toHaveLength(1)
   })
 
-  it('lists started, elements, agents, dsh, flows in order', () => {
+  it('lists started, elements, adas, agents, dsh, flows in order', () => {
     const samples = listSamples()
     expect(samples[0]?.id).toBe(DEFAULT_SAMPLE_ID)
     const groupIndexes = samples.map(s => s.group)
     const first = (group: string): number => groupIndexes.indexOf(group as never)
     const last = (group: string): number => groupIndexes.lastIndexOf(group as never)
     expect(last('started')).toBeLessThan(first('elements'))
-    expect(last('elements')).toBeLessThan(first('agents'))
+    expect(last('elements')).toBeLessThan(first('adas'))
+    expect(last('adas')).toBeLessThan(first('agents'))
     expect(last('agents')).toBeLessThan(first('dsh'))
     expect(last('dsh')).toBeLessThan(first('flows'))
     expect(samples.filter(s => s.group === 'business')).toEqual([])
@@ -173,4 +174,69 @@ describe('demo sample registry', () => {
     expect(feedback.edges.filter(e => e.kind === 'dep')).toHaveLength(1)
     expect(feedback.edges.find(e => e.kind === 'dep')?.style?.strokeDash).toEqual([5, 4])
   })
+
+  it('registers the ADAS group with loadable samples and unsupported reserved rows', () => {
+    const adasGroup = listSamples().filter(s => s.group === 'adas')
+    expect(adasGroup.map(s => s.id)).toEqual([
+      'adas-ego-surround',
+      'adas-lane-lines',
+      'adas-lane-centerline',
+      'adas-road-boundary',
+      'adas-stop-crosswalk',
+      'adas-drivable-area',
+      'adas-perception-boxes',
+      'adas-vru',
+      'adas-traffic-signals',
+      'adas-parking-slots',
+      'adas-sensor-fov',
+      'adas-occupancy-bev',
+      'adas-planning-path',
+      'adas-prediction',
+      'adas-hdmap-junction',
+    ])
+
+    const reservedIds = new Set([
+      'adas-lane-lines',
+      'adas-lane-centerline',
+      'adas-road-boundary',
+      'adas-sensor-fov',
+      'adas-planning-path',
+      'adas-prediction',
+    ])
+
+    for (const sample of adasGroup) {
+      if (reservedIds.has(sample.id)) {
+        expect(sample.reserved).toBe(true)
+        parseDocument(sample.document)
+        continue
+      }
+      expect(sample.reserved).toBeUndefined()
+      const doc = parseDocument(sample.document)
+      expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
+      expect(doc.nodes.every(n => n.data?.fill !== undefined)).toBe(true)
+    }
+
+    const ego = parseDocument(getSample('adas-ego-surround')!.document)
+    expect(ego.nodes.map(n => n.id).sort()).toEqual(['ego', 'lead', 'left', 'rear', 'right'])
+    expect(ego.edges).toHaveLength(4)
+
+    const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
+    expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)
+
+    const parking = parseDocument(getSample('adas-parking-slots')!.document)
+    expect(parking.groups?.map(g => g.id).sort()).toEqual([
+      'slot-1',
+      'slot-2',
+      'slot-3',
+      'slot-4',
+    ])
+
+    const occ = parseDocument(getSample('adas-occupancy-bev')!.document)
+    expect(occ.nodes.filter(n => n.type === 'occupancy')).toHaveLength(48)
+
+    const junction = parseDocument(getSample('adas-hdmap-junction')!.document)
+    expect(junction.edges.filter(e => e.kind === 'successor').length).toBeGreaterThanOrEqual(4)
+  })
 })
+
+

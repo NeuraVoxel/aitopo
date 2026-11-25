@@ -6,6 +6,7 @@ export type DemoSampleGroupId =
   | 'agents'
   | 'dsh'
   | 'flows'
+  | 'adas'
   | 'business'
 
 export interface DemoSample {

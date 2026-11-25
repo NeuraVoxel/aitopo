@@ -1,0 +1,143 @@
+import type { GraphDocument } from '../../../src/protocol/types.ts'
+import type { DemoSample } from '../types.ts'
+import { adasBox } from './shared.ts'
+
+/**
+ * Axis-aligned parking slots (engine has no rotate handles).
+ * Occupied slots hold a vehicle member; free slots are empty groups.
+ */
+export const adasParkingSlotsDocument: GraphDocument = {
+  version: 1,
+  meta: { title: 'ADAS parking slots', kind: 'custom', domain: 'adas' },
+  nodes: [
+    adasBox({
+      id: 'car-a',
+      type: 'vehicle',
+      label: 'Car',
+      x: 92,
+      y: 118,
+      w: 56,
+      h: 36,
+      fill: '#fef3c7',
+      stroke: '#b45309',
+      groupId: 'slot-1',
+    }),
+    adasBox({
+      id: 'car-b',
+      type: 'vehicle',
+      label: 'Car',
+      x: 292,
+      y: 118,
+      w: 56,
+      h: 36,
+      fill: '#fef3c7',
+      stroke: '#b45309',
+      groupId: 'slot-3',
+    }),
+    adasBox({
+      id: 'ego',
+      type: 'vehicle',
+      label: 'Ego',
+      x: 190,
+      y: 280,
+      w: 72,
+      h: 48,
+      fill: '#bfdbfe',
+      stroke: '#1d4ed8',
+      status: 'active',
+    }),
+  ],
+  edges: [],
+  groups: [
+    {
+      id: 'slot-1',
+      label: 'P1',
+      label2: 'occupied',
+      memberIds: ['car-a'],
+      expanded: true,
+      x: 60,
+      y: 60,
+      w: 120,
+      h: 160,
+      data: { fill: '#fee2e2', stroke: '#b91c1c' },
+      style: {
+        fill: '#fee2e2',
+        stroke: '#b91c1c',
+        autoFit: false,
+        labelPosition: 'insideTop',
+        label2Position: 'insideBottom',
+        paddingTop: 28,
+        showIcon: false,
+      },
+    },
+    {
+      id: 'slot-2',
+      label: 'P2',
+      label2: 'free',
+      memberIds: [],
+      expanded: true,
+      x: 200,
+      y: 60,
+      w: 120,
+      h: 160,
+      style: {
+        fill: '#dcfce7',
+        stroke: '#15803d',
+        autoFit: false,
+        labelPosition: 'insideTop',
+        label2Position: 'insideBottom',
+        paddingTop: 28,
+        showIcon: false,
+      },
+    },
+    {
+      id: 'slot-3',
+      label: 'P3',
+      label2: 'occupied',
+      memberIds: ['car-b'],
+      expanded: true,
+      x: 340,
+      y: 60,
+      w: 120,
+      h: 160,
+      style: {
+        fill: '#fee2e2',
+        stroke: '#b91c1c',
+        autoFit: false,
+        labelPosition: 'insideTop',
+        label2Position: 'insideBottom',
+        paddingTop: 28,
+        showIcon: false,
+      },
+    },
+    {
+      id: 'slot-4',
+      label: 'P4',
+      label2: 'free',
+      memberIds: [],
+      expanded: true,
+      x: 480,
+      y: 60,
+      w: 120,
+      h: 160,
+      style: {
+        fill: '#dcfce7',
+        stroke: '#15803d',
+        autoFit: false,
+        labelPosition: 'insideTop',
+        label2Position: 'insideBottom',
+        paddingTop: 28,
+        showIcon: false,
+      },
+    },
+  ],
+}
+
+export const adasParkingSlotsSample: DemoSample = {
+  id: 'adas-parking-slots',
+  title: 'Parking slots',
+  group: 'adas',
+  description:
+    'Axis-aligned parking bays as GraphGroup (no rotate); occupied vs free chrome.',
+  document: adasParkingSlotsDocument,
+}
