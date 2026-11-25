@@ -5,6 +5,27 @@
 1. `diagram.graph.json` — valid `version: 1` document (dialect rules apply).
 2. `diagram.html` — host chrome + embedded `#diagram-data`; call `TopoDiagramHost.bootFromPage(document)`.
 
+### Optional source packing (large / multi-SubNetwork diagrams)
+
+For agent-friendly edits, keep **source truth** as fragments and treat the packed document as a build artifact:
+
+| Path | Role |
+|---|---|
+| `root.graph.json` | Root document **without** nested `networks` |
+| `networks/<id>.graph.json` | Child SubNetwork; deeper nests as `networks/<parentStem>/<id>.graph.json` |
+| `INDEX.md` | Fragment index (depth / id / file / title) |
+| `diagram.graph.json` + `#diagram-data` in HTML | Assembled runtime document |
+
+```bash
+node <skill>/scripts/split-fragments.mjs <diagram-dir>     # packed → fragments + INDEX
+node <skill>/scripts/assemble-fragments.mjs <diagram-dir>  # fragments → packed JSON + HTML sync + INDEX
+```
+
+- Edit only the target fragment (+ `INDEX.md` to locate it); do not feed the whole packed JSON to the model.
+- After fragment edits, always **assemble** before opening `diagram.html`.
+- Host **Download JSON** is the packed root; to refresh fragments, overwrite `diagram.graph.json` then **split** (rewrites all reachable fragments — use carefully).
+- Split strips `networks` from each fragment file and drops `meta.assembledFrom` / `assembledAt`; assemble rebuilds `networks` from portal `networkId`s.
+
 ### Shared runtime (default — do not vendor per diagram)
 
 Runtime JS lives **once** in the installed skill:
