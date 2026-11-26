@@ -461,6 +461,42 @@ export interface GraphGroupStyle {
   readonly shadow?: GraphShadowStyle
 }
 
+/** Freestanding path segment interpolation (no edge endpoints). */
+export type PathShapeKind = 'lineto' | 'quadto' | 'cubicto'
+
+/** Optional per-path visual overrides. */
+export interface GraphPathStyle {
+  readonly stroke?: string
+  readonly lineWidth?: number
+  readonly strokeDash?: readonly number[]
+  readonly alpha?: number
+  /** Segment interpolation. Omitted → `lineto`. */
+  readonly shapeKind?: PathShapeKind
+  /** Interior fill when `closed` (open paths ignore fill). */
+  readonly fill?: string
+  readonly label?: GraphTextStyle
+  readonly select?: GraphChromeStyle
+  readonly hover?: GraphChromeStyle
+}
+
+/**
+ * Freestanding path element (not an edge — no `from`/`to`).
+ * Point arity vs {@link GraphPathStyle.shapeKind}:
+ * - `lineto` (default): ≥2
+ * - `quadto`: odd count ≥3 (start + control/end pairs)
+ * - `cubicto`: count ≡ 1 (mod 3), ≥4 (start + c1/c2/end triples)
+ */
+export interface GraphPath {
+  readonly id: string
+  readonly points: readonly { readonly x: number; readonly y: number }[]
+  readonly closed?: boolean
+  readonly label?: string
+  readonly tooltip?: string
+  readonly locked?: boolean
+  readonly style?: GraphPathStyle
+  readonly data?: Readonly<Record<string, unknown>>
+}
+
 /** Visual grouping band for member nodes. */
 export interface GraphGroup {
   readonly id: string
@@ -521,6 +557,8 @@ export interface GraphDocument {
   readonly nodes: readonly GraphNode[]
   readonly edges: readonly GraphEdge[]
   readonly groups?: readonly GraphGroup[]
+  /** Freestanding paths. Omitted ≡ `[]`. */
+  readonly paths?: readonly GraphPath[]
   readonly networks?: Readonly<Record<string, GraphDocument>>
   readonly viewport?: GraphViewport
 }

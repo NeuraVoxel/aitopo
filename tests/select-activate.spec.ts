@@ -56,7 +56,7 @@ class FakeHitCanvas {
 
 function createHost(
   canvas: FakeHitCanvas,
-  hit: { id: string; kind: 'node' | 'edge' | 'group' } = { id: 'n1', kind: 'node' },
+  hit: { id: string; kind: 'node' | 'edge' | 'group' | 'path' } = { id: 'n1', kind: 'node' },
   options: {
     node?: { id: string; networkId?: string }
     currentNetworkId?: string | null
@@ -117,9 +117,11 @@ function createHost(
           { id: 'n2', type: 'u', label: 'n2' },
         ],
     getEdges: () => [{ id: 'e1', from: 'n1', to: 'n2' }],
+    getPaths: () => [],
     getGroups: () => [{ id: 'g1', label: 'G', memberIds: [] }],
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getEdgePathBounds: () => undefined,
+    getPathBounds: () => undefined,
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: () => ({ x: 0, y: 0 }),
@@ -133,6 +135,9 @@ function createHost(
     commitEdgeRemove: vi.fn(),
     previewEdgeWaypoints: vi.fn(),
     commitEdgeWaypoints: vi.fn(),
+    commitPathCreate: vi.fn(),
+    commitPathUpdate: vi.fn(),
+    commitPathRemove: vi.fn(),
     markGestureDragged: () => {
       gestureDragged = true
     },
@@ -320,7 +325,7 @@ describe('SelectActivate multi-select', () => {
     dispose()
   })
 
-  it('Ctrl+A selects all nodes, groups, and edges', () => {
+  it('Ctrl+A selects all nodes, groups, edges, and paths', () => {
     const canvas = new FakeHitCanvas()
     const host = createHost(canvas)
     const dispose = new SelectActivateInteraction().attach(host)

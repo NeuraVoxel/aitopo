@@ -27,38 +27,12 @@ function reservedAdas(
 
 /**
  * ADAS samples that need engine primitives aitopo does not ship yet
- * (freestanding path / wedge FOV / trajectory polylines without endpoints).
- * Ids stay stable for a later loadable flip.
+ * (sector / frustum FOV overlays). Ids stay stable for a later loadable flip.
  */
 export const adasPlaceholders: DemoSample[] = [
-  reservedAdas(
-    'adas-lane-lines',
-    'Lane lines',
-    'Unsupported: freestanding lane markings. Needs path element (no GraphEdge from/to).',
-  ),
-  reservedAdas(
-    'adas-lane-centerline',
-    'Lane centerline',
-    'Unsupported: freestanding center paths. Topology-only view lives in HD map junction.',
-  ),
-  reservedAdas(
-    'adas-road-boundary',
-    'Road boundary',
-    'Unsupported: freestanding curb / road-edge polylines. Needs path element.',
-  ),
   reservedAdas(
     'adas-sensor-fov',
     'Sensor FOV',
     'Unsupported: camera / lidar / radar FOV wedges. Needs sector / frustum overlay.',
-  ),
-  reservedAdas(
-    'adas-planning-path',
-    'Planning path',
-    'Unsupported: ego planned trajectory polyline without endpoint Nodes.',
-  ),
-  reservedAdas(
-    'adas-prediction',
-    'Prediction',
-    'Unsupported: multi-modal predicted trajectories as freestanding polylines.',
   ),
 ]

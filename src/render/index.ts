@@ -10,6 +10,8 @@ export {
   type FrameDirty,
   type GroupPaintView,
   type NodePaintView,
+  type PathLabelPaint,
+  type PathPaintView,
   type Renderer,
   type ViewportState,
 } from './canvas2d.ts'

@@ -74,7 +74,7 @@ function createHost(options: {
   canvas: FakeHitCanvas
   nodes: GraphNode[]
   groups?: GraphGroup[]
-  hitAt: (x: number, y: number) => { id: string; kind: 'node' | 'edge' | 'group' } | undefined
+  hitAt: (x: number, y: number) => { id: string; kind: 'node' | 'edge' | 'group' | 'path' } | undefined
 }): InteractionHost & {
   commitEdgeCreate: ReturnType<typeof vi.fn>
   addOverlayChrome: ReturnType<typeof vi.fn>
@@ -93,6 +93,7 @@ function createHost(options: {
       beginFrame: vi.fn(),
       drawGroup: vi.fn(),
       drawEdge: vi.fn(),
+    drawPath: vi.fn(),
       drawNode: vi.fn(),
       endFrame: vi.fn(),
       drawSelectionOverlay: vi.fn(),
@@ -135,9 +136,11 @@ function createHost(options: {
     getGroup: id => groups.get(id),
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
+    getPaths: () => [],
     getGroups: () => [...groups.values()],
     getGroupBandBounds: id => (groups.has(id) ? { x: 0, y: 0, width: 100, height: 80 } : undefined),
     getEdgePathBounds: () => undefined,
+    getPathBounds: () => undefined,
     getSelectedIds: () => [],
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
@@ -152,6 +155,9 @@ function createHost(options: {
     commitEdgeRemove: vi.fn(),
     previewEdgeWaypoints: vi.fn(),
     commitEdgeWaypoints: vi.fn(),
+    commitPathCreate: vi.fn(),
+    commitPathUpdate: vi.fn(),
+    commitPathRemove: vi.fn(),
     markGestureDragged: () => {
       gestureDragged = true
     },

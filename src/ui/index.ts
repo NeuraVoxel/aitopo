@@ -47,4 +47,6 @@ export {
 export { EdgeView } from './edge-view.ts'
 export { GroupView } from './group-view.ts'
 export { NodeView } from './node-view.ts'
+export { buildPathPolyline, densifyControlPolyline } from './path-route.ts'
+export { PathView } from './path-view.ts'
 export { ViewSet } from './view-set.ts'

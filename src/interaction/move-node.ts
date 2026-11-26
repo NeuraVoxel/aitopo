@@ -1,5 +1,6 @@
 /**
- * Drag-move selected unlocked nodes or groups with optional group membership on drop.
+ * Drag-move selected unlocked nodes, groups, or freestanding paths
+ * (path body translates all control points).
  */
 
 import { nodeBounds } from '../ui/bounds.ts'
@@ -31,8 +32,13 @@ type GroupMover = {
   members: readonly { id: string; fromX: number; fromY: number }[]
   childGroups: readonly { id: string; fromX: number; fromY: number }[]
 }
+type PathMover = {
+  kind: 'path'
+  id: string
+  fromPoints: readonly { x: number; y: number }[]
+}
 
-/** Live- or lazy-move nodes/groups; skip locked; reparent from group under pointer on commit. */
+/** Live- or lazy-move nodes/groups/paths; skip locked; reparent from group under pointer on commit. */
 export class MoveNodeInteraction implements Interaction {
   private readonly hideOthersWhileDragging: boolean
   private readonly lazyMove: boolean
@@ -58,7 +64,7 @@ export class MoveNodeInteraction implements Interaction {
     let dragged = false
     let startClientX = 0
     let startClientY = 0
-    let movers: Array<NodeMover | GroupMover> = []
+    let movers: Array<NodeMover | GroupMover | PathMover> = []
     /** Pointer id held via setPointerCapture; null when none. */
     let capturedPointerId: number | null = null
     let dx = 0
@@ -126,7 +132,7 @@ export class MoveNodeInteraction implements Interaction {
                 x: mover.fromX + dx,
                 y: mover.fromY + dy,
               }))
-            } else {
+            } else if (mover.kind === 'group') {
               const group = network.getGroup(mover.id)
               if (group !== undefined) {
                 renderer.drawLazyMoveGhost({
@@ -145,6 +151,15 @@ export class MoveNodeInteraction implements Interaction {
                   y: member.fromY + dy,
                 }))
               }
+            } else {
+              for (let i = 0; i < mover.fromPoints.length - 1; i += 1) {
+                const a = mover.fromPoints[i]!
+                const b = mover.fromPoints[i + 1]!
+                renderer.drawEdgeRubberBand(
+                  { x: a.x + dx, y: a.y + dy },
+                  { x: b.x + dx, y: b.y + dy },
+                )
+              }
             }
           }
         },
@@ -157,7 +172,7 @@ export class MoveNodeInteraction implements Interaction {
         for (const mover of movers) {
           if (mover.kind === 'node') {
             network.previewNodePosition(mover.id, mover.fromX, mover.fromY)
-          } else {
+          } else if (mover.kind === 'group') {
             network.previewGroupMove({
               groupId: mover.id,
               dx: 0,
@@ -166,6 +181,7 @@ export class MoveNodeInteraction implements Interaction {
               members: mover.members,
             })
           }
+          // Path movers have no preview API; nothing to revert.
         }
       }
       clearPaintFilter()
@@ -206,7 +222,12 @@ export class MoveNodeInteraction implements Interaction {
       if (event.altKey) return
       const rect = canvas.getBoundingClientRect()
       const hit = network.hitTestScreen(event.clientX - rect.left, event.clientY - rect.top)
-      if (hit === undefined || (hit.kind !== 'node' && hit.kind !== 'group')) return
+      if (
+        hit === undefined
+        || (hit.kind !== 'node' && hit.kind !== 'group' && hit.kind !== 'path')
+      ) {
+        return
+      }
 
       let selectedIds = network.getSelectedIds()
       if (!selectedIds.includes(hit.id)) {
@@ -214,7 +235,7 @@ export class MoveNodeInteraction implements Interaction {
         selectedIds = [hit.id]
       }
 
-      const nextMovers: Array<NodeMover | GroupMover> = []
+      const nextMovers: Array<NodeMover | GroupMover | PathMover> = []
       const coveredMembers = new Set<string>()
 
       for (const id of selectedIds) {
@@ -231,6 +252,16 @@ export class MoveNodeInteraction implements Interaction {
             fromY: group.y ?? 0,
             members,
             childGroups,
+          })
+          continue
+        }
+        const path = network.getPaths().find(p => p.id === id)
+        if (path !== undefined) {
+          if (path.locked === true) continue
+          nextMovers.push({
+            kind: 'path',
+            id,
+            fromPoints: path.points.map(p => ({ x: p.x, y: p.y })),
           })
           continue
         }
@@ -264,7 +295,7 @@ export class MoveNodeInteraction implements Interaction {
         for (const mover of movers) {
           if (mover.kind === 'node') {
             network.previewNodePosition(mover.id, mover.fromX + dx, mover.fromY + dy)
-          } else {
+          } else if (mover.kind === 'group') {
             network.previewGroupMove({
               groupId: mover.id,
               dx,
@@ -274,6 +305,7 @@ export class MoveNodeInteraction implements Interaction {
               childGroups: mover.childGroups,
             })
           }
+          // Path body has no preview API; points update on commit only.
         }
       }
     }
@@ -286,8 +318,8 @@ export class MoveNodeInteraction implements Interaction {
     }
 
     const updateDropTarget = (clientX: number, clientY: number): void => {
-      // Group-only drags do not reparent via drop target.
-      if (movers.every(m => m.kind === 'group')) {
+      // Group-only / path-only drags do not reparent via drop target.
+      if (movers.every(m => m.kind === 'group' || m.kind === 'path')) {
         dropTargetGroupId = undefined
         clearChrome()
         return
@@ -317,9 +349,10 @@ export class MoveNodeInteraction implements Interaction {
           const filterIds: string[] = []
           for (const mover of movers) {
             if (mover.kind === 'node') filterIds.push(mover.id)
-            else filterIds.push(...mover.members.map(m => m.id))
+            else if (mover.kind === 'group') filterIds.push(...mover.members.map(m => m.id))
+            // Paths are not in the node paint filter; keep full scene for path body drag.
           }
-          network.setDragPaintFilter(filterIds)
+          if (filterIds.length > 0) network.setDragPaintFilter(filterIds)
         }
         try {
           canvas.setPointerCapture(event.pointerId)
@@ -339,7 +372,7 @@ export class MoveNodeInteraction implements Interaction {
         const finalDx = (event.clientX - startClientX) / zoom
         const finalDy = (event.clientY - startClientY) / zoom
         const rect = canvas.getBoundingClientRect()
-        const groupHit = movers.every(m => m.kind === 'group')
+        const groupHit = movers.every(m => m.kind === 'group' || m.kind === 'path')
           ? undefined
           : network.hitTestGroupScreen(
             event.clientX - rect.left,
@@ -361,6 +394,16 @@ export class MoveNodeInteraction implements Interaction {
                 from: { x: child.fromX, y: child.fromY },
                 to: { x: child.fromX + finalDx, y: child.fromY + finalDy },
               })),
+            })
+          } else if (mover.kind === 'path') {
+            network.commitPathUpdate({
+              pathId: mover.id,
+              patch: {
+                points: mover.fromPoints.map(p => ({
+                  x: p.x + finalDx,
+                  y: p.y + finalDy,
+                })),
+              },
             })
           } else {
             network.commitNodeMove({

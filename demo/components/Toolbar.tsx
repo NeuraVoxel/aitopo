@@ -19,6 +19,7 @@ const MODES: readonly { id: DemoMode; label: string; group: 'observe' | 'edit' }
   { id: 'edit', label: 'Edit', group: 'edit' },
   { id: 'create-node', label: 'Create Node', group: 'edit' },
   { id: 'create-link', label: 'Create Link', group: 'edit' },
+  { id: 'create-path', label: 'Create Path', group: 'edit' },
 ]
 
 /** Interaction modes, history, and Debug, visually grouped by concern. */

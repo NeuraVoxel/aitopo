@@ -41,7 +41,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 | Reference path | Idea | Status | AITopo / notes |
 |---|---|---|---|
-| `ElementUI.js` | Validate bounds → paint | `done` | `NodeView` / `EdgeView` / `GroupView` + `ViewSet` |
+| `ElementUI.js` | Validate bounds → paint | `done` | `NodeView` / `EdgeView` / `GroupView` / `PathView` + `ViewSet` |
 | `NodeUI.js` | Node body paint | `done` | `NodeView` + `Canvas2DRenderer.drawNode` |
 | `LinkUI.js` | Link / edge paint | `done` | `EdgeView` + route catalog (`orthogonal*` / flexional / extend / bundleArc / triangle / parallel / ring `arc` / `straight`) + corner / flow / looped / bundle fan + attachments |
 | `GroupUI.js` | Group band + expand/collapse + outline styles | `done` | `GroupView` + `GraphGroup.expanded` / `style` / attachments; agent-link remap when collapsed |
@@ -76,7 +76,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `interaction/CreateLinkInteraction.js` | From/to rubber-band | `done` | `CreateEdgeInteraction` |
 | `interaction/CreateElementInteraction.js` | Click-to-create element | `later` | Host adds via `externalDrop` + `addNode` |
 | `interaction/CreateShapeNodeInteraction.js` | Draw shape node | `wont` unless product asks | |
-| `interaction/CreateShapeLinkInteraction.js` | Draw shape link | `wont` unless product asks | |
+| `interaction/CreateShapeLinkInteraction.js` | Draw shape link | `wont` unless product asks | Edge `route: "shape"` stays host-authored; freestanding Path create is `CreatePathInteraction` (demo Create Path) |
 | `interaction/EditInteraction.js` | Resize / rotate / link points | `done` (resize + bends) | `ResizeNodeInteraction` + `MoveEdgeBendInteraction`; rotate still `later` |
 | `interaction/MoveLinkInteraction.js` | Drag link control points | `done` | `MoveEdgeBendInteraction` + `GraphEdge.waypoints` |
 | `interaction/MagnifyInteraction.js` | Magnifier | `wont` | |
@@ -87,6 +87,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 
 | Item | Status | Notes |
 |---|---|---|
+| Freestanding `GraphPath` (`paths[]`) | `done` | Protocol + `PathView` + paint-under-nodes + Create Path / vertex edit; not a `GraphEdge` |
 | Emit `alarmChanged` on `setAlarms` / alarm-bearing patches | `done` | Emitted for `setAlarms` ops after `apply` |
 | Marquee Shift-append selection | `done` | Ctrl/Meta at marquee pointer-up unions with selection |
 | Multi-level SubNetwork stack UI | `later` | Root ↔ one child only |

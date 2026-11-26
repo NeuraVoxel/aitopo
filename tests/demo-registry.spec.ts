@@ -195,14 +195,14 @@ describe('demo sample registry', () => {
       'adas-hdmap-junction',
     ])
 
-    const reservedIds = new Set([
+    const reservedIds = new Set(['adas-sensor-fov'])
+    const pathSampleIds = [
       'adas-lane-lines',
       'adas-lane-centerline',
       'adas-road-boundary',
-      'adas-sensor-fov',
       'adas-planning-path',
       'adas-prediction',
-    ])
+    ] as const
 
     for (const sample of adasGroup) {
       if (reservedIds.has(sample.id)) {
@@ -214,6 +214,12 @@ describe('demo sample registry', () => {
       const doc = parseDocument(sample.document)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
       expect(doc.nodes.every(n => n.data?.fill !== undefined)).toBe(true)
+    }
+
+    for (const id of pathSampleIds) {
+      const doc = parseDocument(getSample(id)!.document)
+      expect((doc.paths?.length ?? 0) >= 1).toBe(true)
+      expect(doc.paths!.every(p => p.points.length >= 2)).toBe(true)
     }
 
     const ego = parseDocument(getSample('adas-ego-surround')!.document)
@@ -238,5 +244,6 @@ describe('demo sample registry', () => {
     expect(junction.edges.filter(e => e.kind === 'successor').length).toBeGreaterThanOrEqual(4)
   })
 })
+
 
 

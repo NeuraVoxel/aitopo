@@ -24,9 +24,12 @@ export type {
   GraphMeta,
   GraphNode,
   GraphNodeStyle,
+  GraphPath,
+  GraphPathStyle,
   GraphShadowStyle,
   GraphTextStyle,
   GraphViewport,
+  PathShapeKind,
 } from './types.ts'
 
 export type {
@@ -34,6 +37,7 @@ export type {
   DocumentChangedEvent,
   EdgeCreatedEvent,
   EdgeRemovedEvent,
+  EdgeWaypointsChangedEvent,
   ExternalDropEvent,
   GraphEvent,
   GroupMembershipChangedEvent,
@@ -42,6 +46,9 @@ export type {
   NodeActivatedEvent,
   NodeMovedEvent,
   NodeResizedEvent,
+  PathCreatedEvent,
+  PathRemovedEvent,
+  PathUpdatedEvent,
   SelectionChangedEvent,
   SubNetworkChangedEvent,
   ViewportChangedEvent,

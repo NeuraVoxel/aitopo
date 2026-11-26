@@ -14,7 +14,7 @@ The demo entry is a **Vite + React** Classic IDE shell that mounts the existing 
 
 CSS grid: toolbar / body / status (`auto 1fr auto`); body columns `240px | 1fr | 280px`. Neutral slate toolbar (`#0f172a`).
 
-- **Top toolbar** — Observe / Edit / Create Node / Create Link, Undo/Redo, Debug, Enter team-a / Exit subnet
+- **Top toolbar** — Observe / Edit / Create Node / Create Link / Create Path, Undo/Redo, Debug, Enter team-a / Exit subnet
 - **Left nav** — sample catalog by group
 - **Center** — canvas host for `Network`
 - **Right panel** — selection properties (editable subset)
@@ -27,11 +27,13 @@ Mutually exclusive primary mode:
 | Mode | Behavior |
 |------|----------|
 | Observe (default) | Defaults only: `PanZoom` + `SelectActivate` |
-| Edit | Adds move / resize / bend / marquee / delete edge; Alt+drag link; `PatchHistory` for Undo/Redo |
+| Edit | Adds move / resize / bend / path vertex / marquee / delete edge or path; Alt+drag link; `PatchHistory` for Undo/Redo |
 | Create Node | Click empty canvas → `addNode` at world point |
 | Create Link | Exclusive link mode (`CreateEdgeInteraction` with `requireAlt: false`) |
+| Create Path | Exclusive path mode (`CreatePathInteraction`); Delete removes selected paths |
+| Edit (paths) | `MovePathVertexInteraction` first among extras; body move via default `MoveNode`; Delete removes paths |
 
-Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when history is active (Edit and create modes). Switching samples or modes recreates `Network` (clears history) then `load` + optional layout + `fitContent`. `Network.on('subNetworkChanged')` clears `PatchHistory`, resets undo/redo flags, and `setSelection([])` so PropertyPanel does not keep parent-network ids. Undo/redo apply failures become status text.
+Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when history is active (Edit and create modes). Switching samples or modes recreates `Network` (clears history) then `load` + optional layout + `fitContent`. Status shows sample title plus a mode hint. `Network.on('subNetworkChanged')` clears `PatchHistory`, resets undo/redo flags, and `setSelection([])` so PropertyPanel does not keep parent-network ids. Undo/redo apply failures become status text.
 
 ### Sample catalog
 
@@ -81,7 +83,7 @@ demo/
 - Edge arrow fields stay off the property panel (deferred from level A).
 - Enter/Exit subnet lives on the Toolbar (`Enter team-a` / `Exit subnet`), not the property panel. Successful navigation drops undo/redo for the previous network.
 - Optional catalog drag-drop chrome did not ship; Edit and Create Node still attach `ExternalDropInteraction` for host drops.
-- Status bar does not append the current mode (optional review follow-up, skipped).
+- Status bar appends a short mode hint after the sample title (e.g. Create Path instructions).
 
 ## Testing
 
@@ -89,5 +91,5 @@ demo/
 - `tests/demo-registry.spec.ts` — catalog groups, default id, reserved business rows do not load documents.
 - `tests/demo-property-patch.spec.ts` — single-select write-back ops for node/edge/group; invalid `dataJson` / `labelPosition` throw.
 - `tests/demo-subnetwork-session.spec.ts` — `subNetworkChanged` helper clears `PatchHistory` and selection; undo/redo apply errors become status text.
-- Observe / Edit / Create Node / Create Link / Debug / Undo / Redo / Enter–Exit subnet are host-wired; engine unit tests stay green (`pnpm test`).
+- Observe / Edit / Create Node / Create Link / Create Path / Debug / Undo / Redo / Enter–Exit subnet are host-wired; engine unit tests stay green (`pnpm test`).
 - `pnpm run typecheck` covers `src` and `demo`.

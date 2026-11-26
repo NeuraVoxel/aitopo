@@ -119,6 +119,24 @@ export interface EdgeWaypointsChangedEvent {
   readonly to: readonly { readonly x: number; readonly y: number }[]
 }
 
+/** Freestanding path created by an editor gesture. */
+export interface PathCreatedEvent {
+  readonly type: 'pathCreated'
+  readonly pathId: string
+}
+
+/** Freestanding path updated by an editor gesture. */
+export interface PathUpdatedEvent {
+  readonly type: 'pathUpdated'
+  readonly pathId: string
+}
+
+/** Freestanding path removed by an editor gesture. */
+export interface PathRemovedEvent {
+  readonly type: 'pathRemoved'
+  readonly pathId: string
+}
+
 /** Discriminated event union for `Network.on`. */
 export type GraphEvent =
   | SelectionChangedEvent
@@ -136,3 +154,6 @@ export type GraphEvent =
   | EdgeCreatedEvent
   | EdgeRemovedEvent
   | EdgeWaypointsChangedEvent
+  | PathCreatedEvent
+  | PathUpdatedEvent
+  | PathRemovedEvent

@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { DeleteEdgeInteraction } from '../src/interaction/delete-edge.ts'
 import type { InteractionHost } from '../src/interaction/types.ts'
-import type { GraphEdge } from '../src/protocol/types.ts'
+import type { GraphEdge, GraphPath } from '../src/protocol/types.ts'
 
 class FakeView {
   private readonly listeners = new Map<string, Set<(event: KeyboardEvent) => void>>()
@@ -33,13 +33,16 @@ class FakeView {
 function createHost(options: {
   view: FakeView
   edges: GraphEdge[]
+  paths?: GraphPath[]
   selectedIds: string[]
 }): InteractionHost & {
   commitEdgeRemove: ReturnType<typeof vi.fn>
+  commitPathRemove: ReturnType<typeof vi.fn>
   setSelection: ReturnType<typeof vi.fn>
 } {
   let selectedIds = [...options.selectedIds]
   const commitEdgeRemove = vi.fn()
+  const commitPathRemove = vi.fn()
   const setSelection = vi.fn((ids: readonly string[]) => {
     selectedIds = [...ids]
   })
@@ -54,22 +57,31 @@ function createHost(options: {
     updateCamera: vi.fn(),
     viewport: { state: { zoom: 1, x: 0, y: 0 } } as InteractionHost['viewport'],
     getNode: () => undefined,
+    getGroup: () => undefined,
     getNodes: () => [],
     getEdges: () => options.edges,
+    getPaths: () => options.paths ?? [],
     getGroups: () => [],
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getEdgePathBounds: () => undefined,
+    getPathBounds: () => undefined,
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition: vi.fn(),
     previewNodeBounds: vi.fn(),
+    previewGroupMove: vi.fn(),
+    commitGroupMove: vi.fn(),
+    toggleGroupExpanded: vi.fn(),
     commitNodeMove: vi.fn(),
     commitNodeResize: vi.fn(),
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove,
     previewEdgeWaypoints: vi.fn(),
     commitEdgeWaypoints: vi.fn(),
+    commitPathCreate: vi.fn(),
+    commitPathUpdate: vi.fn(),
+    commitPathRemove,
     markGestureDragged: vi.fn(),
     wasGestureDragged: () => false,
     clearGestureDragged: vi.fn(),
@@ -79,6 +91,9 @@ function createHost(options: {
     setDragPaintFilter: vi.fn(),
     emit: vi.fn(),
     apply: vi.fn(),
+    enterSubNetwork: vi.fn(),
+    exitSubNetwork: vi.fn(),
+    currentNetworkId: null,
   }
 }
 
@@ -109,6 +124,50 @@ describe('DeleteEdgeInteraction', () => {
     const dispose = new DeleteEdgeInteraction().attach(host)
     view.dispatch('keydown', { key: 'Delete' })
     expect(host.commitEdgeRemove).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('Delete removes selected paths and clears selection', () => {
+    const view = new FakeView()
+    const host = createHost({
+      view,
+      edges: [],
+      paths: [{
+        id: 'p1',
+        points: [
+          { x: 0, y: 0 },
+          { x: 10, y: 10 },
+        ],
+      }],
+      selectedIds: ['p1', 'n1'],
+    })
+    const dispose = new DeleteEdgeInteraction().attach(host)
+    view.dispatch('keydown', { key: 'Delete' })
+    expect(host.commitPathRemove).toHaveBeenCalledWith(['p1'])
+    expect(host.commitEdgeRemove).not.toHaveBeenCalled()
+    expect(host.setSelection).toHaveBeenCalledWith([])
+    dispose()
+  })
+
+  it('Delete removes selected edges and paths together', () => {
+    const view = new FakeView()
+    const host = createHost({
+      view,
+      edges: [{ id: 'e1', from: 'a', to: 'b' }],
+      paths: [{
+        id: 'p1',
+        points: [
+          { x: 0, y: 0 },
+          { x: 10, y: 10 },
+        ],
+      }],
+      selectedIds: ['e1', 'p1'],
+    })
+    const dispose = new DeleteEdgeInteraction().attach(host)
+    view.dispatch('keydown', { key: 'Backspace' })
+    expect(host.commitEdgeRemove).toHaveBeenCalledWith(['e1'])
+    expect(host.commitPathRemove).toHaveBeenCalledWith(['p1'])
+    expect(host.setSelection).toHaveBeenCalledWith([])
     dispose()
   })
 })

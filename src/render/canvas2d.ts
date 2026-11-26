@@ -3,7 +3,7 @@
  */
 
 import type { Point, Rect } from '../geom.ts'
-import type { GraphEdge, GraphGroup, GraphNode } from '../protocol/types.ts'
+import type { GraphEdge, GraphGroup, GraphNode, GraphPath } from '../protocol/types.ts'
 import { getIcon } from '../ui/attachment/icon-registry.ts'
 import type { AttachmentPaintOp } from '../ui/attachment/types.ts'
 
@@ -110,6 +110,36 @@ export interface EdgeArrowPaint {
   readonly shape?: 'standard' | 'delta' | 'diamond' | 'short' | 'slant'
 }
 
+/** Label paint for a freestanding path (midpoint above stroke). */
+export interface PathLabelPaint {
+  readonly text: string
+  /** World center x. */
+  readonly x: number
+  /** World center y. */
+  readonly y: number
+  readonly color: string
+  readonly fontSize: number
+  readonly fontWeight?: 'normal' | 'bold'
+}
+
+/** Cached geometry for a freestanding path paint. */
+export interface PathPaintView {
+  readonly points: readonly { x: number; y: number }[]
+  readonly bounds: Rect
+  readonly selected: boolean
+  readonly hovered: boolean
+  readonly closed: boolean
+  readonly alpha: number
+  readonly stroke: string
+  readonly fill?: string
+  readonly lineWidth: number
+  readonly strokeDash?: readonly number[]
+  /** Midpoint-above label; omitted when no label text. */
+  readonly label?: PathLabelPaint
+  readonly selectStyle?: NodePaintView['selectStyle']
+  readonly hoverStyle?: NodePaintView['hoverStyle']
+}
+
 /** Cached geometry for a group band. */
 export interface GroupPaintView {
   readonly bounds: Rect
@@ -143,6 +173,8 @@ export interface Renderer {
   beginFrame(viewport: ViewportState, dirty: FrameDirty): void
   drawGroup(group: GraphGroup, view: GroupPaintView): void
   drawEdge(edge: GraphEdge, view: EdgePaintView): void
+  /** Freestanding path stroke (+ optional closed fill). */
+  drawPath(path: GraphPath, view: PathPaintView): void
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
   /** Overlay: solid selection ring (no-op OK for headless fakes). Body glow paints under fill on root. */
@@ -337,6 +369,37 @@ export class Canvas2DRenderer implements Renderer {
     if (view.arrowFrom !== undefined) drawEdgeArrow(ctx, view.arrowFrom, this.viewport.zoom)
     if (view.arrowTo !== undefined) drawEdgeArrow(ctx, view.arrowTo, this.viewport.zoom)
     paintAttachmentOps(ctx, view.attachments)
+    ctx.restore()
+  }
+
+  drawPath(path: GraphPath, view: PathPaintView): void {
+    void path
+    if (view.points.length < 2) return
+    const highlight = view.selected || view.hovered
+    const ctx = highlight ? this.overlayCtx : this.rootCtx
+    ctx.save()
+    ctx.globalAlpha = view.alpha
+    ctx.beginPath()
+    drawPlainPolyline(ctx, view.points)
+    if (view.closed) ctx.closePath()
+    const fill = view.fill
+    if (view.closed && fill !== undefined && fill.length > 0) {
+      ctx.fillStyle = fill
+      ctx.fill()
+    }
+    applyPathChromeGlow(ctx, view)
+    ctx.strokeStyle = view.stroke
+    ctx.lineWidth = view.lineWidth / this.viewport.zoom
+    ctx.lineJoin = 'round'
+    ctx.lineCap = 'round'
+    const dash = view.strokeDash
+    if (dash !== undefined && dash.length > 0) {
+      ctx.setLineDash([...dash])
+    }
+    ctx.stroke()
+    ctx.setLineDash([])
+    clearBodyOuterShadow(ctx)
+    paintPathLabel(ctx, view.label)
     ctx.restore()
   }
 
@@ -916,6 +979,46 @@ function clearBodyOuterShadow(ctx: CanvasRenderingContext2D): void {
   ctx.shadowBlur = 0
   ctx.shadowOffsetX = 0
   ctx.shadowOffsetY = 0
+}
+
+/**
+ * Soft glow along a highlighted path stroke (select default on; hover default off).
+ */
+function applyPathChromeGlow(
+  ctx: CanvasRenderingContext2D,
+  view: PathPaintView,
+): void {
+  if (view.selected) {
+    const style = view.selectStyle
+    if (!(style?.glow ?? true)) return
+    ctx.shadowColor = style?.color ?? view.stroke
+    ctx.shadowBlur = style?.glowBlur ?? 16
+    ctx.shadowOffsetX = 0
+    ctx.shadowOffsetY = 0
+    return
+  }
+  if (!view.hovered) return
+  const style = view.hoverStyle
+  if (!(style?.glow ?? false)) return
+  ctx.shadowColor = style?.color ?? view.stroke
+  ctx.shadowBlur = style?.glowBlur ?? 16
+  ctx.shadowOffsetX = 0
+  ctx.shadowOffsetY = 0
+}
+
+/** Midpoint-above path label (v1 fillText). */
+function paintPathLabel(
+  ctx: CanvasRenderingContext2D,
+  label: PathLabelPaint | undefined,
+): void {
+  if (label === undefined || label.text.length === 0) return
+  const weight = label.fontWeight === 'bold' ? 'bold ' : ''
+  ctx.fillStyle = label.color
+  ctx.font = `${weight}${label.fontSize}px sans-serif`
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label.text, label.x, label.y)
+  ctx.textAlign = 'start'
 }
 
 function drawPlainPolyline(

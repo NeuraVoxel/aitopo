@@ -6,6 +6,7 @@ import { growRect, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
+import type { GraphPath } from '../protocol/types.ts'
 import {
   expandCollapseCenterPatches,
   listOwningGroupChain,
@@ -452,6 +453,97 @@ export class GestureEditor {
     })
   }
 
+  /**
+   * Commit a new freestanding path. Skips when fewer than two points or id collision.
+   * @param args - control points and optional style / id / closed.
+   * @returns created path id, or undefined when skipped.
+   */
+  commitPathCreate(args: {
+    points: readonly { readonly x: number; readonly y: number }[]
+    closed?: boolean
+    style?: GraphPath['style']
+    label?: string
+    id?: string
+  }): string | undefined {
+    if (args.points.length < 2) return undefined
+    const pathId = args.id ?? `p-${Date.now()}`
+    if (
+      this.deps.scene.paths.has(pathId)
+      || this.deps.scene.nodes.has(pathId)
+      || this.deps.scene.edges.has(pathId)
+      || this.deps.scene.groups.has(pathId)
+    ) {
+      return undefined
+    }
+    this.deps.apply({
+      ops: [{
+        op: 'addPath',
+        path: {
+          id: pathId,
+          points: args.points.map(p => ({ x: p.x, y: p.y })),
+          ...(args.closed !== undefined ? { closed: args.closed } : {}),
+          ...(args.label !== undefined ? { label: args.label } : {}),
+          ...(args.style !== undefined ? { style: clonePathStyle(args.style) } : {}),
+        },
+      }],
+    })
+    this.deps.emit({ type: 'pathCreated', pathId })
+    return pathId
+  }
+
+  /**
+   * Commit a path update; emits `pathUpdated`.
+   * @param args - path id and patch fragment.
+   */
+  commitPathUpdate(args: {
+    pathId: string
+    patch: {
+      points?: readonly { readonly x: number; readonly y: number }[]
+      closed?: boolean
+      label?: string
+      locked?: boolean
+      style?: GraphPath['style']
+    }
+  }): void {
+    if (this.deps.scene.paths.get(args.pathId) === undefined) {
+      throw new Error(`commitPathUpdate: missing path ${args.pathId}`)
+    }
+    const { points, style, ...rest } = args.patch
+    this.deps.apply({
+      ops: [{
+        op: 'updatePath',
+        id: args.pathId,
+        patch: {
+          ...rest,
+          ...(points !== undefined
+            ? { points: points.map(p => ({ x: p.x, y: p.y })) }
+            : {}),
+          ...(style !== undefined ? { style: clonePathStyle(style) } : {}),
+        },
+      }],
+    })
+    this.deps.emit({ type: 'pathUpdated', pathId: args.pathId })
+  }
+
+  /**
+   * Remove paths by id; emits `pathRemoved` for each existing id.
+   * @param pathIds - path ids to remove.
+   */
+  commitPathRemove(pathIds: readonly string[]): void {
+    const ops: GraphPatch['ops'] = []
+    const removed: string[] = []
+    for (const id of pathIds) {
+      if (!this.deps.scene.paths.has(id)) continue
+      ops.push({ op: 'removePath', id })
+      removed.push(id)
+    }
+    if (ops.length === 0) return
+    this.deps.apply({ ops })
+    for (const pathId of removed) {
+      this.deps.emit({ type: 'pathRemoved', pathId })
+    }
+  }
+
   private previewNodeGeometry(id: string, mutate: () => void): void {
     const oldRects = this.captureNodeGeometryRects(id)
     const oldGroupRects = this.captureNodeGroupRects(id)
@@ -545,5 +637,22 @@ export class GestureEditor {
     const edgeView = this.deps.views.getEdge(edgeId)
     if (edgeView?.isActive !== true) return []
     return [growRect(edgeView.bounds, 8)]
+  }
+}
+
+/** Clone path style into a patch-friendly (mutable dash) object. */
+function clonePathStyle(
+  style: NonNullable<GraphPath['style']>,
+): Extract<GraphPatch['ops'][number], { op: 'addPath' }>['path']['style'] {
+  return {
+    ...(style.stroke !== undefined ? { stroke: style.stroke } : {}),
+    ...(style.lineWidth !== undefined ? { lineWidth: style.lineWidth } : {}),
+    ...(style.strokeDash !== undefined ? { strokeDash: [...style.strokeDash] } : {}),
+    ...(style.alpha !== undefined ? { alpha: style.alpha } : {}),
+    ...(style.shapeKind !== undefined ? { shapeKind: style.shapeKind } : {}),
+    ...(style.fill !== undefined ? { fill: style.fill } : {}),
+    ...(style.label !== undefined ? { label: { ...style.label } } : {}),
+    ...(style.select !== undefined ? { select: { ...style.select } } : {}),
+    ...(style.hover !== undefined ? { hover: { ...style.hover } } : {}),
   }
 }

@@ -279,6 +279,79 @@ const graphGroupSchema = z.object({
   data: z.record(z.string(), z.unknown()).optional(),
 })
 
+const pathShapeKindSchema = z.enum(['lineto', 'quadto', 'cubicto'])
+
+const graphPathStyleSchema = z.object({
+  stroke: z.string().optional(),
+  lineWidth: z.number().positive().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  alpha: z.number().min(0).max(1).optional(),
+  shapeKind: pathShapeKindSchema.optional(),
+  fill: z.string().optional(),
+  label: graphTextStyleSchema.optional(),
+  select: graphChromeStyleSchema.optional(),
+  hover: graphChromeStyleSchema.optional(),
+})
+
+/** Base path object (no refinements) so `updatePath` can `.partial()`. */
+const graphPathObjectSchema = z.object({
+  id: z.string().min(1),
+  points: z.array(z.object({ x: z.number(), y: z.number() })),
+  closed: z.boolean().optional(),
+  label: z.string().optional(),
+  tooltip: z.string().optional(),
+  locked: z.boolean().optional(),
+  style: graphPathStyleSchema.optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+})
+
+/**
+ * Path point arity vs shapeKind (aligns with freestanding densify of
+ * `buildShapeRoute` control points — fail loud on remainder):
+ * - lineto (default): ≥2
+ * - quadto: odd count ≥3
+ * - cubicto: count ≡ 1 (mod 3), ≥4
+ */
+function refinePathPointsArity(
+  points: readonly { x: number; y: number }[],
+  shapeKind: 'lineto' | 'quadto' | 'cubicto' | undefined,
+  ctx: z.RefinementCtx,
+): void {
+  const kind = shapeKind ?? 'lineto'
+  const n = points.length
+  if (kind === 'lineto') {
+    if (n < 2) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'paths require points.length ≥ 2',
+        path: ['points'],
+      })
+    }
+    return
+  }
+  if (kind === 'quadto') {
+    if (n < 3 || n % 2 === 0) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'style.shapeKind "quadto" requires an odd points.length ≥ 3',
+        path: ['points'],
+      })
+    }
+    return
+  }
+  if (n < 4 || n % 3 !== 1) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: 'style.shapeKind "cubicto" requires points.length ≡ 1 (mod 3) and ≥ 4',
+      path: ['points'],
+    })
+  }
+}
+
+const graphPathSchema = graphPathObjectSchema.superRefine((path, ctx) => {
+  refinePathPointsArity(path.points, path.style?.shapeKind, ctx)
+})
+
 const graphViewportSchema = z.object({
   x: z.number(),
   y: z.number(),
@@ -298,6 +371,7 @@ export const graphDocumentSchema: z.ZodType<import('./types.ts').GraphDocument> 
     nodes: z.array(graphNodeSchema),
     edges: z.array(graphEdgeSchema),
     groups: z.array(graphGroupSchema).optional(),
+    paths: z.array(graphPathSchema).optional(),
     networks: z.record(z.string(), graphDocumentSchema).optional(),
     viewport: graphViewportSchema.optional(),
   }),
@@ -324,6 +398,16 @@ const patchOpSchema = z.discriminatedUnion('op', [
   z.object({ op: z.literal('addGroup'), group: graphGroupSchema }),
   z.object({ op: z.literal('updateGroup'), id: z.string().min(1), patch: graphGroupSchema.partial().omit({ id: true }) }),
   z.object({ op: z.literal('removeGroup'), id: z.string().min(1) }),
+  z.object({ op: z.literal('addPath'), path: graphPathSchema }),
+  z.object({
+    op: z.literal('updatePath'),
+    id: z.string().min(1),
+    patch: graphPathObjectSchema.partial().omit({ id: true }).superRefine((patch, ctx) => {
+      if (patch.points === undefined) return
+      refinePathPointsArity(patch.points, patch.style?.shapeKind, ctx)
+    }),
+  }),
+  z.object({ op: z.literal('removePath'), id: z.string().min(1) }),
   z.object({
     op: z.literal('setAlarms'),
     elementId: z.string().min(1),

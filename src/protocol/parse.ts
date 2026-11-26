@@ -44,7 +44,8 @@ export function assertEndpointIds(doc: GraphDocument): void {
 }
 
 /**
- * Fail loud when a node id and group id collide.
+ * Fail loud when element ids collide across kinds (node / edge / group / path)
+ * or when the same kind repeats an id.
  * @param doc - parsed document.
  */
 export function assertNoCrossKindIdClash(doc: GraphDocument): void {
@@ -52,6 +53,25 @@ export function assertNoCrossKindIdClash(doc: GraphDocument): void {
   for (const node of doc.nodes) {
     if (!groupIds.has(node.id)) continue
     throw new Error(`id "${node.id}" is used by both a node and a group`)
+  }
+
+  const nodeIds = new Set(doc.nodes.map(n => n.id))
+  const edgeIds = new Set(doc.edges.map(e => e.id))
+  const pathIds = new Set<string>()
+  for (const path of doc.paths ?? []) {
+    if (pathIds.has(path.id)) {
+      throw new Error(`duplicate path id "${path.id}"`)
+    }
+    pathIds.add(path.id)
+    if (nodeIds.has(path.id)) {
+      throw new Error(`id "${path.id}" is used by both a path and a node`)
+    }
+    if (edgeIds.has(path.id)) {
+      throw new Error(`id "${path.id}" is used by both a path and an edge`)
+    }
+    if (groupIds.has(path.id)) {
+      throw new Error(`id "${path.id}" is used by both a path and a group`)
+    }
   }
 }
 

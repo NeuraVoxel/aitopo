@@ -54,6 +54,7 @@ function recordingRenderer(): Renderer & {
         && !view.hovered
       ) state.edgeBasePaints += 1
     }),
+    drawPath: vi.fn(countSceneDraw),
     drawNode: vi.fn(countSceneDraw),
     endFrame: vi.fn(),
     drawSelectionOverlay: vi.fn(),

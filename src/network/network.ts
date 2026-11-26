@@ -14,7 +14,14 @@ import { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
 import { graphPatchSchema } from '../protocol/schema.ts'
-import type { GraphDocument, GraphEdge, GraphGroup, GraphNode, GraphViewport } from '../protocol/types.ts'
+import type {
+  GraphDocument,
+  GraphEdge,
+  GraphGroup,
+  GraphNode,
+  GraphPath,
+  GraphViewport,
+} from '../protocol/types.ts'
 import { Canvas2DRenderer } from '../render/canvas2d.ts'
 import type { Renderer } from '../render/canvas2d.ts'
 import {
@@ -32,6 +39,7 @@ import {
   PanZoomInteraction,
   ResizeNodeInteraction,
   SelectActivateInteraction,
+  type HitKind,
   type Interaction,
   type OverlayChrome,
 } from '../interaction/index.ts'
@@ -508,6 +516,10 @@ export class Network {
           glowBlur: paint.selectStyle?.glowBlur,
         })))
       }
+      const pathView = this.views.getPath(id)
+      if (pathView !== undefined && pathView.points.length >= 2) {
+        this.dirty.add(growRect(pathView.bounds, 8))
+      }
     }
     this.scheduleScenePaint()
     this.emit({ type: 'selectionChanged', selectedIds: ids })
@@ -559,6 +571,10 @@ export class Network {
   contentBounds(): Rect | undefined {
     this.views.validateDirty(this.scene)
     let bounds: Rect | undefined
+    for (const view of this.views.pathViews()) {
+      if (view.points.length < 2) continue
+      bounds = unionRect(bounds, view.bounds)
+    }
     for (const view of this.views.nodeViews()) {
       if (!view.isActive) continue
       bounds = unionRect(bounds, view.bounds)
@@ -588,11 +604,12 @@ export class Network {
 
   /**
    * Hit-test at a screen point relative to the hit canvas.
-   * Order matches reverse paint (twaver `getElementAt` top-down): nodes → edges → groups.
+   * Order matches reverse paint (twaver `getElementAt` top-down):
+   * nodes → edges → groups → paths (paths paint lowest / lanes under cars).
    * Edges paint above group bands, so polyline hits must win over band fill.
    * Edge labels / alarms (union attachments) are hittable like twaver link attachments.
    */
-  hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' | 'group' } | undefined {
+  hitTestScreen(screenX: number, screenY: number): { id: string; kind: HitKind } | undefined {
     const world = this.viewport.screenToWorld({ x: screenX, y: screenY })
     const zoom = this.viewport.state.zoom
     this.views.validateDirty(this.scene)
@@ -639,6 +656,13 @@ export class Network {
       if (view === undefined || !view.isVisible) continue
       if (hitRect(world, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
     }
+    const paths = [...this.scene.paths.values()]
+    for (let i = paths.length - 1; i >= 0; i -= 1) {
+      const path = paths[i]!
+      const view = this.views.getPath(path.id)
+      if (view === undefined || view.points.length < 2) continue
+      if (view.hit(world.x, world.y, pad)) return { id: path.id, kind: 'path' }
+    }
     return undefined
   }
 
@@ -668,6 +692,11 @@ export class Network {
   /** @returns edges in the active network. */
   getEdges(): readonly GraphEdge[] {
     return [...this.scene.edges.values()]
+  }
+
+  /** @returns freestanding paths in the active network. */
+  getPaths(): readonly GraphPath[] {
+    return [...this.scene.paths.values()]
   }
 
   /**
@@ -756,6 +785,18 @@ export class Network {
     const view = this.views.getEdge(id)
     if (view === undefined || !view.isActive) return undefined
     return view.pathBounds
+  }
+
+  /**
+   * Validated freestanding path AABB for marquee / dirty-rect.
+   * @param id - path id.
+   * @returns world rect, or undefined when missing / empty.
+   */
+  getPathBounds(id: string): { x: number; y: number; width: number; height: number } | undefined {
+    this.views.validateDirty(this.scene)
+    const view = this.views.getPath(id)
+    if (view === undefined || view.points.length < 2) return undefined
+    return view.bounds
   }
 
   /**
@@ -914,6 +955,46 @@ export class Network {
     this.gestures.commitEdgeWaypoints(args)
   }
 
+  /**
+   * Commit a new freestanding path. Skips when fewer than two points or id collision.
+   * @param args - control points and optional style / id / closed.
+   * @returns created path id, or undefined when skipped.
+   */
+  commitPathCreate(args: {
+    points: readonly { readonly x: number; readonly y: number }[]
+    closed?: boolean
+    style?: GraphPath['style']
+    label?: string
+    id?: string
+  }): string | undefined {
+    return this.gestures.commitPathCreate(args)
+  }
+
+  /**
+   * Commit a path update; emits `pathUpdated`.
+   * @param args - path id and patch fragment.
+   */
+  commitPathUpdate(args: {
+    pathId: string
+    patch: {
+      points?: readonly { readonly x: number; readonly y: number }[]
+      closed?: boolean
+      label?: string
+      locked?: boolean
+      style?: GraphPath['style']
+    }
+  }): void {
+    this.gestures.commitPathUpdate(args)
+  }
+
+  /**
+   * Remove paths by id; emits `pathRemoved` for each existing id.
+   * @param pathIds - path ids to remove.
+   */
+  commitPathRemove(pathIds: readonly string[]): void {
+    this.gestures.commitPathRemove(pathIds)
+  }
+
   /** Mark that a drag consumed this pointer gesture. */
   markGestureDragged(): void {
     this.gestures.markGestureDragged()
@@ -977,6 +1058,7 @@ export class Network {
       for (const view of this.views.nodeViews()) view.markDirty()
       for (const view of this.views.edgeViews()) view.markDirty()
       for (const view of this.views.groupViews()) view.markDirty()
+      for (const view of this.views.pathViews()) view.markDirty()
       this.dirty.markAll()
       return
     }
@@ -994,6 +1076,10 @@ export class Network {
       if (edgeView?.isActive === true) {
         oldRects.push(growRect(edgeView.bounds, 8))
         this.pushEdgeEndpointRects(oldRects, id)
+      }
+      const pathView = this.views.getPath(id)
+      if (pathView !== undefined && pathView.points.length >= 2) {
+        oldRects.push(growRect(pathView.bounds, 8))
       }
       if (this.scene.groups.has(id)) {
         for (const rect of this.captureGroupTopologyRects(id)) oldRects.push(rect)
@@ -1025,6 +1111,11 @@ export class Network {
       if (edgeView?.isActive === true) {
         this.dirty.add(growRect(edgeView.bounds, 8))
         this.pushEdgeEndpointRects(undefined, id)
+        continue
+      }
+      const pathView = this.views.getPath(id)
+      if (pathView !== undefined && pathView.points.length >= 2) {
+        this.dirty.add(growRect(pathView.bounds, 8))
         continue
       }
       if (this.scene.groups.has(id)) {
@@ -1141,6 +1232,21 @@ export class Network {
 
   private paintOverlayPass(renderer: Renderer): void {
     const hoverId = this.scene.hover
+    const handleSize = 10 / this.viewport.state.zoom
+    for (const path of this.scene.paths.values()) {
+      const view = this.views.getPath(path.id)
+      if (view === undefined || view.points.length < 2) continue
+      const selected = this.scene.selectedIds.has(path.id)
+      const hovered = hoverId === path.id
+      if (selected || hovered) {
+        renderer.drawPath(path, view.toPaintView(selected, hovered))
+      }
+      if (selected) {
+        for (const point of path.points) {
+          renderer.drawResizeHandle(point, handleSize)
+        }
+      }
+    }
     for (const edge of this.scene.edges.values()) {
       const flags = this.edgeHighlightFlags(edge)
       if (!flags.selected && !flags.hovered) continue
@@ -1215,7 +1321,14 @@ export class Network {
           return false
         }
         renderer.beginFrame(cam, dirtyRects)
+        // Paths paint under groups/edges/nodes (lanes under cars).
         if (filter === undefined) {
+          for (const path of this.scene.paths.values()) {
+            const view = this.views.getPath(path.id)
+            if (view === undefined || view.points.length < 2) continue
+            if (!inDirty(view.bounds)) continue
+            renderer.drawPath(path, view.toPaintView(false, false))
+          }
           for (const group of this.scene.groups.values()) {
             const view = this.views.getGroup(group.id)
             if (view === undefined || !view.isVisible) continue
@@ -1266,6 +1379,16 @@ export class Network {
 /** Content union bounds for fit. */
 export function contentBounds(scene: GraphScene): Rect | undefined {
   let bounds: Rect | undefined
+  for (const path of scene.paths.values()) {
+    if (path.points.length < 2) continue
+    let box: Rect | undefined
+    for (const p of path.points) {
+      const pad = 4
+      const r = { x: p.x - pad, y: p.y - pad, width: pad * 2, height: pad * 2 }
+      box = unionRect(box, r)
+    }
+    if (box !== undefined) bounds = unionRect(bounds, box)
+  }
   for (const node of scene.nodes.values()) {
     bounds = unionRect(bounds, nodeBounds(node))
   }

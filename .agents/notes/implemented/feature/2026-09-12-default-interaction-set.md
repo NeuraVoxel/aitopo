@@ -23,7 +23,7 @@ Defaults and gestures:
 - **Move** — drag a selected node or group; unlocked only; drop onto a group reparents (`MoveNodeInteraction` with default options: live preview, full-scene paint).
 - **Marquee** — Shift or Ctrl/Cmd + primary drag on empty space selects intersecting nodes/groups/edges (see [twaver selection parity](./2026-11-05-twaver-selection-parity.md)). Unmodified empty-space drag stays with pan.
 
-The demo's `buildInteractions` no longer lists `MoveNodeInteraction` / `MarqueeSelectInteraction` in any mode; edit/create modes keep only their structural extras (move-edge-bend, resize, delete-edge, create-edge, external-drop). Observe mode now demonstrates the full default set.
+The demo's `buildInteractions` no longer lists `MoveNodeInteraction` / `MarqueeSelectInteraction` in any mode; edit/create modes keep only their structural extras (move-path-vertex, move-edge-bend, resize, delete-edge, create-edge, create-path, external-drop). Observe mode now demonstrates the full default set.
 
 ## Alternatives considered
 

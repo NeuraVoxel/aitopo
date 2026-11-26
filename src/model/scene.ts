@@ -11,6 +11,7 @@ import type {
   GraphEdge,
   GraphGroup,
   GraphNode,
+  GraphPath,
   GraphViewport,
 } from '../protocol/types.ts'
 
@@ -29,6 +30,7 @@ export class GraphScene {
   private readonly nodeMap = new Map<string, GraphNode>()
   private readonly edgeMap = new Map<string, GraphEdge>()
   private readonly groupMap = new Map<string, GraphGroup>()
+  private readonly pathMap = new Map<string, GraphPath>()
   private readonly outEdges = new Map<string, string[]>()
   private readonly inEdges = new Map<string, string[]>()
   private sceneVersion = 0
@@ -69,6 +71,10 @@ export class GraphScene {
 
   get groups(): ReadonlyMap<string, GraphGroup> {
     return this.groupMap
+  }
+
+  get paths(): ReadonlyMap<string, GraphPath> {
+    return this.pathMap
   }
 
   get selectedIds(): ReadonlySet<string> {
@@ -121,12 +127,14 @@ export class GraphScene {
     const nodes = [...this.nodeMap.values()]
     const edges = [...this.edgeMap.values()]
     const groups = [...this.groupMap.values()]
+    const paths = [...this.pathMap.values()]
     const base: GraphDocument = {
       version: 1,
       nodes,
       edges,
       viewport: this.viewport,
       ...(groups.length > 0 ? { groups } : {}),
+      ...(paths.length > 0 ? { paths } : {}),
     }
     if (this.networkStackIds.length === 0) {
       return {
@@ -307,6 +315,7 @@ export class GraphScene {
     this.nodeMap.clear()
     this.edgeMap.clear()
     this.groupMap.clear()
+    this.pathMap.clear()
     this.outEdges.clear()
     this.inEdges.clear()
     for (const node of doc.nodes) {
@@ -319,6 +328,9 @@ export class GraphScene {
     }
     for (const group of doc.groups ?? []) {
       this.groupMap.set(group.id, group)
+    }
+    for (const path of doc.paths ?? []) {
+      this.pathMap.set(path.id, path)
     }
     this.sceneVersion += 1
     if (full) {
@@ -337,6 +349,7 @@ export class GraphScene {
       edges: [...this.edgeMap.values()],
       viewport: this.viewport,
       ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
+      ...(this.pathMap.size > 0 ? { paths: [...this.pathMap.values()] } : {}),
       ...(this.active.meta !== undefined ? { meta: this.active.meta } : {}),
       ...(this.active.networks !== undefined ? { networks: this.active.networks } : {}),
     }
@@ -435,6 +448,13 @@ export function collectPatchDirty(
         break
       case 'updateGroup':
       case 'removeGroup':
+        ids.add(op.id)
+        break
+      case 'addPath':
+        ids.add(op.path.id)
+        break
+      case 'updatePath':
+      case 'removePath':
         ids.add(op.id)
         break
       case 'setAlarms':

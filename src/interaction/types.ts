@@ -8,8 +8,11 @@
 import type { Point, Rect } from '../geom.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
-import type { GraphEdge, GraphGroup, GraphNode } from '../protocol/types.ts'
+import type { GraphEdge, GraphGroup, GraphNode, GraphPath } from '../protocol/types.ts'
 import type { Renderer } from '../render/canvas2d.ts'
+
+/** Hit-test element kind (paint top → bottom pick order ends at path). */
+export type HitKind = 'node' | 'edge' | 'group' | 'path'
 
 /** Live rubber-band while creating an edge. */
 export interface EdgeRubberBand {
@@ -33,7 +36,7 @@ export interface OverlayChrome {
 export interface InteractionHitHost {
   getViewElement(): HTMLDivElement | null
   getHitElement(): HTMLCanvasElement | null
-  hitTestScreen(screenX: number, screenY: number): { id: string; kind: 'node' | 'edge' | 'group' } | undefined
+  hitTestScreen(screenX: number, screenY: number): { id: string; kind: HitKind } | undefined
   /**
    * Hit-test groups at a screen point.
    * @param screenX - CSS x relative to the hit canvas.
@@ -76,6 +79,8 @@ export interface InteractionQueryHost {
   getEdges(): readonly GraphEdge[]
   /** @returns groups in the active network. */
   getGroups(): readonly GraphGroup[]
+  /** @returns freestanding paths in the active network. */
+  getPaths(): readonly GraphPath[]
   /**
    * Validated band / collapsed-body bounds of a group (auto-fit aware).
    * @param id - group id.
@@ -88,6 +93,12 @@ export interface InteractionQueryHost {
    * @returns world rect, or undefined when the edge is inactive.
    */
   getEdgePathBounds(id: string): Rect | undefined
+  /**
+   * Validated freestanding path AABB for marquee / dirty-rect.
+   * @param id - path id.
+   * @returns world rect, or undefined when missing.
+   */
+  getPathBounds(id: string): Rect | undefined
 }
 
 /** Overlay chrome schedule (Wave E / H registry). */
@@ -228,6 +239,37 @@ export interface InteractionEditHost {
     from: readonly { readonly x: number; readonly y: number }[]
     to: readonly { readonly x: number; readonly y: number }[]
   }): void
+  /**
+   * Commit a new freestanding path: apply `addPath`, emit `pathCreated`.
+   * @param args - control points and optional style / id / closed.
+   * @returns created path id, or undefined when skipped.
+   */
+  commitPathCreate(args: {
+    points: readonly { readonly x: number; readonly y: number }[]
+    closed?: boolean
+    style?: GraphPath['style']
+    label?: string
+    id?: string
+  }): string | undefined
+  /**
+   * Commit a path update: apply `updatePath`, emit `pathUpdated`.
+   * @param args - path id and patch fragment.
+   */
+  commitPathUpdate(args: {
+    pathId: string
+    patch: {
+      points?: readonly { readonly x: number; readonly y: number }[]
+      closed?: boolean
+      label?: string
+      locked?: boolean
+      style?: GraphPath['style']
+    }
+  }): void
+  /**
+   * Remove paths by id: apply `removePath` ops, emit `pathRemoved` per id.
+   * @param pathIds - path ids to remove.
+   */
+  commitPathRemove(pathIds: readonly string[]): void
 }
 
 /** Event bus + patch apply. */

@@ -12,6 +12,7 @@ import type {
 } from '../protocol/types.ts'
 import { orthogonalHV, orthogonalVH } from './bounds.ts'
 import { straightRoute } from './edge-route.ts'
+import { densifyControlPolyline } from './path-route.ts'
 
 export const DEFAULT_ROUTE_EXTEND = 20
 export const DEFAULT_BUNDLE_GAP = 12
@@ -216,7 +217,6 @@ export function buildShapeRoute(
   kind: EdgeShapeKind = 'lineto',
 ): Point[] {
   const raw = [from, ...shapePoints, to]
-  if (kind === 'lineto') return raw
   if (kind === 'orthogonalto') {
     const out: Point[] = [raw[0]!]
     let last = raw[0]!
@@ -236,39 +236,7 @@ export function buildShapeRoute(
     }
     return out
   }
-  if (kind === 'quadto') {
-    const out: Point[] = [raw[0]!]
-    for (let i = 1; i < raw.length; i += 1) {
-      if (i < raw.length - 1) {
-        const c = raw[i]!
-        const end = raw[i + 1]!
-        out.push(...sampleQuad(out[out.length - 1]!, c, end))
-        i += 1
-      } else {
-        out.push(raw[i]!)
-      }
-    }
-    return out
-  }
-  // cubicto
-  const out: Point[] = [raw[0]!]
-  for (let i = 1; i < raw.length; i += 1) {
-    if (i < raw.length - 2) {
-      const c1 = raw[i]!
-      const c2 = raw[i + 1]!
-      const end = raw[i + 2]!
-      out.push(...sampleCubic(out[out.length - 1]!, c1, c2, end))
-      i += 2
-    } else if (i < raw.length - 1) {
-      const c = raw[i]!
-      const end = raw[i + 1]!
-      out.push(...sampleQuad(out[out.length - 1]!, c, end))
-      i += 1
-    } else {
-      out.push(raw[i]!)
-    }
-  }
-  return out
+  return densifyControlPolyline(raw, kind)
 }
 
 /**
@@ -370,32 +338,6 @@ function rectCornerLoop(
     { x: ox + percentRadius * -sx, y: oy + radius * sy },
     { x: ox + percentRadius * -sx, y: oy },
   ]
-}
-
-function sampleQuad(p0: Point, p1: Point, p2: Point, steps = 8): Point[] {
-  const out: Point[] = []
-  for (let i = 1; i <= steps; i += 1) {
-    const t = i / steps
-    const u = 1 - t
-    out.push({
-      x: u * u * p0.x + 2 * u * t * p1.x + t * t * p2.x,
-      y: u * u * p0.y + 2 * u * t * p1.y + t * t * p2.y,
-    })
-  }
-  return out
-}
-
-function sampleCubic(p0: Point, p1: Point, p2: Point, p3: Point, steps = 12): Point[] {
-  const out: Point[] = []
-  for (let i = 1; i <= steps; i += 1) {
-    const t = i / steps
-    const u = 1 - t
-    out.push({
-      x: u * u * u * p0.x + 3 * u * u * t * p1.x + 3 * u * t * t * p2.x + t * t * t * p3.x,
-      y: u * u * u * p0.y + 3 * u * u * t * p1.y + 3 * u * t * t * p2.y + t * t * t * p3.y,
-    })
-  }
-  return out
 }
 
 function flexionalHorizontal(source: Rect, target: Rect, segment: number): Point[] {

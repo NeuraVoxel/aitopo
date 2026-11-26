@@ -1,10 +1,15 @@
 import { adasDrivableAreaSample } from './drivable-area.ts'
 import { adasEgoSurroundSample } from './ego-surround.ts'
 import { adasHdmapJunctionSample } from './hdmap-junction.ts'
+import { adasLaneCenterlineSample } from './lane-centerline.ts'
+import { adasLaneLinesSample } from './lane-lines.ts'
 import { adasOccupancyBevSample } from './occupancy-bev.ts'
 import { adasParkingSlotsSample } from './parking-slots.ts'
 import { adasPerceptionBoxesSample } from './perception-boxes.ts'
 import { adasPlaceholders } from './placeholders.ts'
+import { adasPlanningPathSample } from './planning-path.ts'
+import { adasPredictionSample } from './prediction.ts'
+import { adasRoadBoundarySample } from './road-boundary.ts'
 import { adasStopCrosswalkSample } from './stop-crosswalk.ts'
 import { adasTrafficSignalsSample } from './traffic-signals.ts'
 import { adasVruSample } from './vru.ts'
@@ -12,6 +17,9 @@ import type { DemoSample } from '../types.ts'
 
 const byId = new Map<string, DemoSample>([
   [adasEgoSurroundSample.id, adasEgoSurroundSample],
+  [adasLaneLinesSample.id, adasLaneLinesSample],
+  [adasLaneCenterlineSample.id, adasLaneCenterlineSample],
+  [adasRoadBoundarySample.id, adasRoadBoundarySample],
   [adasStopCrosswalkSample.id, adasStopCrosswalkSample],
   [adasDrivableAreaSample.id, adasDrivableAreaSample],
   [adasPerceptionBoxesSample.id, adasPerceptionBoxesSample],
@@ -19,6 +27,8 @@ const byId = new Map<string, DemoSample>([
   [adasTrafficSignalsSample.id, adasTrafficSignalsSample],
   [adasParkingSlotsSample.id, adasParkingSlotsSample],
   [adasOccupancyBevSample.id, adasOccupancyBevSample],
+  [adasPlanningPathSample.id, adasPlanningPathSample],
+  [adasPredictionSample.id, adasPredictionSample],
   [adasHdmapJunctionSample.id, adasHdmapJunctionSample],
   ...adasPlaceholders.map(s => [s.id, s] as const),
 ])

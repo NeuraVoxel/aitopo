@@ -38,7 +38,7 @@ function vehicle(opts: {
 
 /**
  * Bird's-eye ego + surrounding traffic using existing GraphNode only.
- * Lane / boundary geometry stays reserved until freestanding paths exist.
+ * Lane / boundary geometry lives in dedicated Path samples.
  */
 export const adasEgoSurroundDocument: GraphDocument = {
   version: 1,

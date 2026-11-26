@@ -56,10 +56,19 @@ function wrapApplyWithHistory(
   }
 }
 
+const MODE_STATUS: Record<DemoMode, string> = {
+  observe: 'Observe',
+  edit: 'Edit — move / resize / bend / path vertex; Alt+drag link; Delete removes',
+  'create-node': 'Create Node — click empty canvas',
+  'create-link': 'Create Link — drag node to node',
+  'create-path': 'Create Path — click points; Enter or double-click to commit; Esc cancels',
+}
+
 /**
  * Mounts one Network into `stageRef`. Sample or mode change destroys and remounts
  * (history cleared). `subNetworkChanged` clears history and selection. Reserved
- * samples set status only and leave the current Network.
+ * samples set status only and leave the current Network. Status shows sample
+ * title plus the active mode label.
  */
 export function useNetworkDemo(): NetworkDemoApi {
   const stageRef = useRef<HTMLDivElement | null>(null)
@@ -159,7 +168,7 @@ export function useNetworkDemo(): NetworkDemoApi {
     networkRef.current = network
     clearHistoryFlags()
     setSelectedIds([...network.getSelectedIds()])
-    setStatus(sample.title)
+    setStatus(`${sample.title} · ${MODE_STATUS[mode]}`)
     fitNetwork(network)
 
     let fittedOnSize = false
