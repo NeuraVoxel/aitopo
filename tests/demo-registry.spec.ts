@@ -234,31 +234,16 @@ describe('demo sample registry', () => {
       'adas-agent',
       'adas-static',
       'adas-lane',
-      'adas-lane-lines',
-      'adas-lane-centerline',
-      'adas-road-boundary',
       'adas-stop-crosswalk',
-      'adas-drivable-area',
-      'adas-perception-boxes',
-      'adas-vru',
       'adas-traffic-signals',
       'adas-parking-slots',
       'adas-sensor-fov',
       'adas-occupancy-bev',
-      'adas-planning-path',
-      'adas-prediction',
       'adas-hdmap-junction',
     ])
 
     const reservedIds = new Set(['adas-sensor-fov'])
-    const pathSampleIds = [
-      'adas-lane',
-      'adas-lane-lines',
-      'adas-lane-centerline',
-      'adas-road-boundary',
-      'adas-planning-path',
-      'adas-prediction',
-    ] as const
+    const pathSampleIds = ['adas-lane', 'adas-ego', 'adas-agent'] as const
 
     for (const sample of adasGroup) {
       if (reservedIds.has(sample.id)) {
@@ -287,9 +272,14 @@ describe('demo sample registry', () => {
       'ego-vector-car',
       'ego-bitmap',
       'ego-axle-frame',
+      'ego-plan',
     ])
     expect(ego.edges).toHaveLength(0)
-    expect(ego.paths ?? []).toHaveLength(0)
+    expect(ego.paths).toHaveLength(1)
+    expect(ego.paths![0]!.id).toBe('ego-plan-path')
+    expect(ego.paths![0]!.followHostId).toBe('ego-plan')
+    expect(ego.paths![0]!.style?.shapeKind).toBe('cubicto')
+    expect(ego.paths![0]!.points).toHaveLength(7)
 
     const agent = parseDocument(getSample('adas-agent')!.document)
     expect(agent.nodes.map(n => n.data?.trackedObjectType)).toEqual([
@@ -332,7 +322,9 @@ describe('demo sample registry', () => {
     // Ped footprint is below the 16 px floor on both sides.
     expect(pedestrian?.w).toBe(16)
     expect(pedestrian?.h).toBe(16)
-    const historyPaths = agent.paths ?? []
+    const agentPaths = agent.paths ?? []
+    expect(agentPaths).toHaveLength(9)
+    const historyPaths = agentPaths.filter(p => p.id.endsWith('-history'))
     expect(historyPaths).toHaveLength(6)
     expect(historyPaths.map(p => p.followHostId)).toEqual([
       'vehicle-1',
@@ -359,6 +351,15 @@ describe('demo sample registry', () => {
       expect(dot, path.id).toBeGreaterThan(0)
       expect(trailLen, path.id).toBeGreaterThan((host.h ?? 0) * 0.5 + 32)
     }
+    const predPaths = agentPaths.filter(p => p.id.startsWith('vehicle-1-pred-'))
+    expect(predPaths.map(p => p.id)).toEqual([
+      'vehicle-1-pred-go',
+      'vehicle-1-pred-yield',
+      'vehicle-1-pred-cutin',
+    ])
+    expect(predPaths.every(p => p.followHostId === 'vehicle-1')).toBe(true)
+    expect(predPaths.map(p => p.style?.shapeKind)).toEqual(['lineto', 'lineto', 'quadto'])
+    expect(predPaths.every(p => (p.points?.length ?? 0) >= 2)).toBe(true)
     // All dynamic agents: heading arrow + speed.
     for (const id of [
       'vehicle-1',
@@ -446,8 +447,10 @@ describe('demo sample registry', () => {
     expect(lane.edges.find(e => e.id === 'succ-L1-L1n')?.style?.arrowTo).toBe(true)
     expect(lane.layers?.map(l => l.id)).toEqual(['ground', 'lanes', 'agents'])
 
-    const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
-    expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)
+    const agentDoc = parseDocument(getSample('adas-agent')!.document)
+    expect(agentDoc.nodes.find(n => n.id === 'vehicle-1')?.alarms?.[0]?.message).toBe('0.94')
+    expect(agentDoc.nodes.find(n => n.id === 'truck-1')?.data?.score).toBe(0.76)
+    expect(agentDoc.nodes.find(n => n.id === 'unclassified-1')?.alarms?.[0]?.level).toBe('error')
 
     const parking = parseDocument(getSample('adas-parking-slots')!.document)
     expect(parking.groups?.map(g => g.id).sort()).toEqual([

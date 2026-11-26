@@ -81,13 +81,11 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 
 | Sample | Path role |
 |---|---|
-| `adas-lane-lines` | Solid / dashed open lane markings |
-| `adas-lane-centerline` | Centerline paths (+ optional successor edges) |
-| `adas-road-boundary` | Left / right curb paths |
-| `adas-planning-path` | Ego plan trajectory (`cubicto`) |
-| `adas-prediction` | Multi-modal prediction strokes (dash / alpha) |
+| `adas-lane` | S-curve corridor (surfaces + CL + boundaries) |
+| `adas-ego` | Plan slot: cubicto Path with `followHostId: ego-plan` |
+| `adas-agent` | History trails + Vehicle Go/Yield/Cut-in prediction Paths (`followHostId`) |
 
-`adas-sensor-fov` stays reserved (sector / frustum — not Path). Stop/crosswalk and drivable-area keep Group AABB stand-ins (optional closed+fill Path later).
+`adas-sensor-fov` stays reserved (sector / frustum — not Path). Stop/crosswalk keeps a Group AABB stand-in (optional closed+fill Path later).
 
 ### Non-goals (still out of scope)
 
@@ -107,7 +105,7 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 
 ## Consequences
 
-- Authors model freestanding geometry without fake endpoint nodes; ADAS lane / boundary / planning / prediction demos load as Path documents; Elements catalog has a `path` showcase (`lineto` / `quadto` / `cubicto` / closed / locked).
+- Authors model freestanding geometry without fake endpoint nodes; ADAS lane / Ego plan / Agent history+prediction load as Path documents; Elements catalog has a `path` showcase (`lineto` / `quadto` / `cubicto` / closed / locked).
 - Unique-id checks span four element kinds; collisions fail loud at parse / apply.
 - Quad/cubic densify hit-testing remains approximate (same class as edge ShapeLink).
 - Paint order mistakes can hide lanes under fills or cover nodes — under-node ordering is pinned in ViewSet / Network.

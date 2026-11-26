@@ -69,7 +69,7 @@ describe('ADAS samples use theme palettes only', () => {
   })
 
   it('rebuilds ADAS documents when theme switches', () => {
-    const sample = getSample('adas-perception-boxes')
+    const sample = getSample('adas-agent')
     expect(sample).toBeDefined()
     setAdasTheme('nuboard')
     const nuboardStroke = sample!.document.nodes.find(n => n.id === 'ego')?.data?.stroke

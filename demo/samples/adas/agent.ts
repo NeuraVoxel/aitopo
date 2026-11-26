@@ -16,7 +16,8 @@ import { adasBox } from './shared.ts'
  * (中文：车辆 / 行人 / 骑行者 / 卡车 / 公交车 / 未分类).
  * Each moving agent shows heading arrow + speedMs, plus a history GraphPath
  * with `followHostId` pointing at that agent. Trails run opposite the heading
- * and end at the box center (past → present).
+ * and end at the box center (past → present). Vehicle also carries multi-modal
+ * prediction Paths (Go / Yield / Cut-in) on the same `followHostId`.
  *
  * Truck / Bus are demo subclasses of nuPlan VEHICLE (same agent paint, larger boxes).
  * Static objects live in the Static demo (`adas-static`).
@@ -53,6 +54,8 @@ interface DynamicSpec {
   readonly angle: number
   readonly angleAnchor: { readonly u: number; readonly v: number }
   readonly speedMs: number
+  /** Detection confidence in `[0, 1]` — shown as an Alarm tag. */
+  readonly confidence: number
 }
 
 const DYNAMIC_SPECS: readonly DynamicSpec[] = [
@@ -70,6 +73,7 @@ const DYNAMIC_SPECS: readonly DynamicSpec[] = [
     angle: 20,
     angleAnchor: REAR_AXLE,
     speedMs: 12,
+    confidence: 0.94,
   },
   {
     id: 'pedestrian-1',
@@ -85,6 +89,7 @@ const DYNAMIC_SPECS: readonly DynamicSpec[] = [
     angle: -35,
     angleAnchor: CENTER_PIVOT,
     speedMs: 1.4,
+    confidence: 0.88,
   },
   {
     id: 'bicycle-1',
@@ -100,6 +105,7 @@ const DYNAMIC_SPECS: readonly DynamicSpec[] = [
     angle: 45,
     angleAnchor: REAR_AXLE,
     speedMs: 5.5,
+    confidence: 0.81,
   },
   {
     id: 'truck-1',
@@ -115,6 +121,7 @@ const DYNAMIC_SPECS: readonly DynamicSpec[] = [
     angle: -15,
     angleAnchor: REAR_AXLE,
     speedMs: 8,
+    confidence: 0.76,
   },
   {
     id: 'bus-1',
@@ -130,6 +137,7 @@ const DYNAMIC_SPECS: readonly DynamicSpec[] = [
     angle: 10,
     angleAnchor: REAR_AXLE,
     speedMs: 6,
+    confidence: 0.91,
   },
   {
     id: 'unclassified-1',
@@ -145,8 +153,16 @@ const DYNAMIC_SPECS: readonly DynamicSpec[] = [
     angle: 70,
     angleAnchor: CENTER_PIVOT,
     speedMs: 2,
+    confidence: 0.62,
   },
 ]
+
+/** Map detection score → alarm level (high = info, mid = warn, low = error). */
+function confidenceAlarmLevel(score: number): 'info' | 'warn' | 'error' {
+  if (score >= 0.9) return 'info'
+  if (score >= 0.75) return 'warn'
+  return 'error'
+}
 
 /**
  * World forward unit for a node `angle` (degrees).
@@ -170,8 +186,10 @@ function historyLengthPx(speedMs: number, boxLengthPx: number): number {
 
 function dynamicNodes(): GraphNode[] {
   // English = label (below); Chinese = label2 (above).
+  // Detection confidence rides as an Alarm tag (ex–Perception boxes label2).
   return DYNAMIC_SPECS.map(spec => {
     const { w, h } = boxPx(spec.lengthM, spec.widthM)
+    const score = spec.confidence
     return adasBox({
       id: spec.id,
       type: spec.type,
@@ -186,12 +204,22 @@ function dynamicNodes(): GraphNode[] {
       angle: spec.angle,
       angleAnchor: { ...spec.angleAnchor },
       vectorImage: DEMO_HEADING_VECTOR_IMAGE,
+      alarms: [{
+        id: `${spec.id}-score`,
+        level: confidenceAlarmLevel(score),
+        message: score.toFixed(2),
+      }],
+      style: {
+        alarmVariant: 'tag',
+        alarmPosition: 'topRight',
+      },
       data: {
         trackedObjectType: spec.trackedObjectType,
         agentKind: 'dynamic',
         lengthM: spec.lengthM,
         widthM: spec.widthM,
         speedMs: spec.speedMs,
+        score,
         ...(spec.angleAnchor === REAR_AXLE ? { axle: 'rear' } : {}),
       },
     })
@@ -236,15 +264,86 @@ function historyPaths(): GraphPath[] {
   return DYNAMIC_SPECS.map(historyTrail)
 }
 
+/**
+ * Multi-modal prediction ahead of `vehicle-1` (ex–Prediction demo).
+ * All modes `followHostId` that vehicle so drag moves them together.
+ */
+function predictionPathsFor(spec: DynamicSpec): GraphPath[] {
+  const { w, h } = boxPx(spec.lengthM, spec.widthM)
+  const cx = spec.x + w / 2
+  const cy = spec.y + h / 2
+  const fwd = forwardUnit(spec.angle)
+  // Driver-right on y-down: opposite of history's rearward bias.
+  const right = { x: -fwd.y, y: fwd.x }
+  const along = (dist: number, lateral = 0): { x: number; y: number } => ({
+    x: cx + fwd.x * dist + right.x * lateral,
+    y: cy + fwd.y * dist + right.y * lateral,
+  })
+  return [
+    {
+      id: `${spec.id}-pred-go`,
+      label: 'Go',
+      followHostId: spec.id,
+      points: [along(0), along(80), along(160), along(260)],
+      style: {
+        stroke: ADAS_TRAJECTORY.expert,
+        lineWidth: 2,
+        alpha: 0.9,
+        shapeKind: 'lineto',
+      },
+      data: { kind: 'prediction', mode: 'go', confidence: 0.6, hostId: spec.id },
+    },
+    {
+      id: `${spec.id}-pred-yield`,
+      label: 'Yield',
+      followHostId: spec.id,
+      points: [along(0), along(70, -40), along(130, -80), along(180, -120)],
+      style: {
+        stroke: ADAS_AGENT.trafficCone.stroke,
+        lineWidth: 2,
+        alpha: 0.55,
+        strokeDash: [10, 8],
+        shapeKind: 'lineto',
+      },
+      data: { kind: 'prediction', mode: 'yield', confidence: 0.25, hostId: spec.id },
+    },
+    {
+      id: `${spec.id}-pred-cutin`,
+      label: 'Cut-in',
+      followHostId: spec.id,
+      // quadto: odd ≥ 3 — start + (control,end)*
+      points: [
+        along(0),
+        along(60, 50),
+        along(120, 80),
+        along(200, 90),
+        along(280, 70),
+      ],
+      style: {
+        stroke: ADAS_AGENT.generic.stroke,
+        lineWidth: 2,
+        alpha: 0.35,
+        strokeDash: [4, 6],
+        shapeKind: 'quadto',
+      },
+      data: { kind: 'prediction', mode: 'cut-in', confidence: 0.15, hostId: spec.id },
+    },
+  ]
+}
+
 /** Dynamic obstacle catalog + axle-frame ego. */
 export function buildAdasAgentDocument(): GraphDocument {
+  const vehicle = DYNAMIC_SPECS.find(s => s.id === 'vehicle-1')
+  if (vehicle === undefined) {
+    throw new Error('adas-agent: missing vehicle-1 spec')
+  }
   return {
     version: 1,
     meta: { title: 'ADAS agent', kind: 'custom', domain: 'adas' },
     nodes: [egoAxleFrameNode(), ...dynamicNodes()],
     edges: [],
     groups: [],
-    paths: historyPaths(),
+    paths: [...historyPaths(), ...predictionPathsFor(vehicle)],
   }
 }
 
@@ -253,7 +352,7 @@ export const adasAgentSample: DemoSample = {
   title: 'Agent',
   group: 'adas',
   description:
-    'Dynamic obstacles (Vehicle / Pedestrian / Bicycle / Truck / Bus / Unclassified) with heading + speed; each has a reverse-heading followHostId history trail to the box center. Static objects: see Static demo.',
+    'Dynamic obstacles with heading + speed, confidence Alarm tags, history trails, and multi-modal prediction Paths on Vehicle (followHostId). Static objects: see Static demo.',
   get document() {
     return buildAdasAgentDocument()
   },

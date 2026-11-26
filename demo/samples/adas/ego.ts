@@ -1,5 +1,5 @@
-import type { GraphDocument, GraphNode } from '../../../src/protocol/types.ts'
-import { ADAS_AGENT, ADAS_BRAND } from '../../lib/adas-theme.ts'
+import type { GraphDocument, GraphNode, GraphPath } from '../../../src/protocol/types.ts'
+import { ADAS_AGENT, ADAS_BRAND, ADAS_TRAJECTORY } from '../../lib/adas-theme.ts'
 import {
   DEMO_EGO_AXLE_FRAME_IMAGE,
   DEMO_EGO_CAR_BITMAP_IMAGE,
@@ -63,12 +63,50 @@ function egoBase(
   }
 }
 
+/** Cubicto plan ahead of `ego-plan` (follows that node on drag). */
+function planningPathFor(host: GraphNode): GraphPath {
+  const cx = (host.x ?? 0) + (host.w ?? EGO_W) / 2
+  const cy = (host.y ?? 0) + (host.h ?? EGO_H) / 2
+  return {
+    id: 'ego-plan-path',
+    label: 'Plan',
+    tooltip: 'Ego planned trajectory (cubicto); follows ego-plan',
+    followHostId: host.id,
+    // start + (c1,c2,end) + (c1,c2,end) → 7 points, heading −Y
+    points: [
+      { x: cx, y: cy },
+      { x: cx, y: cy - 60 },
+      { x: cx + 20, y: cy - 120 },
+      { x: cx + 50, y: cy - 160 },
+      { x: cx + 90, y: cy - 200 },
+      { x: cx + 110, y: cy - 250 },
+      { x: cx + 120, y: cy - 300 },
+    ],
+    style: {
+      stroke: ADAS_TRAJECTORY.ego,
+      lineWidth: 3,
+      shapeKind: 'cubicto',
+    },
+    data: { role: 'planning', hostId: host.id },
+  }
+}
+
 /**
- * Seven ego styles in row-major order (4 per row): base → +30° → longer
- * arrow → phase pulse → vector/bitmap car + border → rear-axle frame.
+ * Eight ego styles in row-major order (4 per row): base → +30° → longer
+ * arrow → phase pulse → vector/bitmap car → rear-axle frame → plan+follow path.
  * Colors follow nuPlan / nuBoard agent + trajectory palette.
  */
 export function buildAdasEgoDocument(): GraphDocument {
+  const planEgo = egoBase('ego-plan', 7, '8 · plan path', {
+    angleAnchor: { ...REAR_AXLE },
+    vectorImage: DEMO_EGO_AXLE_FRAME_IMAGE,
+    data: {
+      fill: egoPaint().fill,
+      stroke: egoPaint().stroke,
+      axle: 'rear',
+      speedMs: 14,
+    },
+  })
   return {
   version: 1,
   meta: {
@@ -146,9 +184,11 @@ export function buildAdasEgoDocument(): GraphDocument {
         speedMs: 16,
       },
     }),
+    planEgo,
   ],
   edges: [],
   groups: [],
+  paths: [planningPathFor(planEgo)],
   }
 }
 
@@ -157,7 +197,7 @@ export const adasEgoSample: DemoSample = {
   title: 'Ego',
   group: 'adas',
   description:
-    'Seven ego styles (nuPlan/nuBoard colors) in a 4-column grid: heading, vector/bitmap car+border, rear-axle x/y frame.',
+    'Eight ego styles in a 4-column grid: heading, vector/bitmap car, axle frame, plus plan cubicto Path that followHostIds the plan ego.',
   get document() {
     return buildAdasEgoDocument()
   },
