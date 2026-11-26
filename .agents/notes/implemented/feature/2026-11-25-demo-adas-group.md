@@ -18,6 +18,7 @@ The demo catalog adds group id `adas` (nav label **ADAS**), ordered after `eleme
 | `adas-agent` | yes | Dynamic obstacles + heading/speed + confidence Alarm tags + history trails + Vehicle multi-modal prediction Paths around axle-frame ego |
 | `adas-static` | yes | Static objects (CZone sign / Barrier / Traffic cone / Unclassified) around axle-frame ego |
 | `adas-lane` | yes | S-curve corridor on layers `ground` / `lanes` / `agents`: L0/L1/L2 offset ribbons + CL/boundaries, ego on L1 with heading, successor stub, speed-limit tags (merge stub removed) |
+| `adas-map` | yes | Catalog title **Map**: same crossroads SD|HD side-by-side — SD centerlines + junction; HD lanes, connectors, stop lines, signals ([2026-11-26-adas-map-sd-hd.md](2026-11-26-adas-map-sd-hd.md)) |
 | `adas-occupancy-bev` | yes | Catalog title **OCC**: dense 80×50 occupancy GraphNode grid (4k cells, `shadow: null`, paint stress) + axle-frame Ego (ordered under Lane) |
 | `adas-fov` | yes | Catalog title **FOV**: camera / radar / lidar wedges as closed GraphShapeNode sectors ([2026-11-26-adas-fov-shapenode.md](2026-11-26-adas-fov-shapenode.md)) |
 | `adas-sensor` | yes | Catalog title **Sensor**: six OEM packages side-by-side (Tesla / XPeng / IM / Huawei / Xiaomi / Waymo) — mounts + faint FOV wedges ([2026-11-26-adas-sensor-oem-schemes.md](2026-11-26-adas-sensor-oem-schemes.md)) |
@@ -34,6 +35,6 @@ Files live under `demo/samples/adas/` (`index.ts` owns catalog order). No invisi
 
 ## Consequences
 
-- Seven loadable ADAS rows (no reserved stubs); `adas-lane` is the S-curve consolidated catalog. Thin lane / drivable-area / perception-boxes / VRU / planning-path / prediction rows removed; plan Path lives on Ego, multi-modal prediction + confidence/VRU classes live on Agent.
+- Eight loadable ADAS rows (no reserved stubs); `adas-lane` is the S-curve consolidated catalog. Thin lane / drivable-area / perception-boxes / VRU / planning-path / prediction rows removed; plan Path lives on Ego, multi-modal prediction + confidence/VRU classes live on Agent.
 - Lane / Ego plan / Agent history+prediction use top-level `paths: GraphPath[]`.
 - Theme tokens, Foxglove opt-in, and the hex gate are owned by [2026-11-26-adas-foxglove-theme.md](2026-11-26-adas-foxglove-theme.md).

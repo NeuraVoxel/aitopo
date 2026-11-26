@@ -29,5 +29,5 @@ One document, **six axle-frame egos** in a 3×2 grid. Each car carries mount mar
 
 ## Consequences
 
-- ADAS loadable set is seven rows (ego → … → FOV → Sensor).
+- ADAS Sensor row sits after FOV in the eight-row ADAS catalog (see [demo-adas-group](2026-11-25-demo-adas-group.md)).
 - Sensor counts / positions may lag real OEM revisions; descriptions must keep the schematic disclaimer.

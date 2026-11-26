@@ -29,5 +29,5 @@ ADAS 已有通用 FOV 楔形（`adas-fov`），但没有把主流方案的传感
 
 ## Consequences
 
-- ADAS 可加载集合为七行（ego → … → FOV → Sensor）。
+- ADAS Sensor 行排在 FOV 之后；完整八行目录见 [demo-adas-group](2026-11-25-demo-adas-group.md)。
 - 传感器数量/位置可能落后真实 OEM 改版；描述须保留示意免责声明。

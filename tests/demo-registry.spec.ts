@@ -235,6 +235,7 @@ describe('demo sample registry', () => {
       'adas-agent',
       'adas-static',
       'adas-lane',
+      'adas-map',
       'adas-occupancy-bev',
       'adas-fov',
       'adas-sensor',
@@ -454,6 +455,20 @@ describe('demo sample registry', () => {
     expect(occEgo?.vectorImage).toBe('demo-ego-axle-frame')
     expect(occEgo?.data?.axle).toBe('rear')
     expect(occEgo?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
+
+    expect(getSample('adas-map')!.title).toBe('Map')
+    const map = parseDocument(getSample('adas-map')!.document)
+    expect(map.nodes.some(n => n.id === 'sd-junction')).toBe(true)
+    expect(map.nodes.some(n => n.id === 'sd-ego')).toBe(true)
+    expect(map.nodes.some(n => n.id === 'hd-ego')).toBe(true)
+    expect((map.paths?.length ?? 0) >= 4).toBe(true)
+    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_lane')).toBe(true)
+    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_stop_line')).toBe(true)
+    expect(map.edges.filter(e => e.kind === 'successor').map(e => e.id).sort()).toEqual([
+      'hd-succ-e-w',
+      'hd-succ-s-n',
+    ])
+    expect(map.nodes.filter(n => n.data?.role === 'hd_signal')).toHaveLength(3)
 
     expect(getSample('adas-fov')!.title).toBe('FOV')
     const fov = parseDocument(getSample('adas-fov')!.document)

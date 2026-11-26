@@ -84,7 +84,7 @@ describe('ADAS samples use theme palettes only', () => {
 
   it('keeps every ADAS loadable sample document parseable under all themes', () => {
     const samples = listSamples().filter(s => s.group === 'adas' && s.reserved !== true)
-    expect(samples.length).toBe(7)
+    expect(samples.length).toBe(8)
     for (const theme of ADAS_THEME_OPTIONS.map(option => option.id)) {
       setAdasTheme(theme)
       for (const sample of samples) {

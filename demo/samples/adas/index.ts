@@ -1,6 +1,7 @@
 import { adasAgentSample } from './agent.ts'
 import { adasEgoSample } from './ego.ts'
 import { adasFovSample } from './fov.ts'
+import { adasMapSample } from './map.ts'
 import { adasSensorSample } from './sensor.ts'
 import { adasStaticSample } from './static.ts'
 import { adasLaneSample } from './lane.ts'
@@ -12,6 +13,7 @@ const byId = new Map<string, DemoSample>([
   [adasAgentSample.id, adasAgentSample],
   [adasStaticSample.id, adasStaticSample],
   [adasLaneSample.id, adasLaneSample],
+  [adasMapSample.id, adasMapSample],
   [adasOccupancyBevSample.id, adasOccupancyBevSample],
   [adasFovSample.id, adasFovSample],
   [adasSensorSample.id, adasSensorSample],
@@ -23,6 +25,7 @@ const ADAS_ORDER: readonly string[] = [
   'adas-agent',
   'adas-static',
   'adas-lane',
+  'adas-map',
   'adas-occupancy-bev',
   'adas-fov',
   'adas-sensor',
