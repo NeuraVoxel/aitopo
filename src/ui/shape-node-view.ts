@@ -3,13 +3,22 @@
  */
 
 import {
+  anglePivot,
   distanceToPolyline,
   growRect,
+  inverseRotatePointAround,
+  normalizeAngleDegrees,
+  rotatedAabbOfRectAbout,
   type Point,
   type Rect,
   unionRect,
 } from '../geom.ts'
-import type { GraphChromeStyle, GraphShapeNode, GraphTextStyle } from '../protocol/types.ts'
+import type {
+  GraphAngleAnchor,
+  GraphChromeStyle,
+  GraphShapeNode,
+  GraphTextStyle,
+} from '../protocol/types.ts'
 import type { PathPaintView } from '../render/canvas2d.ts'
 import { samplePolylineAt } from './attachment/path.ts'
 import {
@@ -39,7 +48,14 @@ export class ShapeNodeView {
   readonly id: string
   private dirty = true
   private pointsCache: readonly Point[] = []
+  /** Rotated AABB of {@link originalBounds} (dirty / cull); equals it when angle ≡ 0. */
   private shapeBounds: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Unrotated padded polyline ∪ label AABB. */
+  private originalBounds: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Unrotated densified polyline AABB (no pad / label); pivot reference. */
+  private pointsBox: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  private angleDeg = 0
+  private angleAnchorCache: GraphAngleAnchor | undefined
   private closed = true
   private alphaCache = 1
   private strokeCache = DEFAULT_STROKE
@@ -67,6 +83,26 @@ export class ShapeNodeView {
   /** Densified polyline AABB (+ pad, label) for dirty-rect / hit culling. */
   get bounds(): Rect {
     return this.shapeBounds
+  }
+
+  /** Unrotated padded polyline ∪ label AABB. */
+  get originalAabb(): Rect {
+    return this.originalBounds
+  }
+
+  /** Normalized rotation degrees (`0` when omitted). */
+  get angle(): number {
+    return this.angleDeg
+  }
+
+  /** Authored relative pivot; undefined ≡ center. */
+  get angleAnchor(): GraphAngleAnchor | undefined {
+    return this.angleAnchorCache
+  }
+
+  /** World rotation pivot inside the original densified polyline AABB. */
+  get pivot(): Point {
+    return anglePivot(this.pointsBox, this.angleAnchorCache)
   }
 
   /** Validated densified polyline (paint + hit). */
@@ -135,10 +171,10 @@ export class ShapeNodeView {
       SHAPE_BOUNDS_PAD,
       (shapeNode.style?.lineWidth ?? DEFAULT_LINE_WIDTH) / 2 + 2,
     )
-    this.shapeBounds = growRect(
-      box ?? { x: 0, y: 0, width: 0, height: 0 },
-      pad,
-    )
+    this.pointsBox = box ?? { x: 0, y: 0, width: 0, height: 0 }
+    this.angleDeg = normalizeAngleDegrees(shapeNode.angle ?? 0)
+    this.angleAnchorCache = shapeNode.angleAnchor
+    this.shapeBounds = growRect(this.pointsBox, pad)
     this.alphaCache = clampAlpha(shapeNode.style?.alpha)
     this.strokeCache = shapeNode.style?.stroke ?? DEFAULT_STROKE
     this.fillCache = shapeNode.style?.fill
@@ -147,6 +183,7 @@ export class ShapeNodeView {
     this.selectStyle = shapeNode.style?.select
     this.hoverStyle = shapeNode.style?.hover
     this.syncLabel(shapeNode.label, shapeNode.style?.label)
+    this.finalizeAngle()
     this.dirty = false
   }
 
@@ -159,6 +196,10 @@ export class ShapeNodeView {
     if (shapeNode === undefined) {
       this.pointsCache = []
       this.shapeBounds = { x: 0, y: 0, width: 0, height: 0 }
+      this.originalBounds = this.shapeBounds
+      this.pointsBox = this.shapeBounds
+      this.angleDeg = 0
+      this.angleAnchorCache = undefined
       this.labelCache = undefined
       this.labelCenter = undefined
       this.dirty = false
@@ -172,7 +213,11 @@ export class ShapeNodeView {
    */
   hit(worldX: number, worldY: number, threshold: number): boolean {
     if (this.pointsCache.length < 2) return false
-    const point = { x: worldX, y: worldY }
+    // Authored points stay unrotated; map the pointer into that frame.
+    const world = { x: worldX, y: worldY }
+    const point = this.angleDeg === 0
+      ? world
+      : inverseRotatePointAround(world, this.pivot, this.angleDeg)
     if (distanceToPolyline(point, this.pointsCache) <= threshold) return true
     if (this.closed && this.fillCache !== undefined && this.fillCache.length > 0) {
       return pointInPolygon(point, this.pointsCache)
@@ -206,6 +251,13 @@ export class ShapeNodeView {
       bounds: this.shapeBounds,
       selected,
       hovered,
+      ...(this.angleDeg !== 0
+        ? {
+          angle: this.angleDeg,
+          ...(this.angleAnchorCache !== undefined ? { angleAnchor: this.angleAnchorCache } : {}),
+          anglePivot: this.pivot,
+        }
+        : {}),
       closed: this.closed,
       alpha: this.alphaCache,
       stroke: resolvedStroke,
@@ -229,6 +281,12 @@ export class ShapeNodeView {
       ...(this.selectStyle !== undefined ? { selectStyle: this.selectStyle } : {}),
       ...(this.hoverStyle !== undefined ? { hoverStyle: this.hoverStyle } : {}),
     }
+  }
+
+  /** Split original vs rotated bounds once label union is known. */
+  private finalizeAngle(): void {
+    this.originalBounds = this.shapeBounds
+    this.shapeBounds = rotatedAabbOfRectAbout(this.originalBounds, this.pivot, this.angleDeg)
   }
 
   /**

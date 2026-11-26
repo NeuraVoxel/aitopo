@@ -8,8 +8,10 @@ import type {
   GraphEdge,
   GraphGroup,
   GraphNode,
+  GraphPath,
   GraphPatch,
   GraphPatchOp,
+  GraphShapeNode,
   GraphTextStyle,
 } from '../../src/index.ts'
 
@@ -17,6 +19,8 @@ export type PropTarget =
   | { kind: 'node'; element: GraphNode }
   | { kind: 'edge'; element: GraphEdge }
   | { kind: 'group'; element: GraphGroup }
+  | { kind: 'path'; element: GraphPath }
+  | { kind: 'shapeNode'; element: GraphShapeNode }
 
 export interface PropertyFields {
   label?: string
@@ -24,6 +28,12 @@ export interface PropertyFields {
   y?: number
   w?: number
   h?: number
+  /** Degrees; omitted ≡ 0 on element. */
+  angle?: number
+  /** Relative pivot u in `[0, 1]`. */
+  angleAnchorU?: number
+  /** Relative pivot v in `[0, 1]`. */
+  angleAnchorV?: number
   type?: string
   kind?: string
   expanded?: boolean
@@ -56,9 +66,11 @@ export const LABEL_POSITIONS = [
 type NodeUpdate = Extract<GraphPatchOp, { op: 'updateNode' }>['patch']
 type EdgeUpdate = Extract<GraphPatchOp, { op: 'updateEdge' }>['patch']
 type GroupUpdate = Extract<GraphPatchOp, { op: 'updateGroup' }>['patch']
+type PathUpdate = Extract<GraphPatchOp, { op: 'updatePath' }>['patch']
+type ShapeNodeUpdate = Extract<GraphPatchOp, { op: 'updateShapeNode' }>['patch']
 
 /**
- * Build one `updateNode` / `updateEdge` / `updateGroup` op from changed fields.
+ * Build one update op from changed fields.
  * @param target - selected element and its kind.
  * @param fields - subset to write; omitted keys are left unchanged.
  * @returns GraphPatch with a single update op.
@@ -82,6 +94,22 @@ export function buildPropertyPatch(target: PropTarget, fields: PropertyFields): 
       return {
         ops: [{ op: 'updateGroup', id: target.element.id, patch: groupPatch(target.element, fields) }],
       }
+    case 'path':
+      return {
+        ops: [{
+          op: 'updatePath',
+          id: target.element.id,
+          patch: pathPatch(target.element, fields),
+        }],
+      }
+    case 'shapeNode':
+      return {
+        ops: [{
+          op: 'updateShapeNode',
+          id: target.element.id,
+          patch: shapeNodePatch(target.element, fields),
+        }],
+      }
     default: {
       const _e: never = target
       throw new Error(`unhandled PropTarget: ${JSON.stringify(_e)}`)
@@ -92,6 +120,7 @@ export function buildPropertyPatch(target: PropTarget, fields: PropertyFields): 
 function nodePatch(element: GraphNode, fields: PropertyFields): NodeUpdate {
   const patch: Record<string, unknown> = {}
   assignCommonGeometry(patch, fields)
+  assignAngleFields(patch, fields, element.angleAnchor)
   if (fields.label !== undefined) patch.label = fields.label
   if (fields.type !== undefined) patch.type = fields.type
   const label = mergeLabelText(element.style?.label, fields)
@@ -122,6 +151,7 @@ function edgePatch(element: GraphEdge, fields: PropertyFields): EdgeUpdate {
 function groupPatch(element: GraphGroup, fields: PropertyFields): GroupUpdate {
   const patch: Record<string, unknown> = {}
   assignCommonGeometry(patch, fields)
+  assignAngleFields(patch, fields, element.angleAnchor)
   if (fields.label !== undefined) patch.label = fields.label
   if (fields.expanded !== undefined) patch.expanded = fields.expanded
   const label = mergeLabelText(element.style?.label, fields)
@@ -138,11 +168,54 @@ function groupPatch(element: GraphGroup, fields: PropertyFields): GroupUpdate {
   return patch as GroupUpdate
 }
 
+function pathPatch(element: GraphPath, fields: PropertyFields): PathUpdate {
+  const patch: Record<string, unknown> = {}
+  assignAngleFields(patch, fields, element.angleAnchor)
+  if (fields.label !== undefined) patch.label = fields.label
+  const label = mergeLabelText(element.style?.label, fields)
+  const style: Record<string, unknown> = {}
+  if (fields.fill !== undefined) style.fill = fields.fill
+  if (fields.stroke !== undefined) style.stroke = fields.stroke
+  if (fields.strokeWidth !== undefined) style.lineWidth = fields.strokeWidth
+  if (label !== undefined) style.label = label
+  if (Object.keys(style).length > 0) patch.style = style
+  if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
+  return patch as PathUpdate
+}
+
+function shapeNodePatch(element: GraphShapeNode, fields: PropertyFields): ShapeNodeUpdate {
+  const patch: Record<string, unknown> = {}
+  assignAngleFields(patch, fields, element.angleAnchor)
+  if (fields.label !== undefined) patch.label = fields.label
+  const label = mergeLabelText(element.style?.label, fields)
+  const style: Record<string, unknown> = {}
+  if (fields.fill !== undefined) style.fill = fields.fill
+  if (fields.stroke !== undefined) style.stroke = fields.stroke
+  if (fields.strokeWidth !== undefined) style.lineWidth = fields.strokeWidth
+  if (label !== undefined) style.label = label
+  if (Object.keys(style).length > 0) patch.style = style
+  if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
+  return patch as ShapeNodeUpdate
+}
+
 function assignCommonGeometry(patch: Record<string, unknown>, fields: PropertyFields): void {
   if (fields.x !== undefined) patch.x = fields.x
   if (fields.y !== undefined) patch.y = fields.y
   if (fields.w !== undefined) patch.w = fields.w
   if (fields.h !== undefined) patch.h = fields.h
+}
+
+function assignAngleFields(
+  patch: Record<string, unknown>,
+  fields: PropertyFields,
+  currentAnchor: { readonly u: number; readonly v: number } | undefined,
+): void {
+  if (fields.angle !== undefined) patch.angle = fields.angle
+  if (fields.angleAnchorU === undefined && fields.angleAnchorV === undefined) return
+  patch.angleAnchor = {
+    u: fields.angleAnchorU ?? currentAnchor?.u ?? 0.5,
+    v: fields.angleAnchorV ?? currentAnchor?.v ?? 0.5,
+  }
 }
 
 function mergeLabelText(

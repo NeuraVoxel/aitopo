@@ -1,12 +1,12 @@
-import type { GraphDocument } from '../../src/protocol/types.ts'
-import type { DemoSample } from './types.ts'
+import type { GraphDocument } from '../../../src/protocol/types.ts'
+import type { DemoSample } from '../types.ts'
 
 export const helloWorldDocument: GraphDocument = {
   version: 1,
   meta: { title: 'Hello world', kind: 'custom' },
   nodes: [
-    { id: 'a', type: 'agent', label: 'From', x: 80, y: 0,  },
-    { id: 'b', type: 'agent', label: 'To', x: 280, y: 120, },
+    { id: 'a', type: 'agent', label: 'From', x: 80, y: 0 },
+    { id: 'b', type: 'agent', label: 'To', x: 280, y: 120 },
   ],
   edges: [{ id: 'e1', from: 'a', to: 'b', label: 'link' }],
   groups: [],
@@ -15,7 +15,7 @@ export const helloWorldDocument: GraphDocument = {
 export const helloWorldSample: DemoSample = {
   id: 'hello-world',
   title: 'Hello',
-  group: 'started',
+  group: 'elements',
   description: 'Two nodes and one edge.',
   document: helloWorldDocument,
 }

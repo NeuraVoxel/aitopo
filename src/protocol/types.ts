@@ -127,6 +127,15 @@ export interface GraphNodeStyle {
   readonly shadow?: GraphShadowStyle
 }
 
+/**
+ * Relative rotation pivot inside originalBounds (`u`/`v` in `[0, 1]`).
+ * Omitted on elements ≡ `{ u: 0.5, v: 0.5 }` (center).
+ */
+export interface GraphAngleAnchor {
+  readonly u: number
+  readonly v: number
+}
+
 /** One node in a graph document. */
 export interface GraphNode {
   readonly id: string
@@ -151,6 +160,13 @@ export interface GraphNode {
    * Change at runtime with `updateNode` `{ h }` or resize interactions.
    */
   readonly h?: number
+  /**
+   * Body rotation in degrees about {@link angleAnchor}. Omitted ≡ `0`.
+   * Writers normalize into `[0, 360)`.
+   */
+  readonly angle?: number
+  /** Relative pivot in original body bounds. Omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
   readonly parentId?: string
   readonly groupId?: string
   /** Child SubNetwork id keyed in the **current** document's `networks` (stack may nest). */
@@ -493,6 +509,10 @@ export interface GraphPath {
   readonly label?: string
   readonly tooltip?: string
   readonly locked?: boolean
+  /** Rotation degrees about {@link angleAnchor}. Omitted ≡ `0`. */
+  readonly angle?: number
+  /** Relative pivot in original path AABB. Omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
   readonly style?: GraphPathStyle
   readonly data?: Readonly<Record<string, unknown>>
 }
@@ -534,6 +554,10 @@ export interface GraphShapeNode {
   readonly label2?: string
   readonly tooltip?: string
   readonly locked?: boolean
+  /** Rotation degrees about {@link angleAnchor}. Omitted ≡ `0`. */
+  readonly angle?: number
+  /** Relative pivot in original shape AABB. Omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
   /** Group membership (dual bookkeeping with `GraphGroup.memberIds`). */
   readonly groupId?: string
   readonly alarms?: readonly Alarm[]
@@ -578,6 +602,10 @@ export interface GraphGroup {
    * Expand/collapse gestures do not overwrite this; set via document or `updateGroup` `{ h }`.
    */
   readonly h?: number
+  /** Band rotation degrees about {@link angleAnchor}. Omitted ≡ `0`. */
+  readonly angle?: number
+  /** Relative pivot in original band bounds. Omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
   /** When true, move and expand-toggle edits skip this group. */
   readonly locked?: boolean
   /**

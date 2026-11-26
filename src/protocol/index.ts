@@ -14,6 +14,7 @@ export type {
   EdgeLoopedType,
   EdgeRoute,
   EdgeShapeKind,
+  GraphAngleAnchor,
   GraphChromeStyle,
   GraphDocument,
   GraphEdge,

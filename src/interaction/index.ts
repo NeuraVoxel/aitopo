@@ -47,5 +47,6 @@ export {
 export { MovePathVertexInteraction } from './move-path-vertex.ts'
 export { MoveShapeNodeVertexInteraction } from './move-shape-node-vertex.ts'
 export { ResizeNodeInteraction } from './resize-node.ts'
+export { RotateElementInteraction } from './rotate-element.ts'
 export { PanZoomInteraction } from './pan-zoom.ts'
 export { SelectActivateInteraction } from './select-activate.ts'

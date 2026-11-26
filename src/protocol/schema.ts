@@ -71,6 +71,11 @@ const graphNodeStyleSchema = z.object({
   shadow: graphShadowStyleSchema.optional(),
 })
 
+const graphAngleAnchorSchema = z.object({
+  u: z.number(),
+  v: z.number(),
+})
+
 const graphNodeSchema = z.object({
   id: z.string().min(1),
   type: z.string().min(1),
@@ -83,6 +88,8 @@ const graphNodeSchema = z.object({
   y: z.number().optional(),
   w: z.number().positive().optional(),
   h: z.number().positive().optional(),
+  angle: z.number().optional(),
+  angleAnchor: graphAngleAnchorSchema.optional(),
   parentId: z.string().optional(),
   groupId: z.string().optional(),
   networkId: z.string().optional(),
@@ -272,6 +279,8 @@ const graphGroupSchema = z.object({
   y: z.number().optional(),
   w: z.number().positive().optional(),
   h: z.number().positive().optional(),
+  angle: z.number().optional(),
+  angleAnchor: graphAngleAnchorSchema.optional(),
   locked: z.boolean().optional(),
   icon: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
@@ -301,6 +310,8 @@ const graphPathObjectSchema = z.object({
   label: z.string().optional(),
   tooltip: z.string().optional(),
   locked: z.boolean().optional(),
+  angle: z.number().optional(),
+  angleAnchor: graphAngleAnchorSchema.optional(),
   style: graphPathStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })
@@ -373,6 +384,8 @@ const graphShapeNodeObjectSchema = z.object({
   label2: z.string().optional(),
   tooltip: z.string().optional(),
   locked: z.boolean().optional(),
+  angle: z.number().optional(),
+  angleAnchor: graphAngleAnchorSchema.optional(),
   groupId: z.string().optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphShapeNodeStyleSchema.optional(),

@@ -40,9 +40,8 @@ Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when h
 
 Registry-driven entries (`id`, title, group, description, document or factory, optional `defaultLayout`).
 
-1. **Getting started** — `hello-world` (default): two nodes, one edge, explicit coordinates (no layout).
-2. **Elements** — one page each: Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork.
-3. **Business (soon)** — placeholders such as `dsh-event-topo` (disabled; click shows reserved message only).
+1. **Elements** — `hello-world` (default: two nodes, one edge), then one page each: Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork. There is no separate Started group.
+2. **Business (soon)** — placeholders such as `dsh-event-topo` (disabled; click shows reserved message only).
 
 Fleet / Flow / Teams / Editor are not primary toolbar entries. `fixtures/*.json` remain for engine tests.
 
@@ -56,7 +55,7 @@ Single selection only. Editable via `updateNode` / `updateEdge` / `updateGroup` 
 demo/
   main.tsx, App.tsx, index.html, vite.config.ts, styles.css
   components/ SampleNav, Toolbar, PropertyPanel, StatusBar, CanvasHost
-  samples/ registry + hello-world + elements/* + business/placeholders
+  samples/ registry + elements/* (incl. hello-world) + business/placeholders
   hooks/useNetworkDemo.ts
   lib/interactions.ts, property-patch.ts, subnetwork-session.ts
   tsconfig.json

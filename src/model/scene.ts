@@ -309,6 +309,40 @@ export class GraphScene {
     this.syncActiveFromMaps()
   }
 
+  /**
+   * Replace element angle (live rotate preview). Degrees; writers normalize.
+   * @param kind - rotatable element kind.
+   * @param id - element id.
+   * @param angle - degrees.
+   */
+  writeElementAngle(
+    kind: 'node' | 'group' | 'path' | 'shapeNode',
+    id: string,
+    angle: number,
+  ): void {
+    const normalized = ((angle % 360) + 360) % 360
+    if (kind === 'node') {
+      const node = this.nodeMap.get(id)
+      if (node === undefined) return
+      this.nodeMap.set(id, { ...node, angle: normalized })
+    } else if (kind === 'group') {
+      const group = this.groupMap.get(id)
+      if (group === undefined) return
+      this.groupMap.set(id, { ...group, angle: normalized })
+    } else if (kind === 'path') {
+      const path = this.pathMap.get(id)
+      if (path === undefined) return
+      this.pathMap.set(id, { ...path, angle: normalized })
+    } else {
+      const shapeNode = this.shapeNodeMap.get(id)
+      if (shapeNode === undefined) return
+      this.shapeNodeMap.set(id, { ...shapeNode, angle: normalized })
+    }
+    this.markDirty(id)
+    this.sceneVersion += 1
+    this.syncActiveFromMaps()
+  }
+
   setSelection(ids: readonly string[]): void {
     this.selection = new Set(ids)
   }

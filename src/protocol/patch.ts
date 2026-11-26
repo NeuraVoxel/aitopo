@@ -2,10 +2,12 @@
  * Immutable GraphPatch application on GraphDocument.
  */
 
+import { normalizeAngleDegrees, resolveAngleAnchor } from '../geom.ts'
 import { assertGroupParentAcyclic } from './parse.ts'
 import { graphPatchSchema, type GraphPatch, type GraphPatchOp } from './schema.ts'
 import type {
   Alarm,
+  GraphAngleAnchor,
   GraphDocument,
   GraphEdge,
   GraphEdgeStyle,
@@ -18,6 +20,17 @@ import type {
   GraphShapeNode,
   GraphShapeNodeStyle,
 } from './types.ts'
+
+function asAngle(raw: number | undefined): number | undefined {
+  return raw === undefined ? undefined : normalizeAngleDegrees(raw)
+}
+
+function asAngleAnchor(
+  raw: { readonly u?: number; readonly v?: number } | undefined,
+): GraphAngleAnchor | undefined {
+  if (raw === undefined) return undefined
+  return resolveAngleAnchor(raw)
+}
 
 export type { GraphPatch, GraphPatchOp }
 
@@ -301,6 +314,8 @@ function asNode(raw: {
   y?: number | undefined
   w?: number | undefined
   h?: number | undefined
+  angle?: number | undefined
+  angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   parentId?: string | undefined
   groupId?: string | undefined
   networkId?: string | undefined
@@ -324,6 +339,8 @@ function asNode(raw: {
     y: raw.y,
     w: raw.w,
     h: raw.h,
+    angle: asAngle(raw.angle),
+    angleAnchor: asAngleAnchor(raw.angleAnchor),
     parentId: raw.parentId,
     groupId: raw.groupId,
     networkId: raw.networkId,
@@ -347,6 +364,8 @@ function mergeNode(
     y?: number | undefined
     w?: number | undefined
     h?: number | undefined
+    angle?: number | undefined
+    angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     parentId?: string | undefined
     groupId?: string | null | undefined
     networkId?: string | undefined
@@ -378,6 +397,10 @@ function mergeNode(
     y: patch.y ?? current.y,
     w: patch.w ?? current.w,
     h: patch.h ?? current.h,
+    angle: asAngle(patch.angle !== undefined ? patch.angle : current.angle),
+    angleAnchor: asAngleAnchor(
+      patch.angleAnchor !== undefined ? patch.angleAnchor : current.angleAnchor,
+    ),
     parentId: patch.parentId ?? current.parentId,
     groupId,
     networkId: patch.networkId ?? current.networkId,
@@ -414,6 +437,8 @@ function applyOptionalNode(
     y?: number | undefined
     w?: number | undefined
     h?: number | undefined
+    angle?: number | undefined
+    angleAnchor?: GraphAngleAnchor | undefined
     parentId?: string | undefined
     groupId?: string | undefined
     networkId?: string | undefined
@@ -438,6 +463,8 @@ function applyOptionalNode(
     ...(raw.y !== undefined ? { y: raw.y } : {}),
     ...(raw.w !== undefined ? { w: raw.w } : {}),
     ...(raw.h !== undefined ? { h: raw.h } : {}),
+    ...(raw.angle !== undefined ? { angle: raw.angle } : {}),
+    ...(raw.angleAnchor !== undefined ? { angleAnchor: raw.angleAnchor } : {}),
     ...(raw.parentId !== undefined ? { parentId: raw.parentId } : {}),
     ...(raw.groupId !== undefined ? { groupId: raw.groupId } : {}),
     ...(raw.networkId !== undefined ? { networkId: raw.networkId } : {}),
@@ -589,6 +616,8 @@ function asGroup(raw: {
   y?: number | undefined
   w?: number | undefined
   h?: number | undefined
+  angle?: number | undefined
+  angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   locked?: boolean | undefined
   icon?: string | undefined
   alarms?: Array<{
@@ -600,6 +629,8 @@ function asGroup(raw: {
   style?: GraphGroupStyle | undefined
   data?: Readonly<Record<string, unknown>> | undefined
 }): GraphGroup {
+  const angle = asAngle(raw.angle)
+  const angleAnchor = asAngleAnchor(raw.angleAnchor)
   return {
     id: raw.id,
     label: raw.label,
@@ -612,6 +643,8 @@ function asGroup(raw: {
     ...(raw.y !== undefined ? { y: raw.y } : {}),
     ...(raw.w !== undefined ? { w: raw.w } : {}),
     ...(raw.h !== undefined ? { h: raw.h } : {}),
+    ...(angle !== undefined ? { angle } : {}),
+    ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
     ...(raw.icon !== undefined ? { icon: raw.icon } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
@@ -633,6 +666,8 @@ function mergeGroup(
     y?: number | undefined
     w?: number | undefined
     h?: number | undefined
+    angle?: number | undefined
+    angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     locked?: boolean | undefined
     icon?: string | undefined
     alarms?: Array<{
@@ -657,6 +692,10 @@ function mergeGroup(
     y: patch.y ?? current.y,
     w: patch.w ?? current.w,
     h: patch.h ?? current.h,
+    angle: patch.angle !== undefined ? patch.angle : current.angle,
+    angleAnchor: patch.angleAnchor !== undefined
+      ? patch.angleAnchor
+      : current.angleAnchor,
     locked: patch.locked ?? current.locked,
     icon: patch.icon ?? current.icon,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
@@ -692,9 +731,13 @@ function asPath(raw: {
   label?: string | undefined
   tooltip?: string | undefined
   locked?: boolean | undefined
+  angle?: number | undefined
+  angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   style?: GraphPathStyle | undefined
   data?: Readonly<Record<string, unknown>> | undefined
 }): GraphPath {
+  const angle = asAngle(raw.angle)
+  const angleAnchor = asAngleAnchor(raw.angleAnchor)
   return {
     id: raw.id,
     points: raw.points.map(p => ({ x: p.x, y: p.y })),
@@ -702,6 +745,8 @@ function asPath(raw: {
     ...(raw.label !== undefined ? { label: raw.label } : {}),
     ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(angle !== undefined ? { angle } : {}),
+    ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.style !== undefined ? { style: asPathStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
@@ -715,6 +760,8 @@ function mergePath(
     label?: string | undefined
     tooltip?: string | undefined
     locked?: boolean | undefined
+    angle?: number | undefined
+    angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     style?: GraphPathStyle | undefined
     data?: Readonly<Record<string, unknown>> | undefined
   },
@@ -728,6 +775,10 @@ function mergePath(
     label: patch.label ?? current.label,
     tooltip: patch.tooltip ?? current.tooltip,
     locked: patch.locked ?? current.locked,
+    angle: patch.angle !== undefined ? patch.angle : current.angle,
+    angleAnchor: patch.angleAnchor !== undefined
+      ? patch.angleAnchor
+      : current.angleAnchor,
     style: patch.style !== undefined
       ? mergePathStyle(current.style, asPathStyle(patch.style))
       : current.style,
@@ -756,6 +807,8 @@ function asShapeNode(raw: {
   label2?: string | undefined
   tooltip?: string | undefined
   locked?: boolean | undefined
+  angle?: number | undefined
+  angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   groupId?: string | undefined
   alarms?: Array<{
     id: string
@@ -766,6 +819,8 @@ function asShapeNode(raw: {
   style?: GraphShapeNodeStyle | undefined
   data?: Readonly<Record<string, unknown>> | undefined
 }): GraphShapeNode {
+  const angle = asAngle(raw.angle)
+  const angleAnchor = asAngleAnchor(raw.angleAnchor)
   return {
     id: raw.id,
     points: raw.points.map(p => ({ x: p.x, y: p.y })),
@@ -774,6 +829,8 @@ function asShapeNode(raw: {
     ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
     ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(angle !== undefined ? { angle } : {}),
+    ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.groupId !== undefined ? { groupId: raw.groupId } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asShapeNodeStyle(raw.style) } : {}),
@@ -790,6 +847,8 @@ function mergeShapeNode(
     label2?: string | undefined
     tooltip?: string | undefined
     locked?: boolean | undefined
+    angle?: number | undefined
+    angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     groupId?: string | undefined
     alarms?: Array<{
       id: string
@@ -811,6 +870,10 @@ function mergeShapeNode(
     label2: patch.label2 ?? current.label2,
     tooltip: patch.tooltip ?? current.tooltip,
     locked: patch.locked ?? current.locked,
+    angle: patch.angle !== undefined ? patch.angle : current.angle,
+    angleAnchor: patch.angleAnchor !== undefined
+      ? patch.angleAnchor
+      : current.angleAnchor,
     groupId: patch.groupId ?? current.groupId,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
       id: a.id,

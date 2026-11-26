@@ -130,6 +130,24 @@ export const shapeNodeDocument: GraphDocument = {
       tooltip: 'Locked — body and vertices are not editable',
     },
     {
+      id: 'angled-shape',
+      label: 'angled',
+      angle: 30,
+      angleAnchor: { u: 0, v: 1 },
+      points: [
+        { x: 320, y: 320 },
+        { x: 400, y: 320 },
+        { x: 360, y: 380 },
+      ],
+      style: {
+        stroke: '#0369a1',
+        lineWidth: 2,
+        fill: '#e0f2fe',
+        shapeKind: 'lineto',
+        label: { color: '#0c4a6e', fontSize: 11, fontWeight: 'bold' },
+      },
+    },
+    {
       id: 'in-group',
       label: 'member',
       groupId: 'band',
@@ -155,6 +173,6 @@ export const shapeNodeSample: DemoSample = {
   title: 'ShapeNode',
   group: 'elements',
   description:
-    'GraphShapeNode: open / closed fill, quadto / cubicto, lock, group member (not a Path).',
+    'GraphShapeNode: open / closed fill, quadto / cubicto, lock, angle, group member (not a Path).',
   document: shapeNodeDocument,
 }

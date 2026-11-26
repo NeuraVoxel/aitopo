@@ -2,9 +2,21 @@
  * Cached group band / collapsed-node geometry, attachments, and paint DTOs.
  */
 
-import { unionRect, type Rect } from '../geom.ts'
+import {
+  anglePivot,
+  normalizeAngleDegrees,
+  rotatedAabbOfRectAbout,
+  unionRect,
+  type Point,
+  type Rect,
+} from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
-import type { GraphChromeStyle, GraphGroup, GraphShadowStyle } from '../protocol/types.ts'
+import type {
+  GraphAngleAnchor,
+  GraphChromeStyle,
+  GraphGroup,
+  GraphShadowStyle,
+} from '../protocol/types.ts'
 import type { GroupPaintView } from '../render/canvas2d.ts'
 import {
   AlarmAttachment,
@@ -34,7 +46,12 @@ export class GroupView {
   readonly id: string
   private dirty = true
   private band: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Rotated AABB of {@link originalUnion} (dirty / cull); equals it when angle ≡ 0. */
   private union: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Unrotated band ∪ attachments (hit after inverse rotation). */
+  private originalUnion: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  private angleDeg = 0
+  private angleAnchorCache: GraphAngleAnchor | undefined
   private active = false
   private visible = true
   private expanded = false
@@ -54,12 +71,32 @@ export class GroupView {
     this.id = id
   }
 
-  /** Union bounds (dirty + hit); excludes hover-only tooltip. */
+  /** Rotated union AABB (dirty + hit cull); excludes hover-only tooltip. */
   get bounds(): Rect {
     return this.union
   }
 
-  /** Band / collapsed body for chrome / auto-fit / agent anchors. */
+  /** Unrotated band ∪ attachments. */
+  get originalUnionBounds(): Rect {
+    return this.originalUnion
+  }
+
+  /** Normalized rotation degrees (`0` when omitted). */
+  get angle(): number {
+    return this.angleDeg
+  }
+
+  /** Authored relative pivot; undefined ≡ center. */
+  get angleAnchor(): GraphAngleAnchor | undefined {
+    return this.angleAnchorCache
+  }
+
+  /** World rotation pivot inside the original band. */
+  get pivot(): Point {
+    return anglePivot(this.band, this.angleAnchorCache)
+  }
+
+  /** Original (unrotated) band / collapsed body for chrome / auto-fit / agent anchors. */
   get bandBounds(): Rect {
     return this.band
   }
@@ -112,6 +149,8 @@ export class GroupView {
       memberBoundsOf,
       shapeNodeBoundsOf,
     )
+    this.angleDeg = normalizeAngleDegrees(group.angle ?? 0)
+    this.angleAnchorCache = group.angleAnchor
     const style = group.style
     const dataFill = typeof group.data?.fill === 'string' ? group.data.fill : undefined
     const dataStroke = typeof group.data?.stroke === 'string' ? group.data.stroke : undefined
@@ -141,7 +180,12 @@ export class GroupView {
         union = unionRect(union, attachment.bounds)
       }
     }
-    this.union = union ?? this.band
+    this.originalUnion = union ?? this.band
+    this.union = rotatedAabbOfRectAbout(
+      this.originalUnion,
+      anglePivot(this.band, this.angleAnchorCache),
+      this.angleDeg,
+    )
     this.dirty = false
   }
 
@@ -165,6 +209,8 @@ export class GroupView {
       unionBounds: this.union,
       selected,
       hovered,
+      ...(this.angleDeg !== 0 ? { angle: this.angleDeg } : {}),
+      ...(this.angleAnchorCache !== undefined ? { angleAnchor: this.angleAnchorCache } : {}),
       expanded: this.expanded,
       alpha: this.alpha,
       stroke: this.stroke,
@@ -185,6 +231,9 @@ export class GroupView {
     this.expanded = false
     this.band = { x: 0, y: 0, width: 0, height: 0 }
     this.union = this.band
+    this.originalUnion = this.band
+    this.angleDeg = 0
+    this.angleAnchorCache = undefined
     this.alpha = 1
     this.strokeDash = undefined
     this.shadow = undefined

@@ -25,4 +25,4 @@ The `dsh` group is the home for future DSH showcases under `demo/samples/dsh/`. 
 
 ## Testing
 
-`tests/demo-registry.spec.ts` gains "registers the DSH event topology in its own group", now pinning the dsh group's sample order (`['dsh-boot', 'dsh-event-topo']`), the boot document's phase count and both sub-networks, plus the event topology's mount targets and edge-kind counts; the ordering test pins getting-started < elements < agents < dsh with Business empty. Typecheck clean; the pre-existing `labelPosition` failure in the same file is unrelated and untouched.
+`tests/demo-registry.spec.ts` gains "registers the DSH event topology in its own group", now pinning the dsh group's sample order (`['dsh-boot', 'dsh-event-topo']`), the boot document's phase count and both sub-networks, plus the event topology's mount targets and edge-kind counts; the ordering test pins `elements < adas < agents < dsh < flows` with Business empty.

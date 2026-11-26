@@ -32,7 +32,7 @@ The demo catalog had element, agent, and DSH showcases, but no nav column for th
 
 ## Consequences
 
-Nav order is `started < elements < agents < dsh < flows < business`. Future flowchart demos land under `demo/samples/flows/` with the `flows` group id. Process and Loop are demo-authored adaptations of diagram-design intent, not copies of archify schemas. Skill goldens and demo samples can drift; when they diverge intentionally, update the owning note's Testing facts.
+Nav order is `elements < adas < agents < dsh < flows < business` (no Started group; `hello-world` lives under Elements). Future flowchart demos land under `demo/samples/flows/` with the `flows` group id. Process and Loop are demo-authored adaptations of diagram-design intent, not copies of archify schemas. Skill goldens and demo samples can drift; when they diverge intentionally, update the owning note's Testing facts.
 
 ## Testing
 

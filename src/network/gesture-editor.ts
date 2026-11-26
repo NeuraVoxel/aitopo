@@ -689,6 +689,100 @@ export class GestureEditor {
     }
   }
 
+  /**
+   * Live preview of element angle (no dedicated GraphEvent).
+   * @param args - kind, id, degrees.
+   */
+  previewElementAngle(args: {
+    kind: 'node' | 'group' | 'path' | 'shapeNode'
+    id: string
+    angle: number
+  }): void {
+    const oldRects = this.captureAngleElementRects(args.kind, args.id)
+    this.deps.scene.writeElementAngle(args.kind, args.id, args.angle)
+    this.deps.views.markDirty(args.id)
+    if (args.kind === 'shapeNode') {
+      for (const groupId of listOwningGroupChainForShapeNode(
+        this.deps.scene,
+        args.id,
+      )) {
+        this.deps.views.markDirty(groupId)
+      }
+    } else if (args.kind === 'node') {
+      this.deps.views.markNodeGeometryDirty(this.deps.scene, args.id)
+    }
+    this.deps.views.validateDirty(this.deps.scene)
+    for (const rect of oldRects) this.deps.dirty.add(rect)
+    for (const rect of this.captureAngleElementRects(args.kind, args.id)) {
+      this.deps.dirty.add(rect)
+    }
+    this.deps.scene.takeDirty()
+    this.deps.dirty.markAll()
+    this.deps.scheduleScenePaint()
+  }
+
+  /**
+   * Commit element angle via update* patch.
+   * @param args - kind, id, from/to degrees.
+   */
+  commitElementAngle(args: {
+    kind: 'node' | 'group' | 'path' | 'shapeNode'
+    id: string
+    from: number
+    to: number
+  }): void {
+    const angle = ((args.to % 360) + 360) % 360
+    if (args.kind === 'node') {
+      if (this.deps.scene.nodes.get(args.id) === undefined) {
+        throw new Error(`commitElementAngle: missing node ${args.id}`)
+      }
+      this.deps.apply({
+        ops: [{ op: 'updateNode', id: args.id, patch: { angle } }],
+      })
+      return
+    }
+    if (args.kind === 'group') {
+      if (this.deps.scene.groups.get(args.id) === undefined) {
+        throw new Error(`commitElementAngle: missing group ${args.id}`)
+      }
+      this.deps.apply({
+        ops: [{ op: 'updateGroup', id: args.id, patch: { angle } }],
+      })
+      return
+    }
+    if (args.kind === 'path') {
+      if (this.deps.scene.paths.get(args.id) === undefined) {
+        throw new Error(`commitElementAngle: missing path ${args.id}`)
+      }
+      this.deps.apply({
+        ops: [{ op: 'updatePath', id: args.id, patch: { angle } }],
+      })
+      this.deps.emit({ type: 'pathUpdated', pathId: args.id })
+      return
+    }
+    if (this.deps.scene.shapeNodes.get(args.id) === undefined) {
+      throw new Error(`commitElementAngle: missing shapeNode ${args.id}`)
+    }
+    this.deps.apply({
+      ops: [{ op: 'updateShapeNode', id: args.id, patch: { angle } }],
+    })
+    this.deps.emit({ type: 'shapeNodeUpdated', shapeNodeId: args.id })
+  }
+
+  private captureAngleElementRects(
+    kind: 'node' | 'group' | 'path' | 'shapeNode',
+    id: string,
+  ): Rect[] {
+    if (kind === 'node') return this.captureNodeGeometryRects(id)
+    if (kind === 'group') {
+      const groupView = this.deps.views.getGroup(id)
+      if (groupView?.isActive !== true) return []
+      return [growRect(groupView.bounds, 8)]
+    }
+    if (kind === 'path') return this.capturePathGeometryRects(id)
+    return this.captureShapeNodeGeometryRects(id)
+  }
+
   private previewNodeGeometry(id: string, mutate: () => void): void {
     const oldRects = this.captureNodeGeometryRects(id)
     const oldGroupRects = this.captureNodeGroupRects(id)

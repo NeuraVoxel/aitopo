@@ -2,7 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { buildPropertyPatch } from '../demo/lib/property-patch.ts'
 import { applyPatch } from '../src/protocol/patch.ts'
 import { parseDocument } from '../src/protocol/parse.ts'
-import type { GraphEdge, GraphGroup, GraphNode } from '../src/protocol/types.ts'
+import type {
+  GraphEdge,
+  GraphGroup,
+  GraphNode,
+  GraphPath,
+  GraphShapeNode,
+} from '../src/protocol/types.ts'
 
 const node: GraphNode = {
   id: 'a',
@@ -35,6 +41,24 @@ const group: GraphGroup = {
   w: 40,
   h: 20,
   style: { fill: '#eee', stroke: '#333', strokeWidth: 1, label: { fontSize: 12 } },
+}
+
+const path: GraphPath = {
+  id: 'p1',
+  points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 10, y: 10 }],
+  closed: true,
+  label: 'Path',
+  angle: 15,
+  angleAnchor: { u: 0.25, v: 0.75 },
+  style: { stroke: '#111', lineWidth: 2, fill: '#abc', label: { color: '#333' } },
+}
+
+const shapeNode: GraphShapeNode = {
+  id: 's1',
+  points: [{ x: 0, y: 0 }, { x: 20, y: 0 }, { x: 10, y: 15 }],
+  label: 'Shape',
+  angle: 30,
+  style: { fill: '#fed', stroke: '#321', lineWidth: 1 },
 }
 
 describe('buildPropertyPatch', () => {
@@ -208,5 +232,69 @@ describe('buildPropertyPatch', () => {
     expect(next.nodes[0]?.x).toBe(5)
     expect(next.nodes[0]?.style?.label?.color).toBe('#f00')
     expect(next.nodes[0]?.style?.label?.maxChars).toBe(8)
+  })
+
+  it('updates node angle and merges angleAnchor u/v', () => {
+    const angled: GraphNode = {
+      ...node,
+      angle: 10,
+      angleAnchor: { u: 0, v: 1 },
+    }
+    const patch = buildPropertyPatch(
+      { kind: 'node', element: angled },
+      { angle: 45, angleAnchorU: 0.25 },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateNode',
+      id: 'a',
+      patch: { angle: 45, angleAnchor: { u: 0.25, v: 1 } },
+    }])
+  })
+
+  it('updates group angle with default center anchor when none set', () => {
+    const patch = buildPropertyPatch(
+      { kind: 'group', element: group },
+      { angle: 90, angleAnchorV: 0 },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateGroup',
+      id: 'g1',
+      patch: { angle: 90, angleAnchor: { u: 0.5, v: 0 } },
+    }])
+  })
+
+  it('updates path angle, fill, and strokeWidth as lineWidth', () => {
+    const patch = buildPropertyPatch(
+      { kind: 'path', element: path },
+      { angle: 40, fill: '#0f0', strokeWidth: 4, labelColor: '#999' },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updatePath',
+      id: 'p1',
+      patch: {
+        angle: 40,
+        style: {
+          fill: '#0f0',
+          lineWidth: 4,
+          label: { color: '#999' },
+        },
+      },
+    }])
+  })
+
+  it('updates shapeNode angle and styles', () => {
+    const patch = buildPropertyPatch(
+      { kind: 'shapeNode', element: shapeNode },
+      { angle: 12, angleAnchorU: 1, angleAnchorV: 0, fill: '#fff', stroke: '#000' },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateShapeNode',
+      id: 's1',
+      patch: {
+        angle: 12,
+        angleAnchor: { u: 1, v: 0 },
+        style: { fill: '#fff', stroke: '#000' },
+      },
+    }])
   })
 })

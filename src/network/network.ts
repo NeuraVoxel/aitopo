@@ -6,6 +6,9 @@ import {
   growRect,
   hitRect,
   intersectsRect,
+  inverseRotatePointAround,
+  rotatePointAround,
+  rotatedAabbOfRectAbout,
   unionRect,
   distanceToPolyline,
   type Rect,
@@ -24,7 +27,7 @@ import type {
   GraphViewport,
 } from '../protocol/types.ts'
 import { Canvas2DRenderer } from '../render/canvas2d.ts'
-import type { Renderer } from '../render/canvas2d.ts'
+import type { OverlayRotation, Renderer } from '../render/canvas2d.ts'
 import {
   groupBounds,
   nodeBounds,
@@ -590,7 +593,10 @@ export class Network {
     }
     for (const view of this.views.groupViews()) {
       if (!view.isActive) continue
-      bounds = unionRect(bounds, view.bandBounds)
+      bounds = unionRect(
+        bounds,
+        rotatedAabbOfRectAbout(view.bandBounds, view.pivot, view.angle),
+      )
     }
     return bounds
   }
@@ -624,7 +630,14 @@ export class Network {
       const node = nodes[i]!
       const view = this.views.getNode(node.id)
       if (view === undefined || !view.isVisible) continue
-      if (hitRect(world, view.bounds, 2 / zoom)) return { id: node.id, kind: 'node' }
+      if (!hitRect(world, view.bounds, 2 / zoom)) continue
+      // Cull with the rotated AABB, then test the original union in its own frame.
+      const local = view.angle === 0
+        ? world
+        : inverseRotatePointAround(world, view.pivot, view.angle)
+      if (hitRect(local, view.originalUnionBounds, 2 / zoom)) {
+        return { id: node.id, kind: 'node' }
+      }
     }
     const pad = 4 / zoom
     const shapeNodes = [...this.scene.shapeNodes.values()]
@@ -669,7 +682,11 @@ export class Network {
     for (const group of groups) {
       const view = this.views.getGroup(group.id)
       if (view === undefined || !view.isVisible) continue
-      if (hitRect(world, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
+      if (!hitRect(world, view.bounds, 2 / zoom)) continue
+      const local = view.angle === 0
+        ? world
+        : inverseRotatePointAround(world, view.pivot, view.angle)
+      if (hitRect(local, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
     }
     const paths = [...this.scene.paths.values()]
     for (let i = paths.length - 1; i >= 0; i -= 1) {
@@ -773,7 +790,10 @@ export class Network {
       const group = groups[i]!
       const view = this.views.getGroup(group.id)
       if (view === undefined || !view.isVisible) continue
-      if (!hitRect(world, view.bandBounds)) continue
+      const local = view.angle === 0
+        ? world
+        : inverseRotatePointAround(world, view.pivot, view.angle)
+      if (!hitRect(local, view.bandBounds)) continue
       const area = view.bandBounds.width * view.bandBounds.height
       if (bestId === undefined || area < bestArea) {
         bestId = group.id
@@ -1091,6 +1111,23 @@ export class Network {
     this.gestures.commitShapeNodeRemove(shapeNodeIds)
   }
 
+  previewElementAngle(args: {
+    kind: 'node' | 'group' | 'path' | 'shapeNode'
+    id: string
+    angle: number
+  }): void {
+    this.gestures.previewElementAngle(args)
+  }
+
+  commitElementAngle(args: {
+    kind: 'node' | 'group' | 'path' | 'shapeNode'
+    id: string
+    from: number
+    to: number
+  }): void {
+    this.gestures.commitElementAngle(args)
+  }
+
   /** Mark that a drag consumed this pointer gesture. */
   markGestureDragged(): void {
     this.gestures.markGestureDragged()
@@ -1349,7 +1386,10 @@ export class Network {
       }
       if (selected) {
         for (const point of path.points) {
-          renderer.drawResizeHandle(point, handleSize)
+          renderer.drawResizeHandle(
+            view.angle === 0 ? point : rotatePointAround(point, view.pivot, view.angle),
+            handleSize,
+          )
         }
       }
     }
@@ -1370,10 +1410,13 @@ export class Network {
       const selected = this.scene.selectedIds.has(group.id)
       const hovered = hoverId === group.id
       const paint = view.toPaintView(selected, hovered)
+      const rotation: OverlayRotation | undefined = view.angle === 0
+        ? undefined
+        : { angle: view.angle, pivot: view.pivot }
       if (selected) {
-        renderer.drawSelectionOverlay(view.bandBounds, paint.selectStyle, paint.alpha)
+        renderer.drawSelectionOverlay(view.bandBounds, paint.selectStyle, paint.alpha, rotation)
       } else if (hovered) {
-        renderer.drawHoverOverlay(view.bandBounds, paint.hoverStyle, paint.alpha)
+        renderer.drawHoverOverlay(view.bandBounds, paint.hoverStyle, paint.alpha, rotation)
       }
       if (paint.overlayAttachments.length > 0) {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
@@ -1389,7 +1432,10 @@ export class Network {
       }
       if (selected) {
         for (const point of shapeNode.points) {
-          renderer.drawResizeHandle(point, handleSize)
+          renderer.drawResizeHandle(
+            view.angle === 0 ? point : rotatePointAround(point, view.pivot, view.angle),
+            handleSize,
+          )
         }
       }
     }
@@ -1399,10 +1445,13 @@ export class Network {
       const selected = this.scene.selectedIds.has(node.id)
       const hovered = hoverId === node.id
       const paint = view.toPaintView(selected, hovered)
+      const rotation: OverlayRotation | undefined = view.angle === 0
+        ? undefined
+        : { angle: view.angle, pivot: view.pivot }
       if (selected) {
-        renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle, paint.alpha)
+        renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle, paint.alpha, rotation)
       } else if (hovered) {
-        renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle, paint.alpha)
+        renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle, paint.alpha, rotation)
       }
       if (paint.overlayAttachments.length > 0) {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)

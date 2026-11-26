@@ -19,6 +19,9 @@ interface FormDraft {
   y: string
   w: string
   h: string
+  angle: string
+  angleAnchorU: string
+  angleAnchorV: string
   type: string
   kind: string
   expanded: boolean
@@ -39,6 +42,9 @@ const EMPTY_DRAFT: FormDraft = {
   y: '',
   w: '',
   h: '',
+  angle: '',
+  angleAnchorU: '',
+  angleAnchorV: '',
   type: '',
   kind: '',
   expanded: false,
@@ -103,9 +109,17 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
     )
   }
 
-  const kindLabel = target.kind === 'node' ? 'Node' : target.kind === 'edge' ? 'Edge' : 'Group'
+  const kindLabel = kindTitle(target.kind)
   const id = target.element.id
   const alarms = formatAlarms(target)
+  const showsAngle = target.kind !== 'edge'
+  const showsBox = target.kind === 'node' || target.kind === 'group'
+  const showsFill = target.kind === 'group' || target.kind === 'path' || target.kind === 'shapeNode'
+  const showsStroke =
+    target.kind === 'edge'
+    || target.kind === 'group'
+    || target.kind === 'path'
+    || target.kind === 'shapeNode'
 
   return (
     <aside className="property-panel" aria-label="Properties">
@@ -161,7 +175,7 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
           </Row>
         </>
       )}
-      {(target.kind === 'node' || target.kind === 'group') && (
+      {showsBox && (
         <>
           <TextRow label="x" value={formDraft.x} onChange={value => setField('x', value)} onCommit={() => commit()} />
           <TextRow label="y" value={formDraft.y} onChange={value => setField('y', value)} onCommit={() => commit()} />
@@ -185,7 +199,29 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
           </Row>
         </>
       )}
-      {target.kind === 'group' && (
+      {showsAngle && (
+        <>
+          <TextRow
+            label="angle"
+            value={formDraft.angle}
+            onChange={value => setField('angle', value)}
+            onCommit={() => commit()}
+          />
+          <TextRow
+            label="anchor u"
+            value={formDraft.angleAnchorU}
+            onChange={value => setField('angleAnchorU', value)}
+            onCommit={() => commit()}
+          />
+          <TextRow
+            label="anchor v"
+            value={formDraft.angleAnchorV}
+            onChange={value => setField('angleAnchorV', value)}
+            onCommit={() => commit()}
+          />
+        </>
+      )}
+      {showsFill && (
         <TextRow
           label="fill"
           value={formDraft.fill}
@@ -193,7 +229,7 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
           onCommit={() => commit()}
         />
       )}
-      {(target.kind === 'edge' || target.kind === 'group') && (
+      {showsStroke && (
         <>
           <TextRow
             label="stroke"
@@ -221,6 +257,9 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
         onChange={value => setField('labelFontSize', value)}
         onCommit={() => commit()}
       />
+      <Row label="alarms">
+        <span className="property-readonly">{alarms}</span>
+      </Row>
       <Row label="data">
         <textarea
           rows={4}
@@ -229,9 +268,6 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
           onChange={event => setField('dataJson', event.target.value)}
           onBlur={() => commit()}
         />
-      </Row>
-      <Row label="alarms">
-        <span className="property-readonly">{alarms}</span>
       </Row>
       {error !== undefined && <p className="property-error" role="alert">{error}</p>}
     </aside>
@@ -270,6 +306,25 @@ function TextRow(props: {
   )
 }
 
+function kindTitle(kind: PropTarget['kind']): string {
+  switch (kind) {
+    case 'node':
+      return 'Node'
+    case 'edge':
+      return 'Edge'
+    case 'group':
+      return 'Group'
+    case 'path':
+      return 'Path'
+    case 'shapeNode':
+      return 'ShapeNode'
+    default: {
+      const _e: never = kind
+      return _e
+    }
+  }
+}
+
 function resolveTarget(network: Network | null, selectedIds: readonly string[]): PropTarget | null {
   if (network === null || selectedIds.length !== 1) return null
   const id = selectedIds[0]!
@@ -279,6 +334,10 @@ function resolveTarget(network: Network | null, selectedIds: readonly string[]):
   if (edge !== undefined) return { kind: 'edge', element: edge }
   const group = network.getGroups().find(element => element.id === id)
   if (group !== undefined) return { kind: 'group', element: group }
+  const path = network.getPaths().find(element => element.id === id)
+  if (path !== undefined) return { kind: 'path', element: path }
+  const shapeNode = network.getShapeNodes().find(element => element.id === id)
+  if (shapeNode !== undefined) return { kind: 'shapeNode', element: shapeNode }
   return null
 }
 
@@ -292,36 +351,67 @@ function draftFrom(target: PropTarget): FormDraft {
     labelFontSize: numStr(labelStyle?.fontSize),
     dataJson: JSON.stringify(data, null, 2),
   }
-  if (target.kind === 'node') {
-    return {
-      ...base,
-      type: target.element.type,
-      x: numStr(target.element.x),
-      y: numStr(target.element.y),
-      w: numStr(target.element.w),
-      h: numStr(target.element.h),
-      labelPosition: target.element.style?.labelPosition ?? '',
+  switch (target.kind) {
+    case 'node':
+      return {
+        ...base,
+        type: target.element.type,
+        x: numStr(target.element.x),
+        y: numStr(target.element.y),
+        w: numStr(target.element.w),
+        h: numStr(target.element.h),
+        angle: numStr(target.element.angle ?? 0),
+        angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
+        angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
+        labelPosition: target.element.style?.labelPosition ?? '',
+      }
+    case 'edge':
+      return {
+        ...base,
+        kind: target.element.kind ?? '',
+        stroke: target.element.style?.stroke ?? '',
+        strokeWidth: numStr(target.element.style?.lineWidth),
+      }
+    case 'group':
+      return {
+        ...base,
+        expanded: target.element.expanded === true,
+        x: numStr(target.element.x),
+        y: numStr(target.element.y),
+        w: numStr(target.element.w),
+        h: numStr(target.element.h),
+        angle: numStr(target.element.angle ?? 0),
+        angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
+        angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
+        labelPosition: target.element.style?.labelPosition ?? '',
+        fill: target.element.style?.fill ?? '',
+        stroke: target.element.style?.stroke ?? '',
+        strokeWidth: numStr(target.element.style?.strokeWidth),
+      }
+    case 'path':
+      return {
+        ...base,
+        angle: numStr(target.element.angle ?? 0),
+        angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
+        angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
+        fill: target.element.style?.fill ?? '',
+        stroke: target.element.style?.stroke ?? '',
+        strokeWidth: numStr(target.element.style?.lineWidth),
+      }
+    case 'shapeNode':
+      return {
+        ...base,
+        angle: numStr(target.element.angle ?? 0),
+        angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
+        angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
+        fill: target.element.style?.fill ?? '',
+        stroke: target.element.style?.stroke ?? '',
+        strokeWidth: numStr(target.element.style?.lineWidth),
+      }
+    default: {
+      const _e: never = target
+      return _e
     }
-  }
-  if (target.kind === 'edge') {
-    return {
-      ...base,
-      kind: target.element.kind ?? '',
-      stroke: target.element.style?.stroke ?? '',
-      strokeWidth: numStr(target.element.style?.lineWidth),
-    }
-  }
-  return {
-    ...base,
-    expanded: target.element.expanded === true,
-    x: numStr(target.element.x),
-    y: numStr(target.element.y),
-    w: numStr(target.element.w),
-    h: numStr(target.element.h),
-    labelPosition: target.element.style?.labelPosition ?? '',
-    fill: target.element.style?.fill ?? '',
-    stroke: target.element.style?.stroke ?? '',
-    strokeWidth: numStr(target.element.style?.strokeWidth),
   }
 }
 
@@ -333,6 +423,9 @@ function fieldsFromDraft(target: PropTarget, draft: FormDraft): PropertyFields {
   assignNumber(fields, 'y', draft.y, current.y)
   assignNumber(fields, 'w', draft.w, current.w)
   assignNumber(fields, 'h', draft.h, current.h)
+  assignNumber(fields, 'angle', draft.angle, current.angle)
+  assignNumber(fields, 'angleAnchorU', draft.angleAnchorU, current.angleAnchorU)
+  assignNumber(fields, 'angleAnchorV', draft.angleAnchorV, current.angleAnchorV)
   if (target.kind === 'node' && draft.type !== current.type) fields.type = draft.type
   if (target.kind === 'edge' && draft.kind !== current.kind) fields.kind = draft.kind
   if (target.kind === 'group' && draft.expanded !== current.expanded) {
@@ -352,7 +445,7 @@ function fieldsFromDraft(target: PropTarget, draft: FormDraft): PropertyFields {
 
 function assignNumber(
   fields: PropertyFields,
-  key: 'x' | 'y' | 'w' | 'h' | 'strokeWidth' | 'labelFontSize',
+  key: 'x' | 'y' | 'w' | 'h' | 'angle' | 'angleAnchorU' | 'angleAnchorV' | 'strokeWidth' | 'labelFontSize',
   draft: string,
   current: string,
 ): void {
@@ -378,6 +471,7 @@ function stringData(data: Readonly<Record<string, unknown>> | undefined): Record
 }
 
 function formatAlarms(target: PropTarget): string {
+  if (target.kind === 'path') return 'none'
   const alarms = target.element.alarms
   if (alarms === undefined || alarms.length === 0) return 'none'
   return alarms.map(alarm => `${alarm.level}: ${alarm.message}`).join('; ')

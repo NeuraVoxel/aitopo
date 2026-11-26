@@ -8,6 +8,7 @@ import {
   MovePathVertexInteraction,
   MoveShapeNodeVertexInteraction,
   ResizeNodeInteraction,
+  RotateElementInteraction,
   type Interaction,
 } from '../../src/index.ts'
 
@@ -36,6 +37,7 @@ export function buildInteractions(mode: DemoMode): readonly Interaction[] {
         new MovePathVertexInteraction(),
         new MoveShapeNodeVertexInteraction(),
         new MoveEdgeBendInteraction(),
+        new RotateElementInteraction(),
         new ResizeNodeInteraction(),
         new DeleteEdgeInteraction(),
         new CreateEdgeInteraction({ requireAlt: true }),

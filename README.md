@@ -126,8 +126,7 @@ Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply
 
 **Catalog** (registry-driven; switching a sample remounts `Network` and clears history):
 
-- **Getting started** — `hello-world` (default): two nodes, one edge, explicit coordinates (no layout).
-- **Elements** — Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork (one page each).
+- **Elements** — `hello-world` (default: two nodes, one edge), then Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork.
 - **ADAS** — after Elements: loadable BEV demos (ego, lane/boundary/planning/prediction `GraphPath`s, boxes, VRU, signals, parking, occupancy, junction, …); `adas-sensor-fov` stays reserved (sector / frustum).
 - **Business (soon)** — reserved domain rows (status message only when reserved; no document load).
 

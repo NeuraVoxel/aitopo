@@ -2,9 +2,16 @@
  * Cached node geometry, attachments, and paint DTOs.
  */
 
-import { unionRect, type Rect } from '../geom.ts'
+import {
+  anglePivot,
+  normalizeAngleDegrees,
+  rotatedAabbOfRectAbout,
+  unionRect,
+  type Point,
+  type Rect,
+} from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
-import type { GraphChromeStyle, GraphShadowStyle } from '../protocol/types.ts'
+import type { GraphAngleAnchor, GraphChromeStyle, GraphShadowStyle } from '../protocol/types.ts'
 import type { NodePaintView } from '../render/canvas2d.ts'
 import {
   AlarmAttachment,
@@ -30,7 +37,12 @@ export class NodeView {
   readonly id: string
   private dirty = true
   private body: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Rotated AABB of {@link originalUnion} (dirty / cull); equals it when angle ≡ 0. */
   private union: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Unrotated body ∪ attachments (hit after inverse rotation). */
+  private originalUnion: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  private angleDeg = 0
+  private angleAnchorCache: GraphAngleAnchor | undefined
   private circular = false
   private active = false
   private shadow: GraphShadowStyle | undefined
@@ -48,12 +60,32 @@ export class NodeView {
     this.id = id
   }
 
-  /** Union bounds (dirty + hit); excludes hover-only tooltip. */
+  /** Rotated union AABB (dirty + hit cull); excludes hover-only tooltip. */
   get bounds(): Rect {
     return this.union
   }
 
-  /** Body box for anchors / move / resize / select chrome. */
+  /** Unrotated body ∪ attachments (hit-test after inverse-rotating the pointer). */
+  get originalUnionBounds(): Rect {
+    return this.originalUnion
+  }
+
+  /** Normalized rotation degrees (`0` when omitted). */
+  get angle(): number {
+    return this.angleDeg
+  }
+
+  /** Authored relative pivot; undefined ≡ center. */
+  get angleAnchor(): GraphAngleAnchor | undefined {
+    return this.angleAnchorCache
+  }
+
+  /** World rotation pivot inside the original body. */
+  get pivot(): Point {
+    return anglePivot(this.body, this.angleAnchorCache)
+  }
+
+  /** Original (unrotated) body box for anchors / move / resize / select chrome. */
   get bodyBounds(): Rect {
     return this.body
   }
@@ -93,6 +125,9 @@ export class NodeView {
       this.visible = false
       this.body = { x: 0, y: 0, width: 0, height: 0 }
       this.union = this.body
+      this.originalUnion = this.body
+      this.angleDeg = 0
+      this.angleAnchorCache = undefined
       this.circular = false
       this.shadow = undefined
       this.alpha = 1
@@ -108,6 +143,8 @@ export class NodeView {
     this.active = true
     this.visible = isNodeVisibleInScene(scene, this.id)
     this.body = nodeBounds(node)
+    this.angleDeg = normalizeAngleDegrees(node.angle ?? 0)
+    this.angleAnchorCache = node.angleAnchor
     this.circular = node.type === 'tool' || node.data?.shape === 'circle'
     this.shadow = node.style?.shadow ?? DEFAULT_SHADOW
     this.alpha = clampAlpha(node.style?.alpha)
@@ -124,7 +161,12 @@ export class NodeView {
         union = unionRect(union, attachment.bounds)
       }
     }
-    this.union = union ?? this.body
+    this.originalUnion = union ?? this.body
+    this.union = rotatedAabbOfRectAbout(
+      this.originalUnion,
+      anglePivot(this.body, this.angleAnchorCache),
+      this.angleDeg,
+    )
     this.dirty = false
   }
 
@@ -148,6 +190,8 @@ export class NodeView {
       unionBounds: this.union,
       selected,
       hovered,
+      ...(this.angleDeg !== 0 ? { angle: this.angleDeg } : {}),
+      ...(this.angleAnchorCache !== undefined ? { angleAnchor: this.angleAnchorCache } : {}),
       circular: this.circular,
       alpha: this.alpha,
       ...(this.shadow !== undefined ? { shadow: this.shadow } : {}),

@@ -3,13 +3,22 @@
  */
 
 import {
+  anglePivot,
   distanceToPolyline,
   growRect,
+  inverseRotatePointAround,
+  normalizeAngleDegrees,
+  rotatedAabbOfRectAbout,
   type Point,
   type Rect,
   unionRect,
 } from '../geom.ts'
-import type { GraphChromeStyle, GraphPath, GraphTextStyle } from '../protocol/types.ts'
+import type {
+  GraphAngleAnchor,
+  GraphChromeStyle,
+  GraphPath,
+  GraphTextStyle,
+} from '../protocol/types.ts'
 import type { PathPaintView } from '../render/canvas2d.ts'
 import { samplePolylineAt } from './attachment/path.ts'
 import {
@@ -36,7 +45,14 @@ export class PathView {
   readonly id: string
   private dirty = true
   private pointsCache: readonly Point[] = []
+  /** Rotated AABB of {@link originalBounds} (dirty / cull); equals it when angle ≡ 0. */
   private pathBounds: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Unrotated padded polyline ∪ label AABB. */
+  private originalBounds: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** Unrotated densified polyline AABB (no pad / label); pivot reference. */
+  private pointsBox: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  private angleDeg = 0
+  private angleAnchorCache: GraphAngleAnchor | undefined
   private closed = false
   private alphaCache = 1
   private strokeCache = DEFAULT_STROKE
@@ -64,6 +80,26 @@ export class PathView {
   /** Densified polyline AABB (+ pad, label) for dirty-rect / hit culling. */
   get bounds(): Rect {
     return this.pathBounds
+  }
+
+  /** Unrotated padded polyline ∪ label AABB. */
+  get originalAabb(): Rect {
+    return this.originalBounds
+  }
+
+  /** Normalized rotation degrees (`0` when omitted). */
+  get angle(): number {
+    return this.angleDeg
+  }
+
+  /** Authored relative pivot; undefined ≡ center. */
+  get angleAnchor(): GraphAngleAnchor | undefined {
+    return this.angleAnchorCache
+  }
+
+  /** World rotation pivot inside the original densified polyline AABB. */
+  get pivot(): Point {
+    return anglePivot(this.pointsBox, this.angleAnchorCache)
   }
 
   /** Validated densified polyline (paint + hit). */
@@ -131,10 +167,10 @@ export class PathView {
       PATH_BOUNDS_PAD,
       (path.style?.lineWidth ?? DEFAULT_LINE_WIDTH) / 2 + 2,
     )
-    this.pathBounds = growRect(
-      box ?? { x: 0, y: 0, width: 0, height: 0 },
-      pad,
-    )
+    this.pointsBox = box ?? { x: 0, y: 0, width: 0, height: 0 }
+    this.angleDeg = normalizeAngleDegrees(path.angle ?? 0)
+    this.angleAnchorCache = path.angleAnchor
+    this.pathBounds = growRect(this.pointsBox, pad)
     this.alphaCache = clampAlpha(path.style?.alpha)
     this.strokeCache = path.style?.stroke ?? DEFAULT_STROKE
     this.fillCache = path.style?.fill
@@ -143,6 +179,7 @@ export class PathView {
     this.selectStyle = path.style?.select
     this.hoverStyle = path.style?.hover
     this.syncLabel(path.label, path.style?.label)
+    this.finalizeAngle()
     this.dirty = false
   }
 
@@ -155,6 +192,10 @@ export class PathView {
     if (path === undefined) {
       this.pointsCache = []
       this.pathBounds = { x: 0, y: 0, width: 0, height: 0 }
+      this.originalBounds = this.pathBounds
+      this.pointsBox = this.pathBounds
+      this.angleDeg = 0
+      this.angleAnchorCache = undefined
       this.labelCache = undefined
       this.labelCenter = undefined
       this.dirty = false
@@ -168,7 +209,11 @@ export class PathView {
    */
   hit(worldX: number, worldY: number, threshold: number): boolean {
     if (this.pointsCache.length < 2) return false
-    const point = { x: worldX, y: worldY }
+    // Authored points stay unrotated; map the pointer into that frame.
+    const world = { x: worldX, y: worldY }
+    const point = this.angleDeg === 0
+      ? world
+      : inverseRotatePointAround(world, this.pivot, this.angleDeg)
     if (distanceToPolyline(point, this.pointsCache) <= threshold) return true
     if (this.closed && this.fillCache !== undefined && this.fillCache.length > 0) {
       return pointInPolygon(point, this.pointsCache)
@@ -202,6 +247,13 @@ export class PathView {
       bounds: this.pathBounds,
       selected,
       hovered,
+      ...(this.angleDeg !== 0
+        ? {
+          angle: this.angleDeg,
+          ...(this.angleAnchorCache !== undefined ? { angleAnchor: this.angleAnchorCache } : {}),
+          anglePivot: this.pivot,
+        }
+        : {}),
       closed: this.closed,
       alpha: this.alphaCache,
       stroke: resolvedStroke,
@@ -225,6 +277,12 @@ export class PathView {
       ...(this.selectStyle !== undefined ? { selectStyle: this.selectStyle } : {}),
       ...(this.hoverStyle !== undefined ? { hoverStyle: this.hoverStyle } : {}),
     }
+  }
+
+  /** Split original vs rotated bounds once label union is known. */
+  private finalizeAngle(): void {
+    this.originalBounds = this.pathBounds
+    this.pathBounds = rotatedAabbOfRectAbout(this.originalBounds, this.pivot, this.angleDeg)
   }
 
   /**

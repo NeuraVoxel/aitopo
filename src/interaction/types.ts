@@ -336,6 +336,25 @@ export interface InteractionEditHost {
    * @param shapeNodeIds - shape-node ids to remove.
    */
   commitShapeNodeRemove(shapeNodeIds: readonly string[]): void
+  /**
+   * Live preview of element angle (does not emit a dedicated angle event).
+   * @param args - kind, id, degrees.
+   */
+  previewElementAngle(args: {
+    kind: 'node' | 'group' | 'path' | 'shapeNode'
+    id: string
+    angle: number
+  }): void
+  /**
+   * Commit element angle via update* patch.
+   * @param args - kind, id, from/to degrees.
+   */
+  commitElementAngle(args: {
+    kind: 'node' | 'group' | 'path' | 'shapeNode'
+    id: string
+    from: number
+    to: number
+  }): void
 }
 
 /** Event bus + patch apply. */

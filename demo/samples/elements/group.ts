@@ -35,6 +35,7 @@ export const groupDocument: GraphDocument = {
       expanded: true,
       x: 60,
       y: 228,
+      angle: 8,
       style: {
         labelPosition: 'top',
       },
@@ -46,6 +47,6 @@ export const groupSample: DemoSample = {
   id: 'group',
   title: 'Group',
   group: 'elements',
-  description: 'Group↔Group and Group↔Node edges plus member penetration.',
+  description: 'Group↔Group and Group↔Node edges, angle on band, member penetration.',
   document: groupDocument,
 }

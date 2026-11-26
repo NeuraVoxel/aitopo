@@ -22,7 +22,7 @@ import { flowLoopSample } from './flows/loop.ts'
 import { flowProcessSample } from './flows/process.ts'
 import { flowStateSample } from './flows/state.ts'
 import { flowSwimlaneSample } from './flows/swimlane.ts'
-import { helloWorldSample } from './hello-world.ts'
+import { helloWorldSample } from './elements/hello-world.ts'
 import type { DemoSample } from './types.ts'
 
 export type { DemoSample, DemoSampleGroupId } from './types.ts'
@@ -57,7 +57,7 @@ const SAMPLES: readonly DemoSample[] = [
   ...businessPlaceholders,
 ]
 
-/** Ordered demo catalog: started, elements, ADAS, agents, DSH, flows, then business rows. */
+/** Ordered demo catalog: elements, ADAS, agents, DSH, flows, then business rows. */
 export function listSamples(): readonly DemoSample[] {
   return SAMPLES
 }

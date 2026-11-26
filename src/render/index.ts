@@ -10,6 +10,7 @@ export {
   type FrameDirty,
   type GroupPaintView,
   type NodePaintView,
+  type OverlayRotation,
   type PathLabelPaint,
   type PathPaintView,
   type Renderer,

@@ -13,6 +13,7 @@ export type {
   EdgeLoopedType,
   EdgeRoute,
   EdgeShapeKind,
+  GraphAngleAnchor,
   GraphChromeStyle,
   GraphDocument,
   GraphEdge,
@@ -66,6 +67,7 @@ export {
   MovePathVertexInteraction,
   MoveShapeNodeVertexInteraction,
   ResizeNodeInteraction,
+  RotateElementInteraction,
   PanZoomInteraction,
   SelectActivateInteraction,
   type CreateEdgeInteractionOptions,
@@ -86,5 +88,17 @@ export {
   type OverlayChrome,
 } from './interaction/index.ts'
 export { layoutGrid, layoutFlowColumns } from './layout/index.ts'
-export type { Point, Rect } from './geom.ts'
+export type { AngleAnchor, Point, Rect } from './geom.ts'
 export { unionRect, hitRect, intersectsRect, containsRect, growRect } from './geom.ts'
+export {
+  anglePivot,
+  clampUnitInterval,
+  inverseRotatePointAround,
+  normalizeAngleDegrees,
+  resolveAngleAnchor,
+  rotateCanvasAbout,
+  rotatePointAround,
+  rotatedAabbFromPoints,
+  rotatedAabbFromRect,
+  rotatedAabbOfRectAbout,
+} from './geom.ts'

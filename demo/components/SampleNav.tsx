@@ -8,7 +8,6 @@ export interface SampleNavProps {
 }
 
 const GROUP_ORDER: readonly DemoSampleGroupId[] = [
-  'started',
   'elements',
   'adas',
   'agents',
@@ -18,7 +17,6 @@ const GROUP_ORDER: readonly DemoSampleGroupId[] = [
 ]
 
 const GROUP_LABEL: Record<DemoSampleGroupId, string> = {
-  started: 'Started',
   elements: 'Elements',
   agents: 'Agents',
   dsh: 'DeepSeek Harness',

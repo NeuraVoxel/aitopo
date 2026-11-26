@@ -2,6 +2,7 @@
  * Corner-handle resize for selected unlocked nodes.
  */
 
+import { anglePivot, rotatePointAround } from '../geom.ts'
 import { nodeBounds } from '../ui/bounds.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
@@ -53,9 +54,12 @@ export class ResizeNodeInteraction implements Interaction {
         if (node === undefined || node.locked === true) continue
         const bounds = nodeBounds(node)
         const box = { x: bounds.x, y: bounds.y, w: bounds.width, h: bounds.height }
+        const angle = node.angle ?? 0
+        const pivot = anglePivot(bounds, node.angleAnchor)
         const corners = cornersOf(box)
         for (const corner of Object.keys(corners) as Corner[]) {
-          const c = corners[corner]
+          const raw = corners[corner]
+          const c = rotatePointAround(raw, pivot, angle)
           if (Math.abs(worldX - c.x) <= pad && Math.abs(worldY - c.y) <= pad) {
             return { nodeId: id, corner, from: box }
           }
@@ -116,8 +120,10 @@ export class ResizeNodeInteraction implements Interaction {
           if (node === undefined || node.locked === true) continue
           const bounds = nodeBounds(node)
           const box = { x: bounds.x, y: bounds.y, w: bounds.width, h: bounds.height }
+          const angle = node.angle ?? 0
+          const pivot = anglePivot(bounds, node.angleAnchor)
           for (const point of Object.values(cornersOf(box))) {
-            renderer.drawResizeHandle(point, size)
+            renderer.drawResizeHandle(rotatePointAround(point, pivot, angle), size)
           }
         }
       },

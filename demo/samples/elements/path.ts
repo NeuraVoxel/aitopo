@@ -111,6 +111,24 @@ export const pathDocument: GraphDocument = {
       },
     },
     {
+      id: 'angled-path',
+      label: 'angled',
+      closed: false,
+      angle: 18,
+      angleAnchor: { u: 0.5, v: 0.5 },
+      points: [
+        { x: 340, y: 300 },
+        { x: 420, y: 300 },
+        { x: 460, y: 340 },
+      ],
+      style: {
+        stroke: '#0369a1',
+        lineWidth: 2.5,
+        shapeKind: 'lineto',
+        label: { color: '#0c4a6e', fontSize: 11, fontWeight: 'bold' },
+      },
+    },
+    {
       id: 'locked-path',
       label: 'locked',
       locked: true,
@@ -135,6 +153,6 @@ export const pathSample: DemoSample = {
   title: 'Path',
   group: 'elements',
   description:
-    'Freestanding GraphPath: lineto / quadto / cubicto, dash, closed fill, lock (not an edge).',
+    'Freestanding GraphPath: lineto / quadto / cubicto, dash, closed fill, lock, angle (not an edge).',
   document: pathDocument,
 }

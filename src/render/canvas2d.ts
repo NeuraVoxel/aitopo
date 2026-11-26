@@ -2,8 +2,9 @@
  * Renderer abstraction and Canvas 2D implementation.
  */
 
-import type { Point, Rect } from '../geom.ts'
+import { anglePivot, rotateCanvasAbout, type Point, type Rect } from '../geom.ts'
 import type {
+  GraphAngleAnchor,
   GraphEdge,
   GraphGroup,
   GraphNode,
@@ -30,6 +31,10 @@ export interface NodePaintView {
   readonly unionBounds: Rect
   readonly selected: boolean
   readonly hovered: boolean
+  /** Rotation degrees (normalized); omitted ≡ 0. `bodyBounds` stay unrotated. */
+  readonly angle?: number
+  /** Relative pivot inside `bodyBounds`; omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
   /** Circle body (tool / data.shape). */
   readonly circular: boolean
   /** Whole-node opacity `[0, 1]`; default `1`. */
@@ -131,9 +136,16 @@ export interface PathLabelPaint {
 /** Cached geometry for a freestanding path paint. */
 export interface PathPaintView {
   readonly points: readonly { x: number; y: number }[]
+  /** Rotated AABB when `angle` ≠ 0 (dirty / cull); `points` stay unrotated. */
   readonly bounds: Rect
   readonly selected: boolean
   readonly hovered: boolean
+  /** Rotation degrees (normalized); omitted ≡ 0. */
+  readonly angle?: number
+  /** Relative pivot inside the original points AABB; omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
+  /** Resolved world pivot (from the original points AABB); set whenever `angle` ≠ 0. */
+  readonly anglePivot?: Point
   readonly closed: boolean
   readonly alpha: number
   readonly stroke: string
@@ -153,6 +165,10 @@ export interface GroupPaintView {
   readonly unionBounds: Rect
   readonly selected: boolean
   readonly hovered: boolean
+  /** Rotation degrees (normalized); omitted ≡ 0. `bandBounds` stay unrotated. */
+  readonly angle?: number
+  /** Relative pivot inside `bandBounds`; omitted ≡ center. */
+  readonly angleAnchor?: GraphAngleAnchor
   readonly expanded: boolean
   readonly alpha: number
   readonly stroke: string
@@ -164,6 +180,12 @@ export interface GroupPaintView {
   readonly hoverStyle?: NodePaintView['hoverStyle']
   readonly attachments: readonly AttachmentPaintOp[]
   readonly overlayAttachments: readonly AttachmentPaintOp[]
+}
+
+/** Rotate a chrome ring about `pivot` (original `bounds` stay unrotated). */
+export interface OverlayRotation {
+  readonly angle: number
+  readonly pivot: Point
 }
 
 /**
@@ -189,9 +211,19 @@ export interface Renderer {
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
   /** Overlay: solid selection ring (no-op OK for headless fakes). Body glow paints under fill on root. */
-  drawSelectionOverlay(bounds: Rect, style?: NodePaintView['selectStyle'], alpha?: number): void
+  drawSelectionOverlay(
+    bounds: Rect,
+    style?: NodePaintView['selectStyle'],
+    alpha?: number,
+    rotation?: OverlayRotation,
+  ): void
   /** Overlay: hover dashed ring; optional glow (no-op OK for fakes). */
-  drawHoverOverlay(bounds: Rect, style?: NodePaintView['hoverStyle'], alpha?: number): void
+  drawHoverOverlay(
+    bounds: Rect,
+    style?: NodePaintView['hoverStyle'],
+    alpha?: number,
+    rotation?: OverlayRotation,
+  ): void
   /** Overlay attachment ops (hover tooltip). */
   drawOverlayAttachments?(ops: readonly AttachmentPaintOp[], alpha?: number): void
   /** Overlay: marquee rubber band. */
@@ -299,6 +331,7 @@ export class Canvas2DRenderer implements Renderer {
     const ctx = this.rootCtx
     ctx.save()
     ctx.globalAlpha = view.alpha
+    rotateCanvasAbout(ctx, anglePivot(bounds, view.angleAnchor), view.angle ?? 0)
     applyBodyOuterShadow(ctx, view)
     const strokeWidth = view.strokeWidth / this.viewport.zoom
     // Collapsed: node-like radius 8; expanded band: larger corner radius.
@@ -400,6 +433,9 @@ export class Canvas2DRenderer implements Renderer {
     const ctx = highlight ? this.overlayCtx : this.rootCtx
     ctx.save()
     ctx.globalAlpha = view.alpha
+    if (view.anglePivot !== undefined) {
+      rotateCanvasAbout(ctx, view.anglePivot, view.angle ?? 0)
+    }
     ctx.beginPath()
     drawPlainPolyline(ctx, view.points)
     if (view.closed) ctx.closePath()
@@ -434,6 +470,7 @@ export class Canvas2DRenderer implements Renderer {
 
     ctx.save()
     ctx.globalAlpha = view.alpha
+    rotateCanvasAbout(ctx, anglePivot(bounds, view.angleAnchor), view.angle ?? 0)
     applyBodyOuterShadow(ctx, view)
 
     const dash = view.strokeDash
@@ -495,11 +532,13 @@ export class Canvas2DRenderer implements Renderer {
    * @param bounds - selected node body bounds.
    * @param style - optional chrome overrides.
    * @param alpha - whole-node opacity.
+   * @param rotation - optional rotation about `pivot` (bounds stay unrotated).
    */
   drawSelectionOverlay(
     bounds: Rect,
     style?: NodePaintView['selectStyle'],
     alpha = 1,
+    rotation?: OverlayRotation,
   ): void {
     const ctx = this.overlayCtx
     const pad = style?.padding ?? 2
@@ -511,6 +550,7 @@ export class Canvas2DRenderer implements Renderer {
     const radius = Math.min(8, w / 2, h / 2)
     ctx.save()
     ctx.globalAlpha = alpha
+    if (rotation !== undefined) rotateCanvasAbout(ctx, rotation.pivot, rotation.angle)
     ctx.strokeStyle = color
     ctx.lineWidth = (style?.width ?? 2) / this.viewport.zoom
     ctx.setLineDash([])
@@ -524,11 +564,13 @@ export class Canvas2DRenderer implements Renderer {
    * @param bounds - hovered node / group body bounds.
    * @param style - optional chrome overrides (`glow` defaults false).
    * @param alpha - whole-element opacity.
+   * @param rotation - optional rotation about `pivot` (bounds stay unrotated).
    */
   drawHoverOverlay(
     bounds: Rect,
     style?: NodePaintView['hoverStyle'],
     alpha = 1,
+    rotation?: OverlayRotation,
   ): void {
     const ctx = this.overlayCtx
     const pad = style?.padding ?? 2
@@ -540,6 +582,7 @@ export class Canvas2DRenderer implements Renderer {
     const radius = Math.min(8, w / 2, h / 2)
     ctx.save()
     ctx.globalAlpha = alpha
+    if (rotation !== undefined) rotateCanvasAbout(ctx, rotation.pivot, rotation.angle)
     paintChromeGlow(ctx, { x, y, w, h, radius, color, alpha, style, enabledDefault: false })
     ctx.strokeStyle = color
     ctx.lineWidth = (style?.width ?? 1.5) / this.viewport.zoom

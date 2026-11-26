@@ -14,7 +14,7 @@ The demo had no way to showcase agent-flavored topologies: nodes carrying agent 
   2. `subagent` — three AgentNodes joined by `kind: 'data'` edges to one `type: 'subagent'` node with `networkId: 'agent-fleet'`; the subnetwork holds six agent nodes in varied statuses. Enter/exit reuses the existing double-click navigation.
   3. `skill-workflow` — two skill pipelines displayed as expanded Groups: `Brainstorming` (eight stages) and `Spec Kit` (seven spec-driven-development stages, with the optional clarify/analyze steps in `cold` status); stages use the `skill` spark icon and `kind: 'flow'` edges chain each group's members in order — a stage is a capability, not an actor.
 - No engine behavior changes beyond the icon; samples are pure documents.
-- `tests/demo-registry.spec.ts` asserts the group id/order (`getting-started < elements < agents < business`), the three sample ids in order, per-sample invariants (positioned nodes, ≤15 root elements), the `agent` icon wiring, the SubAgent fleet wiring, and the workflow chain connectivity.
+- `tests/demo-registry.spec.ts` asserts the group id/order (`elements < adas < agents < …`), the three sample ids in order, per-sample invariants (positioned nodes, ≤15 root elements), the `agent` icon wiring, the SubAgent fleet wiring, and the workflow chain connectivity.
 
 ## Alternatives considered
 

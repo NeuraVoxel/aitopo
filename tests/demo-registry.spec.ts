@@ -11,13 +11,13 @@ describe('demo sample registry', () => {
     expect(doc.edges).toHaveLength(1)
   })
 
-  it('lists started, elements, adas, agents, dsh, flows in order', () => {
+  it('lists elements, adas, agents, dsh, flows in order', () => {
     const samples = listSamples()
     expect(samples[0]?.id).toBe(DEFAULT_SAMPLE_ID)
+    expect(samples[0]?.group).toBe('elements')
     const groupIndexes = samples.map(s => s.group)
     const first = (group: string): number => groupIndexes.indexOf(group as never)
     const last = (group: string): number => groupIndexes.lastIndexOf(group as never)
-    expect(last('started')).toBeLessThan(first('elements'))
     expect(last('elements')).toBeLessThan(first('adas'))
     expect(last('adas')).toBeLessThan(first('agents'))
     expect(last('agents')).toBeLessThan(first('dsh'))
@@ -27,7 +27,16 @@ describe('demo sample registry', () => {
 
   it('registers element showcases', () => {
     const ids = new Set(listSamples().map(s => s.id))
-    for (const id of ['node', 'edge', 'path', 'shape-node', 'group', 'alarm', 'subnetwork']) {
+    for (const id of [
+      'hello-world',
+      'node',
+      'edge',
+      'path',
+      'shape-node',
+      'group',
+      'alarm',
+      'subnetwork',
+    ]) {
       expect(ids.has(id)).toBe(true)
       const sample = getSample(id)
       expect(sample?.group).toBe('elements')
@@ -44,6 +53,7 @@ describe('demo sample registry', () => {
     }
     const path = parseDocument(getSample('path')!.document)
     expect(path.paths?.map(p => p.id).sort()).toEqual([
+      'angled-path',
       'closed-fill',
       'cubicto-curve',
       'lineto-dash',
@@ -55,8 +65,10 @@ describe('demo sample registry', () => {
     expect(path.paths?.some(p => p.style?.shapeKind === 'cubicto')).toBe(true)
     expect(path.paths?.some(p => p.closed === true && p.style?.fill !== undefined)).toBe(true)
     expect(path.paths?.some(p => p.locked === true)).toBe(true)
+    expect(path.paths?.some(p => (p.angle ?? 0) !== 0)).toBe(true)
     const shapeNode = parseDocument(getSample('shape-node')!.document)
     expect(shapeNode.shapeNodes?.map(s => s.id).sort()).toEqual([
+      'angled-shape',
       'closed-fill',
       'cubicto-curve',
       'in-group',
@@ -69,6 +81,7 @@ describe('demo sample registry', () => {
     expect(shapeNode.shapeNodes?.some(s => s.style?.shapeKind === 'quadto')).toBe(true)
     expect(shapeNode.shapeNodes?.some(s => s.style?.shapeKind === 'cubicto')).toBe(true)
     expect(shapeNode.shapeNodes?.some(s => s.locked === true)).toBe(true)
+    expect(shapeNode.shapeNodes?.some(s => (s.angle ?? 0) !== 0)).toBe(true)
     expect(shapeNode.groups?.[0]?.id).toBe('band')
     expect(shapeNode.groups?.[0]?.memberIds).toContain('in-group')
     expect(shapeNode.shapeNodes?.find(s => s.id === 'in-group')?.groupId).toBe('band')
