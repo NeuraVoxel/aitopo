@@ -26,6 +26,7 @@ export {
   DEFAULT_GROUP_PADDING,
   expandCollapseCenterPatches,
   findGroupForNode,
+  findGroupForShapeNode,
   isGroupExpanded,
   isGroupVisibleInScene,
   isNodeVisibleInScene,
@@ -33,11 +34,15 @@ export {
   listDescendantGroupIds,
   listDescendantNodeIds,
   listGroupMembers,
+  listGroupShapeNodes,
   listOwningGroupChain,
+  listOwningGroupChainForShapeNode,
   type MemberBoundsResolver,
+  type ShapeNodeBoundsResolver,
   memberUnionBounds,
   parentGroupOf,
   rectCenter,
+  shapeNodePointBounds,
 } from './group-state.ts'
 export {
   endpointExistsInMaps,

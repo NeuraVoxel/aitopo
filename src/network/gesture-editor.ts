@@ -10,6 +10,7 @@ import type { GraphPath, GraphShapeNode } from '../protocol/types.ts'
 import {
   expandCollapseCenterPatches,
   listOwningGroupChain,
+  listOwningGroupChainForShapeNode,
 } from '../ui/group-state.ts'
 import type { DirtyAccumulator } from './dirty.ts'
 import { elementPaintPad } from './paint-pad.ts'
@@ -448,7 +449,8 @@ export class GestureEditor {
 
   /**
    * Live preview of shape-node control points (body / vertex drag; no shapeNodeUpdated).
-   * Dirties owning group bands when the shape node is a member.
+   * Dirties owning group bands (and ancestors) when the shape node is a member so
+   * auto-fit old/new rects clear with the body.
    * @param shapeNodeId - shape-node id.
    * @param points - control points.
    */
@@ -460,8 +462,12 @@ export class GestureEditor {
     const oldRects = this.captureShapeNodeGeometryRects(shapeNodeId)
     this.deps.scene.writeShapeNodePoints(shapeNodeId, points)
     this.deps.views.markDirty(shapeNodeId)
-    const groupId = this.deps.scene.shapeNodes.get(shapeNodeId)?.groupId
-    if (groupId !== undefined) this.deps.views.markDirty(groupId)
+    for (const groupId of listOwningGroupChainForShapeNode(
+      this.deps.scene,
+      shapeNodeId,
+    )) {
+      this.deps.views.markDirty(groupId)
+    }
     this.deps.views.validateDirty(this.deps.scene)
     for (const rect of oldRects) this.deps.dirty.add(rect)
     for (const rect of this.captureShapeNodeGeometryRects(shapeNodeId)) {
@@ -780,18 +786,47 @@ export class GestureEditor {
 
   private capturePathGeometryRects(pathId: string): Rect[] {
     const pathView = this.deps.views.getPath(pathId)
-    if (pathView?.isActive !== true) return []
-    return [growRect(pathView.bounds, 8)]
+    // PathView has no isActive flag; skip only when densify produced nothing.
+    if (pathView === undefined || pathView.points.length < 2) return []
+    const selected = this.deps.scene.selectedIds.has(pathId)
+    const paint = pathView.toPaintView(selected, false)
+    return [growRect(pathView.bounds, elementPaintPad({
+      selected,
+      glow: paint.selectStyle?.glow,
+      glowBlur: paint.selectStyle?.glowBlur,
+    }))]
   }
 
   private captureShapeNodeGeometryRects(shapeNodeId: string): Rect[] {
     const rects: Rect[] = []
     const shapeView = this.deps.views.getShapeNode(shapeNodeId)
-    if (shapeView?.isActive === true) rects.push(growRect(shapeView.bounds, 8))
-    const groupId = this.deps.scene.shapeNodes.get(shapeNodeId)?.groupId
-    if (groupId !== undefined) {
+    // ShapeNodeView has no isActive flag (unlike Node/Edge/Group). Checking
+    // `isActive === true` always failed, so only the tiny group band was dirtied
+    // and the filled body left a root-layer ghost while the overlay moved.
+    if (shapeView !== undefined && shapeView.points.length >= 2) {
+      const selected = this.deps.scene.selectedIds.has(shapeNodeId)
+      const paint = shapeView.toPaintView(selected, false)
+      rects.push(growRect(shapeView.bounds, elementPaintPad({
+        selected,
+        glow: paint.selectStyle?.glow,
+        glowBlur: paint.selectStyle?.glowBlur,
+      })))
+    }
+    for (const groupId of listOwningGroupChainForShapeNode(
+      this.deps.scene,
+      shapeNodeId,
+    )) {
       const groupView = this.deps.views.getGroup(groupId)
-      if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
+      if (groupView?.isActive !== true) continue
+      const selected = this.deps.scene.selectedIds.has(groupId)
+      const paint = groupView.toPaintView(selected, false)
+      rects.push(growRect(groupView.bounds, elementPaintPad({
+        shadowBlur: paint.shadow?.blur,
+        shadowOffsetY: paint.shadow?.offsetY,
+        selected,
+        glow: paint.selectStyle?.glow,
+        glowBlur: paint.selectStyle?.glowBlur,
+      })))
     }
     return rects
   }

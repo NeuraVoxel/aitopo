@@ -3,10 +3,10 @@
  * Supports nested groups via `parentId` + child ids in `memberIds`.
  */
 
-import { growRectInsets, unionRect, type Point, type Rect } from '../geom.ts'
+import { growRect, growRectInsets, unionRect, type Point, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
-import type { GraphGroup, GraphNode } from '../protocol/types.ts'
-import { groupBounds, nodeBounds } from './bounds.ts'
+import type { GraphGroup, GraphNode, GraphShapeNode } from '../protocol/types.ts'
+import { groupBounds, nodeBounds, unionPoint } from './bounds.ts'
 
 /** Default padding on left / right / bottom when auto-fitting (world px). */
 export const DEFAULT_GROUP_PADDING = 16
@@ -14,6 +14,8 @@ export const DEFAULT_GROUP_PADDING = 16
 const GROUP_TITLE_INSET = 8
 /** Gap between group title block and member content. */
 const GROUP_TITLE_MEMBER_GAP = 8
+/** Scene-only pad around shape-node control-point AABB when no View bounds. */
+const SHAPE_NODE_FALLBACK_PAD = 4
 
 /**
  * Paint-extent bounds per member node (body ∪ attachments). Scene-only
@@ -21,6 +23,28 @@ const GROUP_TITLE_MEMBER_GAP = 8
  * @param node - member node.
  */
 export type MemberBoundsResolver = (node: GraphNode) => Rect
+
+/**
+ * Paint-extent bounds per member shape node. Scene-only callers omit it and
+ * unions fall back to control-point AABB (+ pad).
+ * @param shapeNode - member shape node.
+ */
+export type ShapeNodeBoundsResolver = (shapeNode: GraphShapeNode) => Rect
+
+/**
+ * Control-point AABB (+ pad) for a shape node when Views are unavailable.
+ * @param shapeNode - shape-node element.
+ */
+export function shapeNodePointBounds(shapeNode: GraphShapeNode): Rect {
+  let box: Rect | undefined
+  for (const point of shapeNode.points) {
+    box = unionPoint(box, point)
+  }
+  return growRect(
+    box ?? { x: 0, y: 0, width: 0, height: 0 },
+    SHAPE_NODE_FALLBACK_PAD,
+  )
+}
 
 /**
  * Whether a group paints as an expanded band.
@@ -62,6 +86,28 @@ export function findGroupForNode(scene: GraphScene, nodeId: string): GraphGroup 
 }
 
 /**
+ * Resolve the immediate group that owns a shape node (`groupId` or `memberIds`).
+ * @param scene - live scene.
+ * @param shapeNodeId - shape-node id.
+ */
+export function findGroupForShapeNode(
+  scene: GraphScene,
+  shapeNodeId: string,
+): GraphGroup | undefined {
+  const shapeNode = scene.shapeNodes.get(shapeNodeId)
+  if (shapeNode?.groupId !== undefined) {
+    const byId = scene.groups.get(shapeNode.groupId)
+    if (byId !== undefined) return byId
+  }
+  for (const group of scene.groups.values()) {
+    if (group.memberIds.includes(shapeNodeId) && scene.shapeNodes.has(shapeNodeId)) {
+      return group
+    }
+  }
+  return undefined
+}
+
+/**
  * Owning group id then each ancestor via `parentId` (inner → outer).
  * Used when member geometry changes so auto-fit bands and group-endpoint edges refresh.
  * @param scene - live scene.
@@ -70,6 +116,24 @@ export function findGroupForNode(scene: GraphScene, nodeId: string): GraphGroup 
 export function listOwningGroupChain(scene: GraphScene, nodeId: string): readonly string[] {
   const ids: string[] = []
   let group = findGroupForNode(scene, nodeId)
+  while (group !== undefined) {
+    ids.push(group.id)
+    group = parentGroupOf(scene, group)
+  }
+  return ids
+}
+
+/**
+ * Owning group id then each ancestor for a shape-node member (inner → outer).
+ * @param scene - live scene.
+ * @param shapeNodeId - shape-node id.
+ */
+export function listOwningGroupChainForShapeNode(
+  scene: GraphScene,
+  shapeNodeId: string,
+): readonly string[] {
+  const ids: string[] = []
+  let group = findGroupForShapeNode(scene, shapeNodeId)
   while (group !== undefined) {
     ids.push(group.id)
     group = parentGroupOf(scene, group)
@@ -164,6 +228,31 @@ export function listGroupMembers(scene: GraphScene, group: GraphGroup): GraphNod
 }
 
 /**
+ * Direct member shape nodes (`memberIds` ∪ `groupId` matches).
+ * @param scene - live scene.
+ * @param group - group element.
+ */
+export function listGroupShapeNodes(
+  scene: GraphScene,
+  group: GraphGroup,
+): GraphShapeNode[] {
+  const seen = new Set<string>()
+  const out: GraphShapeNode[] = []
+  for (const id of group.memberIds) {
+    const shapeNode = scene.shapeNodes.get(id)
+    if (shapeNode === undefined || seen.has(id)) continue
+    seen.add(id)
+    out.push(shapeNode)
+  }
+  for (const shapeNode of scene.shapeNodes.values()) {
+    if (shapeNode.groupId !== group.id || seen.has(shapeNode.id)) continue
+    seen.add(shapeNode.id)
+    out.push(shapeNode)
+  }
+  return out
+}
+
+/**
  * All descendant node ids under a group (nested groups included).
  * @param scene - live scene.
  * @param group - root group.
@@ -235,22 +324,32 @@ export function rectCenter(rect: Rect): Point {
 }
 
 /**
- * Member union (no padding), or undefined when empty. Includes child group bands.
+ * Member union (no padding), or undefined when empty. Includes child group bands
+ * and shape-node members.
  * @param scene - live scene.
  * @param group - group element.
- * @param memberBoundsOf - optional paint-extent resolver.
+ * @param memberBoundsOf - optional paint-extent resolver for boxed nodes.
+ * @param shapeNodeBoundsOf - optional paint-extent resolver for shape nodes.
  */
 export function memberUnionBounds(
   scene: GraphScene,
   group: GraphGroup,
   memberBoundsOf: MemberBoundsResolver = nodeBounds,
+  shapeNodeBoundsOf: ShapeNodeBoundsResolver = shapeNodePointBounds,
 ): Rect | undefined {
   let union: Rect | undefined
   for (const node of listGroupMembers(scene, group)) {
     union = unionRect(union, memberBoundsOf(node))
   }
+  for (const shapeNode of listGroupShapeNodes(scene, group)) {
+    if (shapeNode.points.length < 2) continue
+    union = unionRect(union, shapeNodeBoundsOf(shapeNode))
+  }
   for (const child of listChildGroups(scene, group)) {
-    union = unionRect(union, computeGroupBandBounds(scene, child, memberBoundsOf))
+    union = unionRect(
+      union,
+      computeGroupBandBounds(scene, child, memberBoundsOf, shapeNodeBoundsOf),
+    )
   }
   return union
 }
@@ -259,14 +358,21 @@ export function memberUnionBounds(
  * Expanded auto-fit band from current member positions (ignores `expanded` flag).
  * @param scene - live scene.
  * @param group - group element.
- * @param memberBoundsOf - optional paint-extent resolver.
+ * @param memberBoundsOf - optional paint-extent resolver for boxed nodes.
+ * @param shapeNodeBoundsOf - optional paint-extent resolver for shape nodes.
  */
 export function computeExpandedBandBounds(
   scene: GraphScene,
   group: GraphGroup,
   memberBoundsOf?: MemberBoundsResolver,
+  shapeNodeBoundsOf?: ShapeNodeBoundsResolver,
 ): Rect {
-  const union = memberUnionBounds(scene, group, memberBoundsOf)
+  const union = memberUnionBounds(
+    scene,
+    group,
+    memberBoundsOf ?? nodeBounds,
+    shapeNodeBoundsOf ?? shapeNodePointBounds,
+  )
   if (union === undefined) return groupBounds(group)
   return growRectInsets(union, resolveGroupPadding(group))
 }
@@ -308,18 +414,20 @@ export function suggestedGroupTopPadding(group: GraphGroup): number {
  * otherwise member union + padding (fallback to document when empty).
  * @param scene - live scene.
  * @param group - group element.
- * @param memberBoundsOf - optional paint-extent resolver.
+ * @param memberBoundsOf - optional paint-extent resolver for boxed nodes.
+ * @param shapeNodeBoundsOf - optional paint-extent resolver for shape nodes.
  */
 export function computeGroupBandBounds(
   scene: GraphScene,
   group: GraphGroup,
   memberBoundsOf?: MemberBoundsResolver,
+  shapeNodeBoundsOf?: ShapeNodeBoundsResolver,
 ): Rect {
   const autoFit = group.style?.autoFit !== false
   if (!isGroupExpanded(group) || !autoFit) {
     return groupBounds(group)
   }
-  return computeExpandedBandBounds(scene, group, memberBoundsOf)
+  return computeExpandedBandBounds(scene, group, memberBoundsOf, shapeNodeBoundsOf)
 }
 
 /**
@@ -344,13 +452,16 @@ export function collapsedOriginForCenter(group: GraphGroup, center: Point): Poin
  * @param scene - live scene.
  * @param group - group before toggle.
  * @param nextExpanded - target expanded flag.
- * @param memberBoundsOf - optional paint-extent resolver (must match the painted band).
+ * @param memberBoundsOf - optional paint-extent resolver for boxed nodes
+ *   (must match the painted band).
+ * @param shapeNodeBoundsOf - optional paint-extent resolver for shape nodes.
  */
 export function expandCollapseCenterPatches(
   scene: GraphScene,
   group: GraphGroup,
   nextExpanded: boolean,
   memberBoundsOf?: MemberBoundsResolver,
+  shapeNodeBoundsOf?: ShapeNodeBoundsResolver,
 ): {
   readonly groupPatch: {
     expanded: boolean
@@ -371,7 +482,12 @@ export function expandCollapseCenterPatches(
   }[]
 } {
   if (!nextExpanded) {
-    const band = computeExpandedBandBounds(scene, group, memberBoundsOf)
+    const band = computeExpandedBandBounds(
+      scene,
+      group,
+      memberBoundsOf,
+      shapeNodeBoundsOf,
+    )
     const origin = collapsedOriginForCenter(group, rectCenter(band))
     return {
       groupPatch: {
@@ -385,7 +501,12 @@ export function expandCollapseCenterPatches(
   }
 
   const center = rectCenter(groupBounds(group))
-  const band = computeExpandedBandBounds(scene, group, memberBoundsOf)
+  const band = computeExpandedBandBounds(
+    scene,
+    group,
+    memberBoundsOf,
+    shapeNodeBoundsOf,
+  )
   const current = rectCenter(band)
   const dx = center.x - current.x
   const dy = center.y - current.y

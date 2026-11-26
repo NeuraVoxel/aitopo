@@ -360,4 +360,79 @@ describe('paint channels', () => {
     expect(drawn).toContain('b')
     expect(drawn).toContain('a')
   })
+
+  it('previewShapeNodePoints dirties the shape body, not only the group band', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    // Document group at 480,200 (50×50 fallback when empty of boxed nodes).
+    // Shape member sits at 500–580 × 240–300 — outside that tiny band.
+    network.load({
+      version: 1,
+      nodes: [],
+      edges: [],
+      groups: [{
+        id: 'band',
+        label: 'Shape band',
+        memberIds: ['in-group'],
+        expanded: true,
+        x: 480,
+        y: 200,
+      }],
+      shapeNodes: [{
+        id: 'in-group',
+        label: 'member',
+        groupId: 'band',
+        points: [
+          { x: 500, y: 240 },
+          { x: 580, y: 240 },
+          { x: 580, y: 300 },
+          { x: 500, y: 300 },
+        ],
+        style: { fill: '#ccfbf1', stroke: '#0f766e', lineWidth: 2 },
+      }],
+    })
+    host = document.createElement('div')
+    host.style.width = '700px'
+    host.style.height = '400px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+    vi.mocked(renderer.drawShapeNode).mockClear()
+
+    network.setSelection(['in-group'])
+    await flushFrames(2)
+    renderer.reset()
+    vi.mocked(renderer.drawShapeNode).mockClear()
+
+    network.previewShapeNodePoints('in-group', [
+      { x: 520, y: 260 },
+      { x: 600, y: 260 },
+      { x: 600, y: 320 },
+      { x: 520, y: 320 },
+    ])
+    await flushFrames(2)
+
+    const dirty = renderer.beginDirties[0]
+    expect(dirty).not.toBe('overlay')
+    // Full-frame is fine; partial must cover the old filled body (y≥240), not
+    // only the authored 50×50 band at y=200 that left a member ghost.
+    if (dirty !== 'all') {
+      expect(Array.isArray(dirty)).toBe(true)
+      const rects = dirty as { x: number; y: number; width: number; height: number }[]
+      let maxY = -Infinity
+      let minX = Infinity
+      for (const r of rects) {
+        maxY = Math.max(maxY, r.y + r.height)
+        minX = Math.min(minX, r.x)
+      }
+      expect(maxY).toBeGreaterThan(290)
+      expect(minX).toBeLessThanOrEqual(500)
+    }
+    const drawn = vi.mocked(renderer.drawShapeNode).mock.calls.map(call => call[0].id)
+    expect(drawn).toContain('in-group')
+  })
 })

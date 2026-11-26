@@ -7,6 +7,7 @@ import { applyPatch, invertPatch, parseDocument } from '../src/protocol/index.ts
 import type { GraphEvent } from '../src/protocol/events.ts'
 import type { GraphShapeNode } from '../src/protocol/types.ts'
 import type { Renderer } from '../src/render/canvas2d.ts'
+import { computeExpandedBandBounds } from '../src/ui/group-state.ts'
 import { ShapeNodeView } from '../src/ui/shape-node-view.ts'
 import { ViewSet } from '../src/ui/view-set.ts'
 
@@ -629,6 +630,40 @@ describe('ViewSet shapeNodes', () => {
     views.validateDirty(scene)
     expect(views.getShapeNode('slot2')).toBeDefined()
     expect(views.getShapeNode('slot')!.bounds.width).toBeGreaterThan(0)
+  })
+
+  it('auto-fit band unions shape-node members (not boxed nodes only)', () => {
+    const scene = new GraphScene()
+    scene.load(parseDocument({
+      version: 1,
+      nodes: [],
+      edges: [],
+      groups: [{
+        id: 'band',
+        label: 'Shape band',
+        memberIds: ['in-group'],
+        expanded: true,
+        x: 480,
+        y: 200,
+      }],
+      shapeNodes: [{
+        id: 'in-group',
+        label: 'member',
+        groupId: 'band',
+        points: [
+          { x: 500, y: 240 },
+          { x: 580, y: 240 },
+          { x: 580, y: 300 },
+          { x: 500, y: 300 },
+        ],
+      }],
+    }))
+    const band = computeExpandedBandBounds(scene, scene.groups.get('band')!)
+    // Must wrap the shape (500–580 × 240–300), not fall back to authored 50×50.
+    expect(band.x).toBeLessThanOrEqual(500)
+    expect(band.y).toBeLessThanOrEqual(240)
+    expect(band.x + band.width).toBeGreaterThanOrEqual(580)
+    expect(band.y + band.height).toBeGreaterThanOrEqual(300)
   })
 })
 

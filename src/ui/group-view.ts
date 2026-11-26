@@ -20,6 +20,7 @@ import {
   isGroupExpanded,
   isGroupVisibleInScene,
   type MemberBoundsResolver,
+  type ShapeNodeBoundsResolver,
 } from './group-state.ts'
 
 // Collapsed groups paint as nodes: match the default node body (statusFill/statusStroke).
@@ -88,9 +89,14 @@ export class GroupView {
   /**
    * Recompute body, attachments, and union when dirty.
    * @param scene - active graph scene.
-   * @param memberBoundsOf - optional paint-extent resolver for auto-fit bands.
+   * @param memberBoundsOf - optional paint-extent resolver for boxed members.
+   * @param shapeNodeBoundsOf - optional paint-extent resolver for shape members.
    */
-  validate(scene: GraphScene, memberBoundsOf?: MemberBoundsResolver): void {
+  validate(
+    scene: GraphScene,
+    memberBoundsOf?: MemberBoundsResolver,
+    shapeNodeBoundsOf?: ShapeNodeBoundsResolver,
+  ): void {
     if (!this.dirty) return
     const group = scene.groups.get(this.id)
     if (group === undefined) {
@@ -100,7 +106,12 @@ export class GroupView {
     this.active = true
     this.visible = isGroupVisibleInScene(scene, this.id)
     this.expanded = isGroupExpanded(group)
-    this.band = computeGroupBandBounds(scene, group, memberBoundsOf)
+    this.band = computeGroupBandBounds(
+      scene,
+      group,
+      memberBoundsOf,
+      shapeNodeBoundsOf,
+    )
     const style = group.style
     const dataFill = typeof group.data?.fill === 'string' ? group.data.fill : undefined
     const dataStroke = typeof group.data?.stroke === 'string' ? group.data.stroke : undefined

@@ -59,7 +59,7 @@ interface GraphShapeNode {
 - Select/hover from `style.select` / `style.hover`; selected → control-point handles.
 - Labels at densified bounds center (v1); `label2` / alarm on attachment anchors subset.
 - Unlocked: body drag translates all points; handle drag updates one control point.
-- Group: `groupId` + `memberIds` dual bookkeeping; shapeNode ids participate in membership.
+- Group: `groupId` + `memberIds` dual bookkeeping; shapeNode ids participate in membership and expanded autofit (`listGroupShapeNodes`). Drag dirty for members: [shapenode member residual](../bug-fix/2026-11-26-shapenode-member-drag-residual.md).
 
 ### Patch / Network
 

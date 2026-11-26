@@ -4,7 +4,7 @@
 
 import type { Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
-import type { GraphNode } from '../protocol/types.ts'
+import type { GraphNode, GraphShapeNode } from '../protocol/types.ts'
 import { nodeBounds } from './bounds.ts'
 import {
   bundleFanOffset,
@@ -15,6 +15,7 @@ import {
   listDescendantGroupIds,
   listDescendantNodeIds,
   listOwningGroupChain,
+  shapeNodePointBounds,
 } from './group-state.ts'
 import { GroupView } from './group-view.ts'
 import { NodeView } from './node-view.ts'
@@ -128,7 +129,13 @@ export class ViewSet {
       view.validate(scene.shapeNodes.get(view.id))
     }
     for (const view of this.nodes.values()) view.validate(scene, opts)
-    for (const view of this.groups.values()) view.validate(scene, n => this.nodeUnionBounds(n))
+    for (const view of this.groups.values()) {
+      view.validate(
+        scene,
+        n => this.nodeUnionBounds(n),
+        s => this.shapeNodeUnionBounds(s),
+      )
+    }
     const fan = computeBundleFanOffsets(scene)
     const flowPhase = paintOpts?.flowPhase ?? 0
     for (const view of this.edges.values()) {
@@ -160,6 +167,19 @@ export class ViewSet {
   nodeUnionBounds(node: GraphNode): Rect {
     const view = this.nodes.get(node.id)
     return view === undefined ? nodeBounds(node) : view.unionBounds
+  }
+
+  /**
+   * Paint extents of a shape node from its validated View (densified AABB ∪ label).
+   * Falls back to control-point AABB before validate has run.
+   * @param shapeNode - member shape node.
+   */
+  shapeNodeUnionBounds(shapeNode: GraphShapeNode): Rect {
+    const view = this.shapeNodes.get(shapeNode.id)
+    if (view === undefined || view.points.length < 2) {
+      return shapeNodePointBounds(shapeNode)
+    }
+    return view.bounds
   }
 
   /**
