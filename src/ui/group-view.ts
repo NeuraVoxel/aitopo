@@ -168,7 +168,7 @@ export class GroupView {
       this.strokeWidth = style?.strokeWidth ?? 1.25
       this.strokeDash = undefined
     }
-    this.shadow = style?.shadow
+    this.shadow = style?.shadow == null ? undefined : style.shadow
     this.selectStyle = style?.select
     this.hoverStyle = style?.hover
     this.attachments = syncAttachments(group, this.expanded, this.attachments)

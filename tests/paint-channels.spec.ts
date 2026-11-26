@@ -518,4 +518,116 @@ describe('paint channels', () => {
     const drawn = vi.mocked(renderer.drawShapeNode).mock.calls.map(call => call[0].id)
     expect(drawn).toContain('in-group')
   })
+
+  it('setHover with the same id does not schedule another overlay paint', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 40, h: 24 }],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+
+    network.setHover('a')
+    await flushFrames(2)
+    renderer.reset()
+    vi.mocked(renderer.beginFrame).mockClear()
+
+    network.setHover('a')
+    await flushFrames(2)
+    expect(renderer.beginFrame).not.toHaveBeenCalled()
+  })
+
+  it('viewport-culls nodes outside the camera when painting all', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [
+        { id: 'near', type: 'unit', label: 'Near', x: 10, y: 10, w: 40, h: 24 },
+        { id: 'far', type: 'unit', label: 'Far', x: 4000, y: 4000, w: 40, h: 24 },
+      ],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+    vi.mocked(renderer.drawNode).mockClear()
+
+    network.updateCamera(vp => {
+      // happy-dom often leaves getBoundingClientRect at 0 — force a real view.
+      vp.setViewSize({ width: 400, height: 300 })
+      vp.setCamera({ x: 0, y: 0, zoom: 1 })
+    })
+    await flushFrames(2)
+    const drawn = vi.mocked(renderer.drawNode).mock.calls.map(call => call[0].id)
+    expect(drawn).toContain('near')
+    expect(drawn).not.toContain('far')
+  })
+
+  it('shows Zoom and FPS in the top-right view stats HUD', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 40, h: 24 }],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+
+    const hud = host.querySelector('.aitopo-view-stats')
+    expect(hud).toBeTruthy()
+    expect(hud?.textContent ?? '').toMatch(/Zoom\s+\d+\.\d{2}/)
+    expect(hud?.textContent ?? '').toMatch(/FPS\s+\d+/)
+
+    network.updateCamera(vp => {
+      vp.setZoom(2)
+    })
+    expect(hud?.textContent ?? '').toContain('Zoom 2.00')
+  })
+
+  it('hides view stats HUD when viewStatsVisible is false', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      viewStatsVisible: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [{ id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 40, h: 24 }],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '200px'
+    host.style.height = '150px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(2)
+    expect(host.querySelector('.aitopo-view-stats')).toBeNull()
+  })
 })

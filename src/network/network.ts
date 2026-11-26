@@ -86,6 +86,10 @@ export interface NetworkOptions {
    */
   readonly showNodeIcons?: boolean
   /**
+   * Top-right Zoom + rAF FPS HUD on the view. Default `true`.
+   */
+  readonly viewStatsVisible?: boolean
+  /**
    * Build the paint backend after canvases exist.
    * Default: Canvas2DRenderer with the mounted root/overlay canvases.
    */
@@ -134,6 +138,7 @@ export class Network {
   private view: HTMLDivElement | null = null
   private rootCanvas: HTMLCanvasElement | null = null
   private renderer: Renderer | null = null
+  private hudEl: HTMLDivElement | null = null
   private rafId = 0
   private flowPhase = 0
   private needsScenePaint = true
@@ -142,6 +147,10 @@ export class Network {
   private resizeObserver: ResizeObserver | null = null
   private readonly disposers: Array<() => void> = []
   private interactionModules: Interaction[] = []
+  /** rAF ticks counted toward the HUD FPS window. */
+  private fpsFrameCount = 0
+  private fpsWindowStartMs = 0
+  private fpsDisplay = 0
   /** Last `setEditing` value; null until the host calls `setEditing`. */
   private editingEnabled: boolean | null = null
   /**
@@ -445,6 +454,30 @@ export class Network {
     }
     overlay.style.pointerEvents = 'none'
     view.append(root, overlay)
+    if (this.options.viewStatsVisible !== false) {
+      const hud = document.createElement('div')
+      hud.className = 'aitopo-view-stats'
+      hud.setAttribute('aria-hidden', 'true')
+      Object.assign(hud.style, {
+        position: 'absolute',
+        top: '8px',
+        right: '8px',
+        zIndex: '2',
+        pointerEvents: 'none',
+        padding: '4px 8px',
+        borderRadius: '4px',
+        background: 'rgba(15, 23, 42, 0.72)',
+        color: '#e2e8f0',
+        fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace',
+        fontSize: '11px',
+        lineHeight: '1.35',
+        whiteSpace: 'pre',
+        userSelect: 'none',
+      })
+      view.appendChild(hud)
+      this.hudEl = hud
+      this.syncViewStatsHud()
+    }
     parent.appendChild(view)
     this.view = view
     this.rootCanvas = root
@@ -464,6 +497,8 @@ export class Network {
     const loop = (time: number): void => {
       if (this.disposed) return
       this.rafId = requestAnimationFrame(loop)
+      // HUD FPS tracks the continuous rAF cadence (display refresh), not paint-only.
+      this.noteRafFrame(time)
       if (this.views.hasFlowingEdges(this.scene)) {
         this.flowPhase = time
         this.needsScenePaint = true
@@ -481,6 +516,7 @@ export class Network {
     this.resizeObserver?.disconnect()
     this.resizeObserver = null
     for (const dispose of this.disposers.splice(0)) dispose()
+    this.hudEl = null
     this.view?.remove()
     this.view = null
     this.rootCanvas = null
@@ -558,6 +594,7 @@ export class Network {
    */
   setHover(id: string | undefined): void {
     const previous = this.scene.hover
+    if (previous === id) return
     this.scene.setHover(id)
     // Path / ShapeNode / Edge select·hover stroke lives on root (layer order).
     // Node hover itself stays overlay-only unless related edges also need a root refresh.
@@ -616,6 +653,7 @@ export class Network {
     this.scene.setCamera({ x: cam.x, y: cam.y, zoom: cam.zoom })
     this.dirty.markAll()
     this.scheduleScenePaint()
+    this.syncViewStatsHud()
     this.emit({
       type: 'viewportChanged',
       viewport: { x: cam.x, y: cam.y, zoom: cam.zoom } satisfies GraphViewport,
@@ -1477,6 +1515,7 @@ export class Network {
     const hoverId = this.scene.hover
     // Path / ShapeNode / Edge bodies highlight on root (layer order). Overlay
     // keeps node/group rings, tooltips, and edge overlay attachments only.
+    // Skip toPaintView unless the element is selected or hovered (dense graphs).
     for (const edge of this.scene.edges.values()) {
       const flags = this.edgeHighlightFlags(edge)
       if (!flags.selected && !flags.hovered) continue
@@ -1487,43 +1526,65 @@ export class Network {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
       }
     }
-    for (const group of this.scene.groups.values()) {
-      const view = this.views.getGroup(group.id)
-      if (view === undefined || !view.isVisible) continue
-      const selected = this.scene.selectedIds.has(group.id)
-      const hovered = hoverId === group.id
-      const paint = view.toPaintView(selected, hovered)
-      const rotation: OverlayRotation | undefined = view.angle === 0
-        ? undefined
-        : { angle: view.angle, pivot: view.pivot }
-      if (selected) {
-        renderer.drawSelectionOverlay(view.bandBounds, paint.selectStyle, paint.alpha, rotation)
-      } else if (hovered) {
-        renderer.drawHoverOverlay(view.bandBounds, paint.hoverStyle, paint.alpha, rotation)
-      }
-      if (paint.overlayAttachments.length > 0) {
-        renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
-      }
+    for (const groupId of this.scene.selectedIds) {
+      if (!this.scene.groups.has(groupId)) continue
+      this.paintGroupOverlay(renderer, groupId, true, hoverId === groupId)
     }
-    for (const node of this.scene.nodes.values()) {
-      const view = this.views.getNode(node.id)
-      if (view === undefined || !view.isVisible) continue
-      const selected = this.scene.selectedIds.has(node.id)
-      const hovered = hoverId === node.id
-      const paint = view.toPaintView(selected, hovered)
-      const rotation: OverlayRotation | undefined = view.angle === 0
-        ? undefined
-        : { angle: view.angle, pivot: view.pivot }
-      if (selected) {
-        renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle, paint.alpha, rotation)
-      } else if (hovered) {
-        renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle, paint.alpha, rotation)
-      }
-      if (paint.overlayAttachments.length > 0) {
-        renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
-      }
+    if (hoverId !== undefined && this.scene.groups.has(hoverId) && !this.scene.selectedIds.has(hoverId)) {
+      this.paintGroupOverlay(renderer, hoverId, false, true)
+    }
+    for (const nodeId of this.scene.selectedIds) {
+      if (!this.scene.nodes.has(nodeId)) continue
+      this.paintNodeOverlay(renderer, nodeId, true, hoverId === nodeId)
+    }
+    if (hoverId !== undefined && this.scene.nodes.has(hoverId) && !this.scene.selectedIds.has(hoverId)) {
+      this.paintNodeOverlay(renderer, hoverId, false, true)
     }
     this.chrome.paintAll(renderer)
+  }
+
+  private paintNodeOverlay(
+    renderer: Renderer,
+    nodeId: string,
+    selected: boolean,
+    hovered: boolean,
+  ): void {
+    const view = this.views.getNode(nodeId)
+    if (view === undefined || !view.isVisible) return
+    const paint = view.toPaintView(selected, hovered)
+    const rotation: OverlayRotation | undefined = view.angle === 0
+      ? undefined
+      : { angle: view.angle, pivot: view.pivot }
+    if (selected) {
+      renderer.drawSelectionOverlay(view.bodyBounds, paint.selectStyle, paint.alpha, rotation)
+    } else if (hovered) {
+      renderer.drawHoverOverlay(view.bodyBounds, paint.hoverStyle, paint.alpha, rotation)
+    }
+    if (paint.overlayAttachments.length > 0) {
+      renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
+    }
+  }
+
+  private paintGroupOverlay(
+    renderer: Renderer,
+    groupId: string,
+    selected: boolean,
+    hovered: boolean,
+  ): void {
+    const view = this.views.getGroup(groupId)
+    if (view === undefined || !view.isVisible) return
+    const paint = view.toPaintView(selected, hovered)
+    const rotation: OverlayRotation | undefined = view.angle === 0
+      ? undefined
+      : { angle: view.angle, pivot: view.pivot }
+    if (selected) {
+      renderer.drawSelectionOverlay(view.bandBounds, paint.selectStyle, paint.alpha, rotation)
+    } else if (hovered) {
+      renderer.drawHoverOverlay(view.bandBounds, paint.hoverStyle, paint.alpha, rotation)
+    }
+    if (paint.overlayAttachments.length > 0) {
+      renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
+    }
   }
 
   private validate(): void {
@@ -1550,7 +1611,21 @@ export class Network {
         // Partial dirty: skip draw calls whose bounds miss the cleared hole.
         // (Canvas clip alone still paid O(n) CPU; selection glow relies on this cull.)
         const cullRects = dirtyRects === 'all' ? undefined : dirtyRects
+        // Skip draws outside the camera world rect once the view has a real CSS
+        // size (happy-dom / pre-layout mounts often stay at the 1×1 default).
+        const viewWorld = cam.width > 1 && cam.height > 1
+          ? growRect(
+            {
+              x: cam.x,
+              y: cam.y,
+              width: cam.width / cam.zoom,
+              height: cam.height / cam.zoom,
+            },
+            32 / cam.zoom,
+          )
+          : undefined
         const inDirty = (bounds: Rect): boolean => {
+          if (viewWorld !== undefined && !intersectsRect(bounds, viewWorld)) return false
           if (cullRects === undefined) return true
           for (const rect of cullRects) {
             if (intersectsRect(bounds, rect)) return true
@@ -1578,6 +1653,27 @@ export class Network {
       this.dirty.markAll()
       this.scheduleScenePaint()
     }
+  }
+
+  /** Count one rAF tick toward the HUD FPS window; refresh the label ~1×/s. */
+  private noteRafFrame(now: number): void {
+    if (this.hudEl === null) return
+    if (this.fpsWindowStartMs === 0) this.fpsWindowStartMs = now
+    this.fpsFrameCount += 1
+    const elapsed = now - this.fpsWindowStartMs
+    if (elapsed >= 1000) {
+      this.fpsDisplay = Math.round((this.fpsFrameCount * 1000) / elapsed)
+      this.fpsFrameCount = 0
+      this.fpsWindowStartMs = now
+      this.syncViewStatsHud()
+    }
+  }
+
+  /** Refresh the top-right Zoom / FPS HUD from camera + rAF counters. */
+  private syncViewStatsHud(): void {
+    if (this.hudEl === null) return
+    const zoom = this.viewport.state.zoom
+    this.hudEl.textContent = `Zoom ${zoom.toFixed(2)}\nFPS ${this.fpsDisplay}`
   }
 
   /**

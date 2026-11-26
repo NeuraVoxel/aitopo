@@ -147,7 +147,10 @@ export class NodeView {
     this.angleDeg = normalizeAngleDegrees(node.angle ?? 0)
     this.angleAnchorCache = node.angleAnchor
     this.circular = node.type === 'tool' || node.data?.shape === 'circle'
-    this.shadow = node.style?.shadow ?? DEFAULT_SHADOW
+    // `null` opts out of the default soft shadow (dense occupancy cells, etc.).
+    this.shadow = node.style?.shadow === null
+      ? undefined
+      : (node.style?.shadow ?? DEFAULT_SHADOW)
     this.alpha = clampAlpha(node.style?.alpha)
     this.strokeDash = node.style?.strokeDash
     this.selectStyle = node.style?.select

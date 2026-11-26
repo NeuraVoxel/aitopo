@@ -69,7 +69,8 @@ const graphNodeStyleSchema = z.object({
   strokeDash: z.array(z.number()).optional(),
   select: graphChromeStyleSchema.optional(),
   hover: graphChromeStyleSchema.optional(),
-  shadow: graphShadowStyleSchema.optional(),
+  /** Object = custom shadow; `null` = disable the node default drop shadow. */
+  shadow: z.union([graphShadowStyleSchema, z.null()]).optional(),
 })
 
 const graphAngleAnchorSchema = z.object({
@@ -269,7 +270,8 @@ const graphGroupStyleSchema = z.object({
   showIcon: z.boolean().optional(),
   select: graphChromeStyleSchema.optional(),
   hover: graphChromeStyleSchema.optional(),
-  shadow: graphShadowStyleSchema.optional(),
+  /** Object = custom shadow; `null` clears. Groups have no default shadow. */
+  shadow: z.union([graphShadowStyleSchema, z.null()]).optional(),
 })
 
 const graphGroupSchema = z.object({

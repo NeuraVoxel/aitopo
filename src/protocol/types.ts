@@ -145,7 +145,11 @@ export interface GraphNodeStyle {
   readonly strokeDash?: readonly number[]
   readonly select?: GraphChromeStyle
   readonly hover?: GraphChromeStyle
-  readonly shadow?: GraphShadowStyle
+  /**
+   * Body drop shadow. Omitted → engine default soft shadow.
+   * Explicit `null` disables the default (dense grids / flat cells).
+   */
+  readonly shadow?: GraphShadowStyle | null
 }
 
 /**
@@ -518,7 +522,8 @@ export interface GraphGroupStyle {
   readonly showIcon?: boolean
   readonly select?: GraphChromeStyle
   readonly hover?: GraphChromeStyle
-  readonly shadow?: GraphShadowStyle
+  /** Collapsed-body drop shadow. Omitted → none (groups do not invent a default). `null` clears. */
+  readonly shadow?: GraphShadowStyle | null
 }
 
 /** Freestanding path segment interpolation (no edge endpoints). */

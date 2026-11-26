@@ -29,11 +29,11 @@ const ADAS_ORDER: readonly string[] = [
   'adas-agent',
   'adas-static',
   'adas-lane',
+  'adas-occupancy-bev',
   'adas-stop-crosswalk',
   'adas-traffic-signals',
   'adas-parking-slots',
   'adas-sensor-fov',
-  'adas-occupancy-bev',
   'adas-hdmap-junction',
 ]
 

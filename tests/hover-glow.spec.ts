@@ -139,6 +139,40 @@ describe('selection / hover glow', () => {
     expect(rootCtx.blurAtFill).toBe(0)
   })
 
+  it('applies default drop-shadow blur when unselected paint carries shadow', () => {
+    const { renderer, rootCtx } = rendererWithMockCanvases()
+    renderer.drawNode(
+      sampleNode,
+      bodyView({
+        selected: false,
+        shadow: { color: 'rgba(0,0,0,0.35)', blur: 6, offsetX: 0, offsetY: 2 },
+      }),
+    )
+    expect(rootCtx.blurAtFill).toBe(6)
+  })
+
+  it('skips drop shadow when paint omits shadow (explicit null opt-out)', () => {
+    const { renderer, rootCtx } = rendererWithMockCanvases()
+    renderer.drawNode(sampleNode, bodyView({ selected: false }))
+    expect(rootCtx.blurAtFill).toBe(0)
+  })
+
+  it('parses style.shadow null as explicit no-shadow', () => {
+    const doc = parseDocument({
+      version: 1,
+      nodes: [{
+        id: 'n',
+        type: 'occupancy',
+        label: '',
+        x: 0,
+        y: 0,
+        style: { shadow: null },
+      }],
+      edges: [],
+    })
+    expect(doc.nodes[0]!.style?.shadow).toBeNull()
+  })
+
   it('keeps hover as dashed ring without glow by default', () => {
     const { renderer, overlayCtx } = rendererWithMockCanvases()
     renderer.drawHoverOverlay(

@@ -18,11 +18,11 @@ The demo catalog adds group id `adas` (nav label **ADAS**), ordered after `eleme
 | `adas-agent` | yes | Dynamic obstacles + heading/speed + confidence Alarm tags + history trails + Vehicle multi-modal prediction Paths around axle-frame ego |
 | `adas-static` | yes | Static objects (CZone sign / Barrier / Traffic cone / Unclassified) around axle-frame ego |
 | `adas-lane` | yes | S-curve corridor on layers `ground` / `lanes` / `agents`: L0/L1/L2 offset ribbons + CL/boundaries, ego on L1 with heading, successor stub, speed-limit tags (merge stub removed) |
+| `adas-occupancy-bev` | yes | Catalog title **OCC**: dense 80×50 occupancy GraphNode grid (4k cells, `shadow: null`, paint stress) + axle-frame Ego (ordered under Lane) |
 | `adas-stop-crosswalk` | yes | Thin node stop line + Group crosswalk AABB |
 | `adas-traffic-signals` | yes | Lights / signs with status and alarms |
 | `adas-parking-slots` | yes | Axis-aligned GraphGroup bays (no rotate) |
 | `adas-sensor-fov` | reserved | Needs sector / frustum overlay |
-| `adas-occupancy-bev` | yes | Coarse occupancy as GraphNode cell grid |
 | `adas-hdmap-junction` | yes | Lane-segment topology nodes + successor edges |
 
 Files live under `demo/samples/adas/` (`index.ts` owns catalog order). Reserved ids stay stable for a later loadable flip. No invisible-endpoint ShapeLink fakes.

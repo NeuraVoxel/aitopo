@@ -356,4 +356,30 @@ describe('Node attachments', () => {
     expect(node.style?.select?.color).toBe('#f00')
     expect(node.style?.label?.color).toBe('#fff')
   })
+
+  it('applies default body shadow unless style.shadow is null', () => {
+    const scene = new GraphScene()
+    scene.load({
+      version: 1,
+      nodes: [
+        { id: 'def', type: 'unit', label: 'D', x: 0, y: 0, w: 40, h: 24 },
+        {
+          id: 'flat',
+          type: 'occupancy',
+          label: '',
+          x: 50,
+          y: 0,
+          w: 12,
+          h: 12,
+          style: { shadow: null },
+        },
+      ],
+      edges: [],
+    })
+    const views = new ViewSet()
+    views.rebuild(scene)
+    views.validateDirty(scene)
+    expect(views.getNode('def')!.toPaintView(false, false).shadow?.blur).toBe(6)
+    expect(views.getNode('flat')!.toPaintView(false, false).shadow).toBeUndefined()
+  })
 })

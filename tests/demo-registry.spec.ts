@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { parseDocument } from '../src/protocol/index.ts'
+import { OCC_CELL_COUNT } from '../demo/samples/adas/occupancy-bev.ts'
 import { DEFAULT_SAMPLE_ID, getSample, listSamples } from '../demo/samples/registry.ts'
 
 describe('demo sample registry', () => {
@@ -234,11 +235,11 @@ describe('demo sample registry', () => {
       'adas-agent',
       'adas-static',
       'adas-lane',
+      'adas-occupancy-bev',
       'adas-stop-crosswalk',
       'adas-traffic-signals',
       'adas-parking-slots',
       'adas-sensor-fov',
-      'adas-occupancy-bev',
       'adas-hdmap-junction',
     ])
 
@@ -460,8 +461,16 @@ describe('demo sample registry', () => {
       'slot-4',
     ])
 
+    expect(getSample('adas-occupancy-bev')!.title).toBe('OCC')
     const occ = parseDocument(getSample('adas-occupancy-bev')!.document)
-    expect(occ.nodes.filter(n => n.type === 'occupancy')).toHaveLength(48)
+    expect(occ.nodes.filter(n => n.type === 'occupancy')).toHaveLength(OCC_CELL_COUNT)
+    expect(
+      occ.nodes.filter(n => n.type === 'occupancy').every(n => n.style?.shadow === null),
+    ).toBe(true)
+    const occEgo = occ.nodes.find(n => n.id === 'ego')
+    expect(occEgo?.vectorImage).toBe('demo-ego-axle-frame')
+    expect(occEgo?.data?.axle).toBe('rear')
+    expect(occEgo?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
 
     const junction = parseDocument(getSample('adas-hdmap-junction')!.document)
     expect(junction.edges.filter(e => e.kind === 'successor').length).toBeGreaterThanOrEqual(4)

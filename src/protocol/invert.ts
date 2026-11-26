@@ -15,6 +15,7 @@ import type {
   GraphGroup,
   GraphNode,
   GraphPath,
+  GraphShadowStyle,
   GraphShapeNode,
 } from './types.ts'
 
@@ -367,6 +368,14 @@ function cloneNode(node: GraphNode): PatchNode {
   }
 }
 
+function cloneShadow(
+  shadow: GraphShadowStyle | null | undefined,
+): { shadow: GraphShadowStyle | null } | Record<string, never> {
+  if (shadow === null) return { shadow: null }
+  if (shadow === undefined) return {}
+  return { shadow: { ...shadow } }
+}
+
 function cloneNodeStyle(style: NonNullable<GraphNode['style']>): NonNullable<PatchNode['style']> {
   const { strokeDash, label, label2, tooltip, alarm, select, hover, shadow, ...rest } = style
   return {
@@ -378,7 +387,7 @@ function cloneNodeStyle(style: NonNullable<GraphNode['style']>): NonNullable<Pat
     ...(alarm !== undefined ? { alarm: { ...alarm } } : {}),
     ...(select !== undefined ? { select: { ...select } } : {}),
     ...(hover !== undefined ? { hover: { ...hover } } : {}),
-    ...(shadow !== undefined ? { shadow: { ...shadow } } : {}),
+    ...cloneShadow(shadow),
   }
 }
 
@@ -459,7 +468,7 @@ function cloneGroupStyle(style: NonNullable<GraphGroup['style']>): NonNullable<P
     ...(tooltip !== undefined ? { tooltip: { ...tooltip } } : {}),
     ...(select !== undefined ? { select: { ...select } } : {}),
     ...(hover !== undefined ? { hover: { ...hover } } : {}),
-    ...(shadow !== undefined ? { shadow: { ...shadow } } : {}),
+    ...cloneShadow(shadow),
   }
 }
 
