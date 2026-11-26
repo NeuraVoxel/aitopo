@@ -3,6 +3,7 @@
  */
 
 import {
+  containsRect,
   growRect,
   hitRect,
   intersectsRect,
@@ -199,6 +200,10 @@ export class Network {
     this.views.validateDirty(this.scene)
     const cam = this.scene.camera
     this.viewport.setCamera(cam)
+    // Consume scene load invalidateAll — Network.dirty already markAll for paint.
+    // Leaving the scene flag set would force the first apply() into markAll and
+    // skip per-element old/new rect capture (breaks partial dirty after load).
+    this.scene.takeDirty()
     this.dirty.markAll()
     this.scheduleScenePaint()
     this.emit({ type: 'documentChanged', reason: 'load' })
@@ -1284,6 +1289,68 @@ export class Network {
   }
 
   /**
+   * Expand a partial dirty seed so any element whose paint AABB intersects it
+   * contributes its **full** padded bounds. Stops mid-element clip clears that
+   * leave AA / rotated-ink residuals on neighbors (e.g. pulsing vectorImage
+   * AABB grazing a sibling ego).
+   */
+  private expandPartialDirty(seed: Rect): Rect {
+    let region = seed
+    let grew = true
+    while (grew) {
+      grew = false
+      for (const node of this.scene.nodes.values()) {
+        const view = this.views.getNode(node.id)
+        if (view === undefined || !view.isVisible) continue
+        const padded = growRect(view.bounds, this.nodePaintPad(node.id))
+        if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
+        region = unionRect(region, padded)!
+        grew = true
+      }
+      for (const group of this.scene.groups.values()) {
+        const view = this.views.getGroup(group.id)
+        if (view === undefined || !view.isVisible) continue
+        const paint = view.toPaintView(this.scene.selectedIds.has(group.id), false)
+        const padded = growRect(view.bounds, elementPaintPad({
+          shadowBlur: paint.shadow?.blur,
+          shadowOffsetY: paint.shadow?.offsetY,
+          selected: paint.selected,
+          glow: paint.selectStyle?.glow,
+          glowBlur: paint.selectStyle?.glowBlur,
+        }))
+        if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
+        region = unionRect(region, padded)!
+        grew = true
+      }
+      for (const edge of this.scene.edges.values()) {
+        const view = this.views.getEdge(edge.id)
+        if (view === undefined || !view.isActive) continue
+        const padded = growRect(view.bounds, 8)
+        if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
+        region = unionRect(region, padded)!
+        grew = true
+      }
+      for (const path of this.scene.paths.values()) {
+        const view = this.views.getPath(path.id)
+        if (view === undefined || view.points.length < 2) continue
+        const padded = growRect(view.bounds, 8)
+        if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
+        region = unionRect(region, padded)!
+        grew = true
+      }
+      for (const shapeNode of this.scene.shapeNodes.values()) {
+        const view = this.views.getShapeNode(shapeNode.id)
+        if (view === undefined || view.points.length < 2) continue
+        const padded = growRect(view.bounds, 8)
+        if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
+        region = unionRect(region, padded)!
+        grew = true
+      }
+    }
+    return region
+  }
+
+  /**
    * Incident edges plus far endpoints (full body). Edge AABB alone often clips
    * only a strip of the far node and leaves shadow/AA residuals.
    */
@@ -1478,7 +1545,9 @@ export class Network {
         const filter = this.gestures.dragPaintFilter
         const dirtyRects: Rect[] | 'all' = filter !== undefined || snapshot.invalidateAll
           ? 'all'
-          : snapshot.rect === undefined ? 'all' : [snapshot.rect]
+          : snapshot.rect === undefined
+            ? 'all'
+            : [this.expandPartialDirty(snapshot.rect)]
         // Partial dirty: skip draw calls whose bounds miss the cleared hole.
         // (Canvas clip alone still paid O(n) CPU; selection glow relies on this cull.)
         const cullRects = dirtyRects === 'all' ? undefined : dirtyRects

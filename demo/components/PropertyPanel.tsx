@@ -31,10 +31,24 @@ interface FormDraft {
   strokeWidth: string
   labelColor: string
   labelFontSize: string
+  selectColor: string
+  selectWidth: string
+  selectPadding: string
+  selectGlow: boolean
+  selectGlowBlur: string
   dataJson: string
 }
 
 const LABEL_POSITION_OPTIONS = ['', ...LABEL_POSITIONS] as const
+
+/** Engine defaults when `style.select.*` is omitted (matches canvas2d selection chrome). */
+const SELECT_DEFAULTS = {
+  color: '#3b82f6',
+  width: 2,
+  padding: 2,
+  glow: true,
+  glowBlur: 16,
+} as const
 
 const EMPTY_DRAFT: FormDraft = {
   label: '',
@@ -54,6 +68,11 @@ const EMPTY_DRAFT: FormDraft = {
   strokeWidth: '',
   labelColor: '',
   labelFontSize: '',
+  selectColor: SELECT_DEFAULTS.color,
+  selectWidth: String(SELECT_DEFAULTS.width),
+  selectPadding: String(SELECT_DEFAULTS.padding),
+  selectGlow: SELECT_DEFAULTS.glow,
+  selectGlowBlur: String(SELECT_DEFAULTS.glowBlur),
   dataJson: '{}',
 }
 
@@ -257,6 +276,41 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
         onChange={value => setField('labelFontSize', value)}
         onCommit={() => commit()}
       />
+      <TextRow
+        label="select color"
+        value={formDraft.selectColor}
+        onChange={value => setField('selectColor', value)}
+        onCommit={() => commit()}
+      />
+      <TextRow
+        label="select w"
+        value={formDraft.selectWidth}
+        onChange={value => setField('selectWidth', value)}
+        onCommit={() => commit()}
+      />
+      <TextRow
+        label="select pad"
+        value={formDraft.selectPadding}
+        onChange={value => setField('selectPadding', value)}
+        onCommit={() => commit()}
+      />
+      <Row label="select glow">
+        <input
+          type="checkbox"
+          checked={formDraft.selectGlow}
+          onChange={event => {
+            const next = { ...draftRef.current, selectGlow: event.target.checked }
+            setDraft(next)
+            commit(next)
+          }}
+        />
+      </Row>
+      <TextRow
+        label="glow blur"
+        value={formDraft.selectGlowBlur}
+        onChange={value => setField('selectGlowBlur', value)}
+        onCommit={() => commit()}
+      />
       <Row label="alarms">
         <span className="property-readonly">{alarms}</span>
       </Row>
@@ -341,11 +395,25 @@ function resolveTarget(network: Network | null, selectedIds: readonly string[]):
   return null
 }
 
+function selectDraftFields(
+  select: { readonly color?: string; readonly width?: number; readonly padding?: number; readonly glow?: boolean; readonly glowBlur?: number } | undefined,
+): Pick<FormDraft, 'selectColor' | 'selectWidth' | 'selectPadding' | 'selectGlow' | 'selectGlowBlur'> {
+  return {
+    selectColor: select?.color ?? SELECT_DEFAULTS.color,
+    selectWidth: numStr(select?.width ?? SELECT_DEFAULTS.width),
+    selectPadding: numStr(select?.padding ?? SELECT_DEFAULTS.padding),
+    selectGlow: select?.glow !== false,
+    selectGlowBlur: numStr(select?.glowBlur ?? SELECT_DEFAULTS.glowBlur),
+  }
+}
+
 function draftFrom(target: PropTarget): FormDraft {
   const data = stringData(target.element.data)
   const labelStyle = target.element.style?.label
+  const select = selectDraftFields(target.element.style?.select)
   const base: FormDraft = {
     ...EMPTY_DRAFT,
+    ...select,
     label: target.element.label ?? '',
     labelColor: labelStyle?.color ?? '',
     labelFontSize: numStr(labelStyle?.fontSize),
@@ -439,13 +507,30 @@ function fieldsFromDraft(target: PropTarget, draft: FormDraft): PropertyFields {
   assignNumber(fields, 'strokeWidth', draft.strokeWidth, current.strokeWidth)
   if (draft.labelColor !== current.labelColor) fields.labelColor = draft.labelColor
   assignNumber(fields, 'labelFontSize', draft.labelFontSize, current.labelFontSize)
+  if (draft.selectColor !== current.selectColor) fields.selectColor = draft.selectColor
+  assignNumber(fields, 'selectWidth', draft.selectWidth, current.selectWidth)
+  assignNumber(fields, 'selectPadding', draft.selectPadding, current.selectPadding)
+  if (draft.selectGlow !== current.selectGlow) fields.selectGlow = draft.selectGlow
+  assignNumber(fields, 'selectGlowBlur', draft.selectGlowBlur, current.selectGlowBlur)
   if (draft.dataJson !== current.dataJson) fields.dataJson = draft.dataJson
   return fields
 }
 
 function assignNumber(
   fields: PropertyFields,
-  key: 'x' | 'y' | 'w' | 'h' | 'angle' | 'angleAnchorU' | 'angleAnchorV' | 'strokeWidth' | 'labelFontSize',
+  key:
+    | 'x'
+    | 'y'
+    | 'w'
+    | 'h'
+    | 'angle'
+    | 'angleAnchorU'
+    | 'angleAnchorV'
+    | 'strokeWidth'
+    | 'labelFontSize'
+    | 'selectWidth'
+    | 'selectPadding'
+    | 'selectGlowBlur',
   draft: string,
   current: string,
 ): void {

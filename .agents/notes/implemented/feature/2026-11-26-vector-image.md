@@ -16,7 +16,7 @@ Clean-room first slice (no twaver API names):
 - `data.vectorImagePhase?: number` — `[0,1)` phase binding for host-driven pulse; hosts animate by `updateNode` data patches (declarative animate DSL deferred).
 - Distinct from `icon` / IconsAttachment.
 
-Demo: `registerDemoVectorImages()` registers `demo-heading-arrow`; Elements `node` sample shows heading + boost state; Observe/Edit pulse `heading` phase via silent apply.
+Demo: `registerDemoVectorImages()` registers `demo-heading-arrow`; ADAS `Ego` (`adas-ego`) shows `heading` + `heading-boost`; Observe/Edit pulse `heading` phase via silent apply.
 
 ## Alternatives considered
 

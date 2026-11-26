@@ -40,14 +40,14 @@ Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when h
 
 Registry-driven entries (`id`, title, group, description, document or factory, optional `defaultLayout`).
 
-1. **Elements** — `hello-world` (default: two nodes, one edge), then one page each: Node (incl. `vectorImage` heading overlay), Edge, Path, ShapeNode, Group, Alarm, SubNetwork. There is no separate Started group.
+1. **Elements** — `hello-world` (default: two nodes, one edge), then one page each: Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork. There is no separate Started group. ADAS `Ego` hosts the `vectorImage` heading overlay.
 2. **Business (soon)** — placeholders such as `dsh-event-topo` (disabled; click shows reserved message only).
 
 Fleet / Flow / Teams / Editor are not primary toolbar entries. `fixtures/*.json` remain for engine tests.
 
 ### Property panel (write-back level A)
 
-Single selection only. Editable via `updateNode` / `updateEdge` / `updateGroup` through `PatchHistory` on blur/Enter: label; geometry `x/y/w/h` where applicable; node `type`; common style fields (fill, stroke, strokeWidth, labelPosition, label color/fontSize; edge kind); simple string `data` map. Read-only: id, alarms summary, membership / from–to summaries. No alarm list editor, waypoint editor, multi-select batch edit, or edge arrow fields.
+Single selection only. Editable via `updateNode` / `updateEdge` / `updateGroup` / path·shape updates through `PatchHistory` on blur/Enter: label; geometry `x/y/w/h` where applicable; node `type`; common style fields (fill, stroke, strokeWidth, labelPosition, label color/fontSize; edge kind); `style.select` chrome (`color` / `width` / `padding` / `glow` / `glowBlur`); simple string `data` map. Read-only: id, alarms summary, membership / from–to summaries. No alarm list editor, waypoint editor, multi-select batch edit, or edge arrow fields.
 
 ### Demo module layout
 

@@ -195,9 +195,9 @@ export function useNetworkDemo(): NetworkDemoApi {
       fitNetwork(network)
     })
 
-    // Elements Node: pulse vectorImagePhase on the heading demo node (silent apply).
+    // ADAS Ego: pulse vectorImagePhase on the heading ego (silent apply).
     let pulseTimer: ReturnType<typeof setInterval> | undefined
-    if (sample.id === 'node') {
+    if (sample.id === 'adas-ego') {
       const started = performance.now()
       pulseTimer = setInterval(() => {
         const phase = ((performance.now() - started) / 2000) % 1
@@ -209,6 +209,8 @@ export function useNetworkDemo(): NetworkDemoApi {
               data: {
                 fill: '#bfdbfe',
                 stroke: '#1d4ed8',
+                role: 'ego',
+                axle: 'rear',
                 speedMs: 12.5,
                 vectorImagePhase: phase,
               },

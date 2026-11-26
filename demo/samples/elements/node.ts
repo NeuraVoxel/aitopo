@@ -1,5 +1,4 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
-import { DEMO_HEADING_VECTOR_IMAGE } from '../../lib/vector-images.ts'
 import type { DemoSample } from '../types.ts'
 
 export const nodeDocument: GraphDocument = {
@@ -66,59 +65,6 @@ export const nodeDocument: GraphDocument = {
       data: { fill: '#fef3c7', stroke: '#d97706' },
       style: { showIcon: false },
     },
-    {
-      id: 'heading',
-      type: 'vehicle',
-      label: 'vectorImage',
-      label2: 'heading',
-      x: 60,
-      y: 320,
-      w: 40,
-      h: 80,
-      angle: 30,
-      angleAnchor: { u: 0.5, v: 0.82 },
-      vectorImage: DEMO_HEADING_VECTOR_IMAGE,
-      data: {
-        fill: '#bfdbfe',
-        stroke: '#1d4ed8',
-        speedMs: 12.5,
-        vectorImagePhase: 0,
-      },
-      style: {
-        showIcon: false,
-        labelPosition: 'center',
-        label: { color: '#0f172a', fontWeight: 'bold', fontSize: 10 },
-        label2Position: 'bottom',
-        label2: { color: '#64748b', fontSize: 9 },
-      },
-    },
-    {
-      id: 'heading-boost',
-      type: 'vehicle',
-      label: 'state',
-      label2: 'boost',
-      x: 220,
-      y: 320,
-      w: 40,
-      h: 80,
-      angle: 15,
-      angleAnchor: { u: 0.5, v: 0.82 },
-      vectorImage: DEMO_HEADING_VECTOR_IMAGE,
-      data: {
-        fill: '#fee2e2',
-        stroke: '#b91c1c',
-        speedMs: 18,
-        vectorImagePhase: 0.25,
-      },
-      style: {
-        showIcon: false,
-        vectorImageState: 'boost',
-        labelPosition: 'center',
-        label: { color: '#0f172a', fontWeight: 'bold', fontSize: 10 },
-        label2Position: 'bottom',
-        label2: { color: '#64748b', fontSize: 9 },
-      },
-    },
   ],
   edges: [],
   groups: [],
@@ -128,7 +74,6 @@ export const nodeSample: DemoSample = {
   id: 'node',
   title: 'Node',
   group: 'elements',
-  description:
-    'Node types, labels, lock, angle / angleAnchor, and vectorImage heading overlay (phase/state binding).',
+  description: 'Node types, labels, lock, angle / angleAnchor, and attachment positions.',
   document: nodeDocument,
 }

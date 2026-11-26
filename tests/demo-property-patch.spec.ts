@@ -297,4 +297,27 @@ describe('buildPropertyPatch', () => {
       },
     }])
   })
+
+  it('merges style.select chrome without dropping sibling select keys', () => {
+    const withSelect: GraphNode = {
+      ...node,
+      style: {
+        ...node.style,
+        select: { color: '#111', width: 3, glow: true, glowBlur: 10 },
+      },
+    }
+    const patch = buildPropertyPatch(
+      { kind: 'node', element: withSelect },
+      { selectGlowBlur: 24, selectColor: '#f00' },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateNode',
+      id: 'a',
+      patch: {
+        style: {
+          select: { color: '#f00', width: 3, glow: true, glowBlur: 24 },
+        },
+      },
+    }])
+  })
 })

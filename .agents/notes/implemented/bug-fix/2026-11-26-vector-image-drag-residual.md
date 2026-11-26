@@ -4,7 +4,7 @@ Status: implemented
 
 ## Problem
 
-In the Elements Node sample, dragging `heading-boost` (and `heading`) left a ghost of the speed/yaw arrow at the previous world position. The body moved cleanly; only the out-of-box vector overlay stayed.
+Dragging ADAS Ego nodes `heading-boost` / `heading` (originally on Elements Node) left a ghost of the speed/yaw arrow at the previous world position. The body moved cleanly; only the out-of-box vector overlay stayed.
 
 ## Decision
 

@@ -5,6 +5,7 @@
 
 import type {
   AttachmentPosition,
+  GraphChromeStyle,
   GraphEdge,
   GraphGroup,
   GraphNode,
@@ -43,6 +44,16 @@ export interface PropertyFields {
   strokeWidth?: number
   labelColor?: string
   labelFontSize?: number
+  /** Selection chrome (`style.select.color`). */
+  selectColor?: string
+  /** Selection ring width (`style.select.width`). */
+  selectWidth?: number
+  /** Selection ring padding (`style.select.padding`). */
+  selectPadding?: number
+  /** Under-body selection glow on/off (`style.select.glow`; omitted ≡ true). */
+  selectGlow?: boolean
+  /** Selection glow blur px (`style.select.glowBlur`; omitted ≡ 16). */
+  selectGlowBlur?: number
   /** JSON object of string values; invalid JSON throws. */
   dataJson?: string
 }
@@ -129,6 +140,7 @@ function nodePatch(element: GraphNode, fields: PropertyFields): NodeUpdate {
     style.labelPosition = asLabelPosition(fields.labelPosition)
   }
   if (label !== undefined) style.label = label
+  assignSelectChrome(style, fields, element.style?.select)
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as NodeUpdate
@@ -143,6 +155,7 @@ function edgePatch(element: GraphEdge, fields: PropertyFields): EdgeUpdate {
   if (fields.stroke !== undefined) style.stroke = fields.stroke
   if (fields.strokeWidth !== undefined) style.lineWidth = fields.strokeWidth
   if (label !== undefined) style.label = label
+  assignSelectChrome(style, fields, element.style?.select)
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as EdgeUpdate
@@ -163,6 +176,7 @@ function groupPatch(element: GraphGroup, fields: PropertyFields): GroupUpdate {
     style.labelPosition = asLabelPosition(fields.labelPosition)
   }
   if (label !== undefined) style.label = label
+  assignSelectChrome(style, fields, element.style?.select)
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as GroupUpdate
@@ -178,6 +192,7 @@ function pathPatch(element: GraphPath, fields: PropertyFields): PathUpdate {
   if (fields.stroke !== undefined) style.stroke = fields.stroke
   if (fields.strokeWidth !== undefined) style.lineWidth = fields.strokeWidth
   if (label !== undefined) style.label = label
+  assignSelectChrome(style, fields, element.style?.select)
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as PathUpdate
@@ -193,6 +208,7 @@ function shapeNodePatch(element: GraphShapeNode, fields: PropertyFields): ShapeN
   if (fields.stroke !== undefined) style.stroke = fields.stroke
   if (fields.strokeWidth !== undefined) style.lineWidth = fields.strokeWidth
   if (label !== undefined) style.label = label
+  assignSelectChrome(style, fields, element.style?.select)
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as ShapeNodeUpdate
@@ -216,6 +232,30 @@ function assignAngleFields(
     u: fields.angleAnchorU ?? currentAnchor?.u ?? 0.5,
     v: fields.angleAnchorV ?? currentAnchor?.v ?? 0.5,
   }
+}
+
+/** Merge `style.select` so a single field write does not drop siblings (shallow style merge). */
+function assignSelectChrome(
+  style: Record<string, unknown>,
+  fields: PropertyFields,
+  current: GraphChromeStyle | undefined,
+): void {
+  const touched =
+    fields.selectColor !== undefined
+    || fields.selectWidth !== undefined
+    || fields.selectPadding !== undefined
+    || fields.selectGlow !== undefined
+    || fields.selectGlowBlur !== undefined
+  if (!touched) return
+  const select: GraphChromeStyle = {
+    ...(current ?? {}),
+    ...(fields.selectColor !== undefined ? { color: fields.selectColor } : {}),
+    ...(fields.selectWidth !== undefined ? { width: fields.selectWidth } : {}),
+    ...(fields.selectPadding !== undefined ? { padding: fields.selectPadding } : {}),
+    ...(fields.selectGlow !== undefined ? { glow: fields.selectGlow } : {}),
+    ...(fields.selectGlowBlur !== undefined ? { glowBlur: fields.selectGlowBlur } : {}),
+  }
+  style.select = select
 }
 
 function mergeLabelText(

@@ -226,7 +226,7 @@ describe('demo sample registry', () => {
   it('registers the ADAS group with loadable samples and unsupported reserved rows', () => {
     const adasGroup = listSamples().filter(s => s.group === 'adas')
     expect(adasGroup.map(s => s.id)).toEqual([
-      'adas-ego-surround',
+      'adas-ego',
       'adas-lane-lines',
       'adas-lane-centerline',
       'adas-road-boundary',
@@ -270,15 +270,20 @@ describe('demo sample registry', () => {
       expect(doc.paths!.every(p => p.points.length >= 2)).toBe(true)
     }
 
-    const ego = parseDocument(getSample('adas-ego-surround')!.document)
-    expect(ego.nodes.map(n => n.id).sort()).toEqual(['ego', 'lead', 'left', 'rear', 'right'])
-    expect(ego.edges).toHaveLength(4)
-    const egoNode = ego.nodes.find(n => n.id === 'ego')
-    expect(egoNode?.angle).toBe(30)
-    expect(egoNode?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
-    expect(egoNode?.w).toBe(40)
-    expect(egoNode?.h).toBe(80)
-    expect(ego.paths?.some(p => p.id === 'ego-heading')).toBe(true)
+    const ego = parseDocument(getSample('adas-ego')!.document)
+    expect(ego.nodes.map(n => n.id).sort()).toEqual(['heading', 'heading-boost'])
+    expect(ego.edges).toHaveLength(0)
+    expect(ego.paths ?? []).toHaveLength(0)
+    for (const id of ['heading', 'heading-boost'] as const) {
+      const node = ego.nodes.find(n => n.id === id)
+      expect(node?.type).toBe('vehicle')
+      expect(node?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
+      expect(node?.w).toBe(40)
+      expect(node?.h).toBe(80)
+      expect(node?.vectorImage).toBe('demo-heading-arrow')
+    }
+    expect(ego.nodes.find(n => n.id === 'heading')?.angle).toBe(30)
+    expect(ego.nodes.find(n => n.id === 'heading-boost')?.style?.vectorImageState).toBe('boost')
 
     const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
     expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)

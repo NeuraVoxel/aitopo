@@ -98,9 +98,10 @@ describe('paint channels', () => {
       version: 1,
       nodes: [
         { id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 40, h: 24 },
-        { id: 'b', type: 'unit', label: 'B', x: 80, y: 0, w: 40, h: 24 },
+        // Far enough that selection glow pad on `a` does not expand into `b`.
+        { id: 'b', type: 'unit', label: 'B', x: 200, y: 0, w: 40, h: 24 },
       ],
-      edges: [{ id: 'e1', from: 'a', to: 'b', kind: 'data' }],
+      edges: [],
     })
     host = document.createElement('div')
     host.style.width = '400px'
@@ -230,6 +231,50 @@ describe('paint channels', () => {
     await flushFrames(2)
     expect(renderer.beginDirties).toEqual(['all'])
     expect(renderer.sceneDraws).toBeGreaterThan(0)
+  })
+
+  it('partial dirty expands to full bounds of intersecting neighbors', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 100, h: 40 },
+        { id: 'b', type: 'unit', label: 'B', x: 80, y: 0, w: 100, h: 40 },
+        { id: 'c', type: 'unit', label: 'C', x: 400, y: 0, w: 40, h: 24 },
+      ],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '500px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+    vi.mocked(renderer.drawNode).mockClear()
+
+    network.apply({
+      ops: [{ op: 'updateNode', id: 'a', patch: { label: 'A2' } }],
+    })
+    await flushFrames(2)
+
+    expect(renderer.beginDirties).toHaveLength(1)
+    const dirty = renderer.beginDirties[0]
+    expect(Array.isArray(dirty)).toBe(true)
+    const rect = (dirty as Exclude<FrameDirty, 'all' | 'overlay'>)[0]!
+    // Neighbor b (overlapping) is fully covered; distant c stays outside.
+    expect(rect.x).toBeLessThanOrEqual(80)
+    expect(rect.x + rect.width).toBeGreaterThanOrEqual(180)
+    expect(rect.x + rect.width).toBeLessThan(400)
+
+    const drawn = vi.mocked(renderer.drawNode).mock.calls.map(call => call[0].id)
+    expect(drawn).toContain('a')
+    expect(drawn).toContain('b')
+    expect(drawn).not.toContain('c')
   })
 
   it('previewNodePosition schedules a partial scene dirty rect', async () => {
