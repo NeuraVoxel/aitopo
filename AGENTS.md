@@ -1,27 +1,43 @@
-<!-- ai-eng:begin -->
 # AGENTS.md
 
-Standing orders for AI-assisted work in this repository.
+adlc-coding — an AI work-paradigm and workflow kit: the paradigms and workflow skills plus a verified engineering-rule system (layered AGENTS.md instructions, a `run-gates` aggregate, lefthook hooks, Agent Notes decision records). It is language-agnostic and ships no application code: any stack adopts the rule set through `adopt` and keeps its own root. The gate system is orchestrated solely by `scripts/run-gates.ts`. Read [docs/architecture.md](docs/architecture.md) before changing source. Each module subtree (`packages/`, `scripts/`, `.agents/notes/`) carries its own `AGENTS.md` supplementing these rules; read it before working in that tree.
 
-- Non-trivial changes add or update an Agent Note under `.agents/notes/` in the same change ([format](.agents/notes/README.md)).
-- Design specs and brainstorming output land in `.agents/notes/proposed/` (Agent Note format); capture raw sparks to `.agents/inbox/` first and promote when ready — not under `docs/superpowers/specs/` and not as standing agent checklists under `docs/` ([placement](.agents/notes/README.md#design-drafts-and-checklists)).
-- Session retrospectives, process walkthroughs, and how-this-repo-behaves learnings land in `.agents/learning/` (`yyyy-mm-dd-topic.md`); they are not Agent Notes and not a todo inbox — capture sparks in `.agents/inbox/` instead ([learning](.agents/learning/README.md)).
-- Registrations and durable decisions state contracts; do not leave reasoning transcripts in comments or docs.
-- Prefer explicit resolve/default steps at package boundaries over hidden `??` inside run paths.
-- Misconfiguration fails loud at the earliest resolvable point.
-- Tests describe behavior, not "correctness."
-- Never commit or push automatically after finishing a change; wait for explicit user approval before running `git commit` or `git push`.
-- Run the smallest relevant checks before push (`ai-eng verify-notes` when notes change; package tests for code). Add a `verify-notes` script that runs `ai-eng verify-notes .agents/notes` when helpful.
+## Commands
 
-Product-specific runtime rules belong in this file only when this repository owns that runtime.
+```sh
+pnpm install          # also installs lefthook hooks via postinstall
+pnpm run check:ci     # gate aggregate: lint + typecheck + test (one entry for local and CI)
+pnpm run check:all    # ci-primary + doc-sync; this is what CI runs
+pnpm run doc-sync     # documentation gates (pairing, notes, references)
+```
 
-<!-- ai-eng:end -->
-## Design reference
+Scaffold or adopt the rule set from a checkout of this kit:
 
-- **Render engine reference:** `twaver.vector` (ideas only; clean-room rewrite — no SDK2D imports, no twaver public API names).
-- **Authoritative local path (twaver root):** Ubuntu `/home/jeff/Documents/DT/SDK2D/twaver`; Mac `/Users/macff/Documents/DT/SDK2D/twaver` (vector sources under `vector/`).
-- **Product-level UX references (git submodules):** `vendor/archify` ([tt-a1i/archify](https://github.com/tt-a1i/archify)) and `vendor/diagram-design` ([cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design)) — ideas only for authoring / presentation UX; do not import or copy their APIs into `src/`. See [vendor/README.md](vendor/README.md).
-- Do not use or recreate `vendor/SDK2D` under deepseek-harness; that path is retired.
-- **topo-diagram ↔ aitopo:** prefer **unchanged engine + demo defaults**. Skill styling uses supported `GraphDocument` / `Network` params. Only when a capability is missing: propose → implement in aitopo (twaver clean-room) → rebundle. Do not change global engine defaults merely to restyle the skill, or hand-edit the vendored IIFE.
+```sh
+pnpm run create -- new <dir> [--name <name>]
+pnpm run create -- adopt [dir] [--only rules,gates,docs,workflows,ci] [--force]
+```
 
-Product-specific runtime rules belong in this file only when this repository owns that runtime.
+`typecheck` / `lint` / `test` run standalone. Select test evidence by change surface ([docs/testing.md](docs/testing.md)); never default to the full suite.
+
+## Core conventions
+
+- **English-primary, paired docs.** Human-facing docs (`README.md`, `docs/*.md`, `.agents/notes/**/*.md`) are written in English with a `.zh.md` Chinese counterpart updated in the same change; `AGENTS.md` is the only exemption, staying English-only to bound agent context ([language policy](docs/architecture.md#language-policy)). `pnpm run doc-sync` rejects missing, orphaned, or drifted counterparts.
+- **ESM everywhere** (`"type": "module"`). Use package names across packages and `.ts` extensions on local relative imports; tsx executes TS directly — no `lib/` exists until a build step is introduced.
+- **Explicit over implicit**: defaulting is an explicit resolve step owned by the caller, never a hidden `?? default` inside `run()`; misconfiguration fails loud at load; never silently skip a missing referent.
+- **Trust TypeScript at typed same-process boundaries**: no runtime validation or hostile-input tests for values the static interface requires; validate at wire, file, environment, and subprocess boundaries.
+- **Hardened invariants become gates**: write `scripts/verify-*.ts` with a spec proving it rejects one invalid case, then wire it into the `run-gates.ts` graph. Promote a soft convention after its second violation.
+- **Tests describe behavior.** The kit ships no application code, so unit evidence lives in the gate scripts and the installer; a stack that adopts these rules owns its own lanes, including a real e2e lane that self-skips without credentials.
+- **Docs update in the same PR as code**; every fact has one home and everything else links there. Docs state current contracts, not reasoning transcripts or change history.
+- **Every non-trivial change adds or updates one Agent Note in the same PR** ([scope](.agents/notes/README.md#when-to-write-one)); only mechanical or local edits are exempt.
+- **Working notes live outside the notes tree**: uncommitted sparks queue in `.agents/inbox/` ([README](.agents/inbox/README.md), `QUEUE.md` board); session retrospectives go to `.agents/learning/` ([README](.agents/learning/README.md)); cited research findings go to `.agents/research/` ([README](.agents/research/README.md)) — evidence gathered from outside, about a subject this repository does not own, kept because a claim needs a source. Promotion to a proposed note is always an explicit request.
+- **Skills live flat in `.agents/skills/`** as `<name>/SKILL.md` direct children, and every skill this kit ships carries the `adlc-` prefix — the prefix marks the kit's own namespace, not "operates on an `.agents/` tree", so a general engineering skill like research belongs to it too. The `adlc-*` family (inbox capture/promote/view, learning note, research, release) ships in the installer's `workflows` component. `.claude/skills` and `.codebuddy/skills` are symlinks to `.agents/skills`, because Claude Code, CodeBuddy Code, and zcode discover project skills only there — add and edit skills under `.agents/skills/` and never as real files under `.claude/` or `.codebuddy/`.
+- **Releases are explicit cuts** ([docs/release.md](docs/release.md)): one commit bumps the version in root `package.json`, renames the `ChangeLog.md` `## Unreleased` heading, rewrites next-cut attributions, and tags `v<version>`; development commits never touch the version or released changelog headings.
+- **Secrets never enter the repository**: real credentials come from environment variables or an uncommitted `.env`; credential-dependent tests self-skip without credentials.
+- **Cross-stack adoption rule**: this repository ships no application code and no cross-language contract package; a new stack lives in its own repository with its own lane and goes green there, adopting this rule set through `adopt`. Shared artifacts between stacks take only two forms — schemas generated per language and fixtures committed to git, replayed offline by both sides ([adoption rule](docs/architecture.md#language-agnostic-adoption)).
+
+## Git hooks and gate ownership
+
+**Never commit or push on your own.** Finishing a change ends with the narrowest relevant evidence ([docs/testing.md](docs/testing.md)) and a report for acceptance; `git commit` and `git push` run only on the user's explicit request in the current turn. Release cuts follow the same discipline one level up: the cut itself is one explicit request ([docs/release.md](docs/release.md)).
+
+pre-commit runs fast staged-file checks only (oxlint --fix, trailing-whitespace check — files end with exactly one newline); pre-push runs typecheck only; CI owns the exhaustive matrix ([.github/workflows/ci.yml](.github/workflows/ci.yml)). Never bypass a failing gate: fix it or prove the failure is environmental. Do not repeat an already-passing check for commit or push.

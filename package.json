@@ -30,7 +30,10 @@
     "verify-notes": "ai-eng verify-notes .agents/notes",
     "bundle:iife": "node scripts/bundle-iife.mjs",
     "bundle:topo-diagram-skill": "node .agents/skills/topo-diagram/scripts/bundle-aitopo.mjs",
-    "prepublishOnly": "pnpm run typecheck && pnpm run verify-notes && pnpm test && pnpm run build"
+    "prepublishOnly": "pnpm run typecheck && pnpm run verify-notes && pnpm test && pnpm run build",
+    "check:ci": "tsx scripts/run-gates.ts ci-primary",
+    "doc-sync": "tsx scripts/run-gates.ts doc-sync",
+    "check:all": "tsx scripts/run-gates.ts check-all"
   },
   "engines": {
     "node": "^22.19.0 || >=24.0.0"

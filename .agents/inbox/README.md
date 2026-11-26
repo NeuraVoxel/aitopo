@@ -1,89 +1,104 @@
 # Inbox
 
-未承诺灵感的排队区：先捕获、不承诺必做；在 `QUEUE.md` 扫未完成项；值得做的再升格为正式 Agent Note。
+The queue for uncommitted sparks: capture first, promise nothing; sweep `QUEUE.md` for open items; promote what deserves formal review into an Agent Note.
 
-## 边界
+## Boundary
 
-- **不经 `ai-eng verify-notes`。** format gate 只扫 `.agents/notes/`；inbox 靠本 README 与人工/Agent 纪律约束。
-- **不是学习笔记。** 复盘与过程样例放 [`.agents/learning/`](../learning/README.md)；复盘里冒出的灵感应落到此处，learning 只链过来。
-- **不是决策记录。** 值得正式审阅的想法升格为 `notes/proposed/` 的 Agent Note；禁止把 inbox 文件改名或迁进 notes 树。
+- **Outside every format gate.** The gates scan `.agents/notes/` only; the inbox is held to this README plus human and agent discipline.
+- **Not a learning note.** Retrospectives and process samples belong in [`.agents/learning/`](../learning/README.md); sparks surfacing during a retrospective land here, and learning only links over.
+- **Not a decision record.** An idea worth formal review is promoted to an Agent Note under `notes/proposed/`; never rename or move an inbox file into the notes tree.
 
-同一想法不要同时以权威待办存在于 inbox 与 learning。`AGENT​S.md` 的设计草稿落点规则不受本目录影响：正式提案进 `.agents/notes/proposed/`。
+One idea must not exist as an authoritative todo in both the inbox and learning at once.
 
-## 书写语言
+## Entry language
 
-正文**优先使用中文**。专业名词、命令、路径、标识符可保留英文（例如 Agent Note、`QUEUE.md`、`Status: open`、`verify-notes`）。
+Default to Chinese for the body; Status, Type, and ID values, paths, commands, and terms stay English (for example Agent Note, `QUEUE.md`, `Status: open`, `Type: bug`, `ID: Feat-0001`).
 
-## 布局
+## Layout
 
-| 路径 | 职责 |
+| Path | Responsibility |
 |---|---|
-| `README.md` | 本目录合同 |
-| `QUEUE.md` | checkbox 排队板（扫队列用） |
-| `yyyy-mm-dd-slug.md` | 一条灵感；文件名日期 = 首次捕获日 |
+| `README.md` | This directory's contract |
+| `QUEUE.md` | The checkbox board (what a queue sweep reads) |
+| `yyyy-mm-dd-slug.md` | One spark; the filename date is the capture date |
 
-## 单条文件形状
+## Entry shape
 
 ```markdown
-# Inbox: <短标题>
+# Inbox: <short title>
 
 Status: open
+Type: feature
+ID: Feat-0001
 
 ## Spark
-<几句：想法是什么、为何此刻记下>
+<a few sentences: the idea and why it is captured now>
 
 ## Notes
-（可选）上下文、链接、粗略代价；勿写完整 Proposal 骨架
+(optional) context, links, rough cost; never a Proposal skeleton
 ```
 
-`Status` 取值：
+`Status` values:
 
-- `open` — 仍在排队
-- `promoted` — 已升格离队；正文须链到归属 Agent Note
-- `discarded` — 已丢弃离队；一行原因（写在 `## Notes` 或 Status 旁）
+- `open` — still queued
+- `promoted` — left the queue by promotion; the body links the owning Agent Note
+- `discarded` — left the queue by dismissal; a one-line reason next to the status or in `## Notes`
 
-无 format gate。形状靠本 README 与人工/Agent 纪律约束。
+`Type` values (closed set):
+
+- `feature` — something that does not exist yet: a new capability, contract, or process, or an improvement to one
+- `bug` — something already wrong: a defect, a drift, or a violation of a contract this repository already states
+
+`Type` is the entry's own axis — is this new, or already wrong — and it is **not** the Agent Note `class`. A promoted note's class is one of the six in the [Agent Notes Classification](../notes/README.md#classification) (`feature`, `bug-fix`, `simplification`, `architecture`, `process`, `testing`), chosen at promotion from what the decision *is*; `Type` never becomes a class by default.
+
+`Type` is captured once and never changes with status: a promoted or discarded spark keeps the type it was captured with. No gate checks the shape; this README and discipline do.
+
+`ID` is the spark's task number: `Feat-` for `feature` and `Bug-` for `bug`, followed by a per-type four-digit sequence (`Feat-0001`, `Bug-0001`). Capture derives it as the highest number of that type already in use plus one, scanning both the spark files and the `QUEUE.md` rows. An ID is assigned once and then never changes — not with status, not on promotion or discard — and a departed spark's number is never reused. A spark captured before IDs existed gets its number on first touch. No gate checks any of this either; this README and discipline do.
 
 ## QUEUE.md
 
-- `[ ]` 表示 `open`。
-- `[x]` 表示已离队（`promoted` 或 `discarded`）；升格行链到 Agent Note；丢弃行可附短原因。
-- 顺序：捕获日新→旧。
+- `[ ]` marks `open`.
+- `[x]` marks a departed entry (`promoted` or `discarded`); a promoted row links the Agent Note; a discarded row may carry a short reason.
+- Each row carries the entry's ID as a tag before the link: `- [ ] [Feat-0001] [title](./yyyy-mm-dd-slug.md)`. The tag carries the type too — `Feat-` is `feature`, `Bug-` is `bug`.
+- Rows are grouped by kind, `Feat` above `Bug`, each group under its own `## ` heading beneath `# Inbox queue`; a group with no rows is omitted.
+- Order: oldest capture first **inside a group** — the row captured first sits at the top of its group and each later capture joins the bottom.
 
-细节与正式 `Status` 以单条文件为准。`QUEUE.md` 是扫队列与勾选操作面。每次捕获 / 升格 / 丢弃须在同一变更中改条目文件并更新 `QUEUE.md` 对应行。发现不一致时，以条目 `Status` 为准，修 `QUEUE.md`。
+The board is the `# Inbox queue` heading, its group headings, and its rows — no legend, no empty-state note; this README is the board's only authority, so a fact lives here and never in the file. No `[ ]` row means the queue is empty.
 
-`QUEUE.md` 由 `ai-eng init` 仅在缺失时写入，`--force` / `--upgrade` 均不刷新——里面的勾选行是本仓库状态，不是模板。
+Every capture, promotion, or dismissal updates the entry file and its `QUEUE.md` row in the same change. On disagreement the entry's `Status` wins; fix the row.
 
-## 捕获
+## Capture
 
-1. 新建 `yyyy-mm-dd-slug.md`，`Status: open`，`## Spark` 写几句即可。
-2. 在 `QUEUE.md` 顶部（新→旧）加一行 `- [ ] [标题](./yyyy-mm-dd-slug.md)`。
+1. Create `yyyy-mm-dd-slug.md` with `Status: open`, a `Type:` line (`feature` or `bug`), an `ID:` line derived as that type's highest number in use plus one, and a few sentences under `## Spark`.
+2. Append `- [ ] [<id>] [title](./yyyy-mm-dd-slug.md)` to `QUEUE.md`, as the last row of the group matching the type (`Feat` for `feature`, `Bug` for `bug`). Create the group heading when the group has no rows yet.
 
-也可用随包安装的 `kit-inbox-*` skills（kit 创作的技能统一位于 `.agents/skills/kit/`，名称带 `kit-` 前缀）：
+Or use the installed skills (adlc-authored skills live flat under `.agents/skills/`):
 
-| Skill | 用途 |
+| Skill | Purpose |
 |---|---|
-| [kit-inbox-capture](../skills/kit/kit-inbox-capture/SKILL.md) | 只需**主体**（可选标题 / slug / Notes）；写 spark 并更新 `QUEUE.md` |
-| [kit-inbox-promote](../skills/kit/kit-inbox-promote/SKILL.md) | 明确升格某条 `open` spark → `proposed/` Agent Note，并改 Status / QUEUE |
+| [adlc-inbox-capture](../skills/adlc-inbox-capture/SKILL.md) | Given just the body (optional title / slug / notes / type): writes the spark (type resolved, never silently defaulted), assigns the next ID, and updates `QUEUE.md` |
+| [adlc-inbox-promote](../skills/adlc-inbox-promote/SKILL.md) | Explicitly promotes one `open` spark — targeted by ID, path, title, or keyword — to a `proposed/` Agent Note (class chosen from the six, the type only a hint) and updates status and queue |
+| [adlc-inbox-view](../skills/adlc-inbox-view/SKILL.md) | Read-only: renders every spark as Markdown tables grouped by type (`feature` / `bug`), newest first, with `ID` and `Status` columns |
 
-捕获不升格；升格须当轮明确说「升格」或使用 `kit-inbox-promote`。
+Capture never promotes; promotion requires an explicit promote request in the turn.
 
-## 扫队列
+## Sweep the queue
 
-打开 `QUEUE.md`，只看 `[ ]` 行。需要更多上下文再点进条目文件。不强制回顾节奏。
+Open `QUEUE.md` and read only the `[ ]` rows; sweeping one kind means reading that group and skipping the other. Open an entry file when more context helps. No mandated review cadence. [adlc-inbox-view](../skills/adlc-inbox-view/SKILL.md) renders the entries as tables grouped by type when you want the whole inbox, departed entries included, in one pass.
 
-## 升格
+## Promote
 
-1. 确认值得写完整 Agent Note 并认真审阅。
-2. 在 `.agents/notes/proposed/<class>/yyyy-mm-dd-….md` 新建正式 note（禁止把 inbox 文件改名或迁进 notes 树）。
-3. proposed → spark 互链；条目改为 `Status: promoted` 并链到该 Agent Note。
-4. `QUEUE.md` 对应行改为 `[x]`，并加上 Agent Note 链接。
-5. 优先同一变更完成；若拆提交，双向链接最终必须齐全。
+1. Confirm the spark deserves a full, seriously reviewed Agent Note.
+2. Choose the class from the six in the [Agent Notes Classification](../notes/README.md#classification), reading the spark against those discriminators. An explicitly requested class wins; otherwise pick the class the decision actually is and say why — the spark's `Type` only hints at `feature` / `bug-fix` and is never the default, so a `feature` spark about tooling may land in `process`. Ask one clarifying question only when two classes genuinely contend.
+3. Create the formal note under `.agents/notes/proposed/<class>/yyyy-mm-dd-….md` — never by renaming or moving the inbox file.
+4. Cross-link: the proposed note links the spark; the spark becomes `Status: promoted` and links the note, keeping its `Type`.
+5. Flip the `QUEUE.md` row to `[x]` with the Agent Note link; the ID tag stays.
+6. Prefer one change for all of it; if split across commits, the bidirectional links must be complete by the end. A later move of the note between lifecycle folders (for example `proposed/` → `implemented/`) updates this `QUEUE.md` row and the spark's link in the same change ([why](../notes/README.md#moving-between-lifecycles)) — no gate reads `QUEUE.md` or a spark, so nothing else will catch a stale link.
 
-Agent 可代写条目并改 `QUEUE.md`。除非当轮人明确要求升格，Agent 不得自行升格到 `proposed/`。
+An agent may draft entries and update `QUEUE.md`; an agent must not promote unless the human explicitly asks in the current turn.
 
-## 丢弃
+## Discard
 
-1. 条目 `Status: discarded` + 短原因。
-2. `QUEUE.md` 勾 `[x]`（可选短原因）。
-3. 默认保留文件；仅在无引用价值时删除，并去掉 `QUEUE.md` 行。
+1. Set the entry to `Status: discarded` with a short reason.
+2. Flip the row to `[x]` (a short reason is optional).
+3. Keep the file by default; delete it only when it has no reference value, and remove its row.
