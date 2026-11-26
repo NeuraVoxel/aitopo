@@ -94,7 +94,7 @@ export function sampleCircularArc(
   clockwise = true,
   radius?: number,
 ): Point[] {
-  return buildCircularArc(center, from, to, clockwise, radius).points
+  return [...buildCircularArc(center, from, to, clockwise, radius).points]
 }
 
 /**

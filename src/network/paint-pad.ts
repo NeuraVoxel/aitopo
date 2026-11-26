@@ -15,11 +15,11 @@ const DEFAULT_GLOW_BLUR = 16
  * @param args - optional live shadow / selection chrome.
  */
 export function elementPaintPad(args: {
-  readonly shadowBlur?: number
-  readonly shadowOffsetY?: number
-  readonly selected?: boolean
-  readonly glow?: boolean
-  readonly glowBlur?: number
+  readonly shadowBlur?: number | undefined
+  readonly shadowOffsetY?: number | undefined
+  readonly selected?: boolean | undefined
+  readonly glow?: boolean | undefined
+  readonly glowBlur?: number | undefined
 } = {}): number {
   const shadow =
     (args.shadowBlur ?? DEFAULT_SHADOW_BLUR)

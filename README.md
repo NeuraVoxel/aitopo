@@ -40,8 +40,11 @@ Agent workflow uses `@neuravoxel/ai-eng` as a committed `devDependency` (`github
 pnpm install
 pnpm test
 pnpm run typecheck
+pnpm run build
 pnpm run demo
 pnpm run verify-notes
+pnpm run bundle:iife                 # dist/aitopo.iife.js (full public API, global Aitopo)
+pnpm run bundle:topo-diagram-skill   # skill-slim IIFE under .agents/skills/topo-diagram/assets/
 ```
 
 ## Public API (summary)

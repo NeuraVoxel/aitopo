@@ -180,7 +180,9 @@ function invertNodePatch(node: GraphNode, patch: UpdateNodePatch): UpdateNodePat
   if (patch.networkId !== undefined && node.networkId !== undefined) inv.networkId = node.networkId
   if (patch.locked !== undefined && node.locked !== undefined) inv.locked = node.locked
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(node.alarms)
-  if (patch.style !== undefined && node.style !== undefined) inv.style = { ...node.style }
+  if (patch.style !== undefined && node.style !== undefined) {
+    inv.style = cloneNodeStyle(node.style)
+  }
   if (patch.data !== undefined && node.data !== undefined) inv.data = { ...node.data }
   return inv
 }
@@ -313,8 +315,23 @@ function cloneNode(node: GraphNode): PatchNode {
     ...(node.networkId !== undefined ? { networkId: node.networkId } : {}),
     ...(node.locked !== undefined ? { locked: node.locked } : {}),
     ...(node.alarms !== undefined ? { alarms: cloneAlarms(node.alarms) } : {}),
-    ...(node.style !== undefined ? { style: { ...node.style } } : {}),
+    ...(node.style !== undefined ? { style: cloneNodeStyle(node.style) } : {}),
     ...(node.data !== undefined ? { data: { ...node.data } } : {}),
+  }
+}
+
+function cloneNodeStyle(style: NonNullable<GraphNode['style']>): NonNullable<PatchNode['style']> {
+  const { strokeDash, label, label2, tooltip, alarm, select, hover, shadow, ...rest } = style
+  return {
+    ...rest,
+    ...(strokeDash !== undefined ? { strokeDash: [...strokeDash] } : {}),
+    ...(label !== undefined ? { label: { ...label } } : {}),
+    ...(label2 !== undefined ? { label2: { ...label2 } } : {}),
+    ...(tooltip !== undefined ? { tooltip: { ...tooltip } } : {}),
+    ...(alarm !== undefined ? { alarm: { ...alarm } } : {}),
+    ...(select !== undefined ? { select: { ...select } } : {}),
+    ...(hover !== undefined ? { hover: { ...hover } } : {}),
+    ...(shadow !== undefined ? { shadow: { ...shadow } } : {}),
   }
 }
 

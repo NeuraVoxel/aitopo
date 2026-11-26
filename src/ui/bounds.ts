@@ -225,8 +225,13 @@ export function edgeAnchorsFromRects(
       points: [ends.from, ends.to],
     }
   }
-  const fromSide = hints?.from !== undefined && hints.from !== 'radial' ? hints.from : undefined
-  const toSide = hints?.to !== undefined && hints.to !== 'radial' ? hints.to : undefined
+  // Radial already returned above; remaining hints are orthogonal side pins.
+  const fromSide: OrthogonalAnchorSide | undefined = hints?.from === undefined
+    ? undefined
+    : hints.from
+  const toSide: OrthogonalAnchorSide | undefined = hints?.to === undefined
+    ? undefined
+    : hints.to
   const fromPt = fromSide === undefined ? auto.from : anchorPoint(fromSide, fromBox)
   const toPt = toSide === undefined ? auto.to : anchorPoint(toSide, toBox)
   const fromVertical = fromSide !== undefined && isVerticalSide(fromSide)
