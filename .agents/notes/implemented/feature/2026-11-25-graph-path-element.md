@@ -112,6 +112,7 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 - Quad/cubic densify hit-testing remains approximate (same class as edge ShapeLink).
 - Paint order mistakes can hide lanes under fills or cover nodes — under-node ordering is pinned in ViewSet / Network.
 - Create Path uses exclusive mode packing so it does not fight pan/zoom or Create Link.
+- Path vertex handles paint only while `MovePathVertexInteraction` is attached (Edit / `setEditing(true)`), not on Observe selection highlight.
 
 ## Testing
 

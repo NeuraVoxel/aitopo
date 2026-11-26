@@ -56,7 +56,7 @@ interface GraphShapeNode {
 
 - `ShapeNodeView` densifies via shared `path-route` helpers (`buildPathPolyline`); closed fill when `fill` set; `closedEffective = shapeNode.closed !== false`.
 - Paint order: paths → groups → edges → shapeNodes → nodes. Hit pick: nodes → shapeNodes → edges → groups → paths.
-- Select/hover from `style.select` / `style.hover`; selected → control-point handles.
+- Select/hover from `style.select` / `style.hover`; control-point handles paint only while `MoveShapeNodeVertexInteraction` is attached (Edit / `setEditing(true)`), not on Observe selection alone.
 - Labels at densified bounds center (v1); `label2` / alarm on attachment anchors subset.
 - Unlocked: body drag translates all points; handle drag updates one control point.
 - Group: `groupId` + `memberIds` dual bookkeeping; shapeNode ids participate in membership and expanded autofit (`listGroupShapeNodes`). Drag dirty for members: [shapenode member residual](../bug-fix/2026-11-26-shapenode-member-drag-residual.md).

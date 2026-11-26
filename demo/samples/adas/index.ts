@@ -1,5 +1,7 @@
+import { adasAgentSample } from './agent.ts'
 import { adasDrivableAreaSample } from './drivable-area.ts'
 import { adasEgoSample } from './ego.ts'
+import { adasStaticSample } from './static.ts'
 import { adasHdmapJunctionSample } from './hdmap-junction.ts'
 import { adasLaneCenterlineSample } from './lane-centerline.ts'
 import { adasLaneLinesSample } from './lane-lines.ts'
@@ -17,6 +19,8 @@ import type { DemoSample } from '../types.ts'
 
 const byId = new Map<string, DemoSample>([
   [adasEgoSample.id, adasEgoSample],
+  [adasAgentSample.id, adasAgentSample],
+  [adasStaticSample.id, adasStaticSample],
   [adasLaneLinesSample.id, adasLaneLinesSample],
   [adasLaneCenterlineSample.id, adasLaneCenterlineSample],
   [adasRoadBoundarySample.id, adasRoadBoundarySample],
@@ -36,6 +40,8 @@ const byId = new Map<string, DemoSample>([
 /** Stable ADAS catalog order (loadable + reserved interleaved by domain). */
 const ADAS_ORDER: readonly string[] = [
   'adas-ego',
+  'adas-agent',
+  'adas-static',
   'adas-lane-lines',
   'adas-lane-centerline',
   'adas-road-boundary',

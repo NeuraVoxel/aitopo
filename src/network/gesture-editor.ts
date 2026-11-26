@@ -3,6 +3,7 @@
  */
 
 import { growRect, type Rect } from '../geom.ts'
+import { listTransitiveFollowers } from '../model/follow.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
@@ -202,6 +203,17 @@ export class GestureEditor {
         y: member.fromY + args.dy,
       }
     }
+    const hostIds = [
+      args.groupId,
+      ...args.members.map(m => m.id),
+      ...(args.childGroups ?? []).map(c => c.id),
+    ]
+    const followerIds = new Set<string>()
+    for (const hostId of hostIds) {
+      for (const followerId of listTransitiveFollowers(this.deps.scene, hostId)) {
+        followerIds.add(followerId)
+      }
+    }
     this.deps.scene.writePositions(positions)
     const groupPositions: Record<string, { x: number; y: number }> = {
       [args.groupId]: {
@@ -217,6 +229,10 @@ export class GestureEditor {
     }
     this.deps.scene.writeGroupPositions(groupPositions)
     this.deps.views.markGroupGeometryDirty(this.deps.scene, args.groupId)
+    for (const followerId of followerIds) {
+      this.deps.views.markDirty(followerId)
+    }
+    this.deps.views.validateDirty(this.deps.scene)
     this.deps.dirty.markAll()
     this.deps.scheduleScenePaint()
   }
@@ -437,12 +453,23 @@ export class GestureEditor {
     points: readonly { readonly x: number; readonly y: number }[],
   ): void {
     if (this.deps.scene.paths.get(pathId) === undefined) return
+    const followerIds = listTransitiveFollowers(this.deps.scene, pathId)
     const oldRects = this.capturePathGeometryRects(pathId)
+    const oldFollowerRects = followerIds.flatMap(fid => this.captureFollowGeometryRects(fid))
     this.deps.scene.writePathPoints(pathId, points)
     this.deps.views.markDirty(pathId)
+    for (const followerId of followerIds) {
+      this.deps.views.markDirty(followerId)
+    }
     this.deps.views.validateDirty(this.deps.scene)
     for (const rect of oldRects) this.deps.dirty.add(rect)
     for (const rect of this.capturePathGeometryRects(pathId)) this.deps.dirty.add(rect)
+    for (const rect of oldFollowerRects) this.deps.dirty.add(rect)
+    for (const followerId of followerIds) {
+      for (const rect of this.captureFollowGeometryRects(followerId)) {
+        this.deps.dirty.add(rect)
+      }
+    }
     this.deps.scene.takeDirty()
     this.deps.scheduleScenePaint()
   }
@@ -459,9 +486,14 @@ export class GestureEditor {
     points: readonly { readonly x: number; readonly y: number }[],
   ): void {
     if (this.deps.scene.shapeNodes.get(shapeNodeId) === undefined) return
+    const followerIds = listTransitiveFollowers(this.deps.scene, shapeNodeId)
     const oldRects = this.captureShapeNodeGeometryRects(shapeNodeId)
+    const oldFollowerRects = followerIds.flatMap(fid => this.captureFollowGeometryRects(fid))
     this.deps.scene.writeShapeNodePoints(shapeNodeId, points)
     this.deps.views.markDirty(shapeNodeId)
+    for (const followerId of followerIds) {
+      this.deps.views.markDirty(followerId)
+    }
     for (const groupId of listOwningGroupChainForShapeNode(
       this.deps.scene,
       shapeNodeId,
@@ -472,6 +504,12 @@ export class GestureEditor {
     for (const rect of oldRects) this.deps.dirty.add(rect)
     for (const rect of this.captureShapeNodeGeometryRects(shapeNodeId)) {
       this.deps.dirty.add(rect)
+    }
+    for (const rect of oldFollowerRects) this.deps.dirty.add(rect)
+    for (const followerId of followerIds) {
+      for (const rect of this.captureFollowGeometryRects(followerId)) {
+        this.deps.dirty.add(rect)
+      }
     }
     this.deps.scene.takeDirty()
     this.deps.scheduleScenePaint()
@@ -784,10 +822,15 @@ export class GestureEditor {
   }
 
   private previewNodeGeometry(id: string, mutate: () => void): void {
+    const followerIds = listTransitiveFollowers(this.deps.scene, id)
     const oldRects = this.captureNodeGeometryRects(id)
     const oldGroupRects = this.captureNodeGroupRects(id)
+    const oldFollowerRects = followerIds.flatMap(fid => this.captureFollowGeometryRects(fid))
     mutate()
     this.deps.views.markNodeGeometryDirty(this.deps.scene, id)
+    for (const followerId of followerIds) {
+      this.deps.views.markDirty(followerId)
+    }
     this.deps.views.validateDirty(this.deps.scene)
     for (const rect of oldRects) this.deps.dirty.add(rect)
     for (const rect of this.captureNodeGeometryRects(id)) this.deps.dirty.add(rect)
@@ -795,11 +838,31 @@ export class GestureEditor {
     // their old/new rects the repaint clip skips the band and leaves ghosts.
     for (const rect of oldGroupRects) this.deps.dirty.add(rect)
     for (const rect of this.captureNodeGroupRects(id)) this.deps.dirty.add(rect)
+    for (const rect of oldFollowerRects) this.deps.dirty.add(rect)
+    for (const followerId of followerIds) {
+      for (const rect of this.captureFollowGeometryRects(followerId)) {
+        this.deps.dirty.add(rect)
+      }
+    }
     this.deps.scene.takeDirty()
     if (this.filter !== undefined) {
       this.deps.dirty.markAll()
     }
     this.deps.scheduleScenePaint()
+  }
+
+  /** Dirty-rect capture for a followHostId dependent (any followable kind). */
+  private captureFollowGeometryRects(id: string): Rect[] {
+    if (this.deps.scene.nodes.has(id)) return this.captureNodeGeometryRects(id)
+    if (this.deps.scene.groups.has(id)) {
+      const groupView = this.deps.views.getGroup(id)
+      return groupView?.isActive === true
+        ? [growRect(groupView.bounds, 8)]
+        : []
+    }
+    if (this.deps.scene.paths.has(id)) return this.capturePathGeometryRects(id)
+    if (this.deps.scene.shapeNodes.has(id)) return this.captureShapeNodeGeometryRects(id)
+    return []
   }
 
   private captureNodeGeometryRects(nodeId: string): Rect[] {

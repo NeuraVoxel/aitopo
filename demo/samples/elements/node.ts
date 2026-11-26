@@ -1,6 +1,10 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
 import type { DemoSample } from '../types.ts'
 
+/**
+ * Elements Node showcase: labels, lock, angle / angleAnchor, and followHostId.
+ * Drag `follow-host` in Edit mode — follower node + trail path translate with it.
+ */
 export const nodeDocument: GraphDocument = {
   version: 1,
   meta: { title: 'Node', kind: 'custom' },
@@ -65,15 +69,60 @@ export const nodeDocument: GraphDocument = {
       data: { fill: '#fef3c7', stroke: '#d97706' },
       style: { showIcon: false },
     },
+    {
+      id: 'follow-host',
+      type: 'unit',
+      label: 'follow host',
+      x: 60,
+      y: 320,
+      w: 88,
+      h: 44,
+      data: { fill: '#ecfdf5', stroke: '#059669' },
+      style: { showIcon: false, label: { fontSize: 11 } },
+    },
+    {
+      id: 'follow-node',
+      type: 'unit',
+      label: 'follower',
+      followHostId: 'follow-host',
+      x: 200,
+      y: 336,
+      w: 72,
+      h: 40,
+      data: { fill: '#f0fdf4', stroke: '#16a34a' },
+      style: { showIcon: false, label: { fontSize: 11 } },
+    },
   ],
   edges: [],
   groups: [],
+  paths: [
+    {
+      id: 'follow-trail',
+      label: 'follow path',
+      followHostId: 'follow-host',
+      points: [
+        { x: 20, y: 380 },
+        { x: 50, y: 360 },
+        { x: 80, y: 342 },
+        { x: 104, y: 342 },
+      ],
+      style: {
+        stroke: '#059669',
+        lineWidth: 2,
+        strokeDash: [6, 5],
+        alpha: 0.75,
+        shapeKind: 'lineto',
+        label: { color: '#047857', fontSize: 10 },
+      },
+    },
+  ],
 }
 
 export const nodeSample: DemoSample = {
   id: 'node',
   title: 'Node',
   group: 'elements',
-  description: 'Node types, labels, lock, angle / angleAnchor, and attachment positions.',
+  description:
+    'Node types, labels, lock, angle / angleAnchor, attachment positions, and followHostId (drag follow host in Edit).',
   document: nodeDocument,
 }

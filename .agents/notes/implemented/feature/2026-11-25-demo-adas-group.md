@@ -15,6 +15,8 @@ The demo catalog adds group id `adas` (nav label **ADAS**), ordered after `eleme
 | Sample id | Load | Role |
 |---|---|---|
 | `adas-ego` | yes | Seven ego styles (nuPlan/nuBoard palette): heading / angle / length / pulse / vector+bitmap car / axle frame |
+| `adas-agent` | yes | Dynamic obstacles (Vehicle / Pedestrian / Bicycle / Truck / Bus / Unclassified) + heading/speed around axle-frame ego |
+| `adas-static` | yes | Static objects (CZone sign / Barrier / Traffic cone / Unclassified) around axle-frame ego |
 | `adas-lane-lines` | yes | Open GraphPath lane markings (solid / dashed) |
 | `adas-lane-centerline` | yes | Centerline GraphPaths + optional successor edges |
 | `adas-road-boundary` | yes | Left / right curb GraphPaths |
@@ -42,7 +44,7 @@ Files live under `demo/samples/adas/` (`index.ts` owns catalog order). Reserved 
 
 ## Consequences
 
-- Fourteen ADAS samples load; `adas-sensor-fov` remains reserved for missing sector / frustum overlay.
+- Sixteen ADAS samples load; `adas-sensor-fov` remains reserved for missing sector / frustum overlay.
 - Parking slots are axis-aligned only (rotate handles are still deferred on the engine).
 - Lane / boundary / planning / prediction demos use top-level `paths: GraphPath[]`.
 - Theme tokens, Foxglove opt-in, and the hex gate are owned by [2026-11-26-adas-foxglove-theme.md](2026-11-26-adas-foxglove-theme.md).

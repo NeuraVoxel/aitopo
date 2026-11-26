@@ -47,7 +47,7 @@ export function registerDemoVectorImages(): void {
   registerVectorImage({
     key: AXLE_FRAME_KEY,
     draw(ctx, body, paintCtx) {
-      // Axes under heading so the forward chevron stays visible past +x.
+      // Axes first; thinner heading arrow paints on top along +x / forward.
       drawAxleFrame(ctx, body, paintCtx)
       drawHeadingArrow(ctx, body, paintCtx)
     },
@@ -111,9 +111,13 @@ function headingGeom(body: Rect, paintCtx: VectorImagePaintCtx): HeadingGeom {
   return { axle, tipY, len, half, label }
 }
 
+/** Heading shaft stroke — thinner than axle-frame axes (2px) so both stay readable when colinear. */
+const HEADING_LINE_WIDTH = 1
+
 /**
  * Heading arrow from rear-axle (or center) local origin along −Y.
  * Length scales with `data.speedMs` (number|string); pulse with `phase` / state.
+ * When composed with the axle frame, this draws after the axes (on top).
  */
 function drawHeadingArrow(
   ctx: CanvasRenderingContext2D,
@@ -122,14 +126,15 @@ function drawHeadingArrow(
 ): void {
   const { state } = paintCtx
   const { axle, tipY, half, label } = headingGeom(body, paintCtx)
-  const head = Math.max(6, (axle.y - tipY) * 0.12)
+  const head = Math.max(5, (axle.y - tipY) * 0.1)
 
-  // nuBoard trajectory: ego cyan; boost uses expert-ego orange.
-  const ink = state === 'boost' ? ADAS_TRAJECTORY.expert : ADAS_TRAJECTORY.ego
+  // Ego trajectory cyan; other agents / boost use expert-ego orange.
+  const isEgo = paintCtx.node.data?.role === 'ego'
+  const ink = state === 'boost' || !isEgo ? ADAS_TRAJECTORY.expert : ADAS_TRAJECTORY.ego
   ctx.save()
   ctx.strokeStyle = ink
   ctx.fillStyle = ink
-  ctx.lineWidth = 2
+  ctx.lineWidth = HEADING_LINE_WIDTH
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
 
@@ -140,8 +145,8 @@ function drawHeadingArrow(
 
   ctx.beginPath()
   ctx.moveTo(axle.x, tipY)
-  ctx.lineTo(axle.x - half, tipY + head)
-  ctx.lineTo(axle.x + half, tipY + head)
+  ctx.lineTo(axle.x - half * 0.85, tipY + head)
+  ctx.lineTo(axle.x + half * 0.85, tipY + head)
   ctx.closePath()
   ctx.fill()
 
@@ -177,10 +182,13 @@ function headingArrowBounds(body: Rect, paintCtx: VectorImagePaintCtx): Rect {
 /** Vehicle frame axis lengths in body pixels (from rear-axle origin). */
 const AXLE_X_LEN = 36
 const AXLE_Y_LEN = 28
+/** Classic TF / RViz body-frame axis colors (+x forward, +y left). */
+const FRAME_AXIS_X = '#ff0000'
+const FRAME_AXIS_Y = '#00ff00'
 
 /**
  * Ego vehicle frame at rear axle: +x forward (−Y body), +y left (−X body),
- * origin marker. Drawn after the heading arrow for style #7.
+ * origin marker. Drawn under the heading arrow for style #7.
  */
 function drawAxleFrame(
   ctx: CanvasRenderingContext2D,
@@ -194,9 +202,9 @@ function drawAxleFrame(
   ctx.lineJoin = 'round'
   ctx.font = 'bold 11px sans-serif'
 
-  // +x forward (ego trajectory cyan); +y left (expert trajectory orange)
-  drawFrameAxis(ctx, axle.x, axle.y, 0, -1, AXLE_X_LEN, ADAS_TRAJECTORY.ego, 'x')
-  drawFrameAxis(ctx, axle.x, axle.y, -1, 0, AXLE_Y_LEN, ADAS_TRAJECTORY.expert, 'y')
+  // Classic TF / RViz frame: +x red, +y green (heading arrow stays trajectory cyan on top).
+  drawFrameAxis(ctx, axle.x, axle.y, 0, -1, AXLE_X_LEN, FRAME_AXIS_X, 'x')
+  drawFrameAxis(ctx, axle.x, axle.y, -1, 0, AXLE_Y_LEN, FRAME_AXIS_Y, 'y')
 
   ctx.beginPath()
   ctx.arc(axle.x, axle.y, 3.5, 0, Math.PI * 2)

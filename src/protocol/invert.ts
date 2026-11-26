@@ -189,6 +189,7 @@ function invertNodePatch(node: GraphNode, patch: UpdateNodePatch): UpdateNodePat
   if (patch.groupId !== undefined) inv.groupId = node.groupId ?? null
   if (patch.networkId !== undefined && node.networkId !== undefined) inv.networkId = node.networkId
   if (patch.locked !== undefined && node.locked !== undefined) inv.locked = node.locked
+  if (patch.followHostId !== undefined) inv.followHostId = node.followHostId ?? null
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(node.alarms)
   if (patch.style !== undefined && node.style !== undefined) {
     inv.style = cloneNodeStyle(node.style)
@@ -247,6 +248,7 @@ function invertGroupPatch(group: GraphGroup, patch: UpdateGroupPatch): UpdateGro
       ? { u: group.angleAnchor.u, v: group.angleAnchor.v }
       : { u: 0.5, v: 0.5 }
   }
+  if (patch.followHostId !== undefined) inv.followHostId = group.followHostId ?? null
   if (patch.icon !== undefined && group.icon !== undefined) inv.icon = group.icon
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(group.alarms)
   if (patch.style !== undefined && group.style !== undefined) {
@@ -273,6 +275,7 @@ function invertPathPatch(path: GraphPath, patch: UpdatePathPatch): UpdatePathPat
   }
   if (patch.label !== undefined && path.label !== undefined) inv.label = path.label
   if (patch.tooltip !== undefined && path.tooltip !== undefined) inv.tooltip = path.tooltip
+  if (patch.followHostId !== undefined) inv.followHostId = path.followHostId ?? null
   if (patch.style !== undefined && path.style !== undefined) {
     inv.style = clonePathStyle(path.style)
   }
@@ -307,6 +310,7 @@ function invertShapeNodePatch(
   if (patch.groupId !== undefined && shapeNode.groupId !== undefined) {
     inv.groupId = shapeNode.groupId
   }
+  if (patch.followHostId !== undefined) inv.followHostId = shapeNode.followHostId ?? null
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(shapeNode.alarms)
   if (patch.style !== undefined && shapeNode.style !== undefined) {
     inv.style = cloneShapeNodeStyle(shapeNode.style)
@@ -350,6 +354,7 @@ function cloneNode(node: GraphNode): PatchNode {
     ...(node.groupId !== undefined ? { groupId: node.groupId } : {}),
     ...(node.networkId !== undefined ? { networkId: node.networkId } : {}),
     ...(node.locked !== undefined ? { locked: node.locked } : {}),
+    ...(node.followHostId !== undefined ? { followHostId: node.followHostId } : {}),
     ...(node.alarms !== undefined ? { alarms: cloneAlarms(node.alarms) } : {}),
     ...(node.style !== undefined ? { style: cloneNodeStyle(node.style) } : {}),
     ...(node.data !== undefined ? { data: { ...node.data } } : {}),
@@ -428,6 +433,7 @@ function cloneGroup(group: GraphGroup): PatchGroup {
       ? { angleAnchor: { u: group.angleAnchor.u, v: group.angleAnchor.v } }
       : {}),
     ...(group.locked !== undefined ? { locked: group.locked } : {}),
+    ...(group.followHostId !== undefined ? { followHostId: group.followHostId } : {}),
     ...(group.icon !== undefined ? { icon: group.icon } : {}),
     ...(group.alarms !== undefined ? { alarms: cloneAlarms(group.alarms) } : {}),
     ...(group.style !== undefined ? { style: cloneGroupStyle(group.style) } : {}),
@@ -461,6 +467,7 @@ function clonePath(path: GraphPath): PatchPath {
     ...(path.angleAnchor !== undefined
       ? { angleAnchor: { u: path.angleAnchor.u, v: path.angleAnchor.v } }
       : {}),
+    ...(path.followHostId !== undefined ? { followHostId: path.followHostId } : {}),
     ...(path.style !== undefined ? { style: clonePathStyle(path.style) } : {}),
     ...(path.data !== undefined ? { data: { ...path.data } } : {}),
   }
@@ -491,6 +498,7 @@ function cloneShapeNode(shapeNode: GraphShapeNode): PatchShapeNode {
       ? { angleAnchor: { u: shapeNode.angleAnchor.u, v: shapeNode.angleAnchor.v } }
       : {}),
     ...(shapeNode.groupId !== undefined ? { groupId: shapeNode.groupId } : {}),
+    ...(shapeNode.followHostId !== undefined ? { followHostId: shapeNode.followHostId } : {}),
     ...(shapeNode.alarms !== undefined ? { alarms: cloneAlarms(shapeNode.alarms) } : {}),
     ...(shapeNode.style !== undefined ? { style: cloneShapeNodeStyle(shapeNode.style) } : {}),
     ...(shapeNode.data !== undefined ? { data: { ...shapeNode.data } } : {}),

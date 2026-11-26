@@ -2,6 +2,7 @@
  * Parse unknown JSON into a GraphDocument; fail loud on invalid input.
  */
 
+import { assertFollowHostValid } from '../model/follow.ts'
 import { graphDocumentSchema } from './schema.ts'
 import type { GraphDocument, GraphGroup } from './types.ts'
 
@@ -22,6 +23,7 @@ export function parseDocument(input: unknown): GraphDocument {
   assertGroupParentAcyclic(result.data.groups ?? [])
   assertEndpointIds(result.data)
   assertNoCrossKindIdClash(result.data)
+  assertFollowHostValid(result.data)
   return result.data
 }
 

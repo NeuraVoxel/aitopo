@@ -96,6 +96,7 @@ const graphNodeSchema = z.object({
   groupId: z.string().optional(),
   networkId: z.string().optional(),
   locked: z.boolean().optional(),
+  followHostId: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphNodeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -284,6 +285,7 @@ const graphGroupSchema = z.object({
   angle: z.number().optional(),
   angleAnchor: graphAngleAnchorSchema.optional(),
   locked: z.boolean().optional(),
+  followHostId: z.string().min(1).optional(),
   icon: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphGroupStyleSchema.optional(),
@@ -314,6 +316,7 @@ const graphPathObjectSchema = z.object({
   locked: z.boolean().optional(),
   angle: z.number().optional(),
   angleAnchor: graphAngleAnchorSchema.optional(),
+  followHostId: z.string().min(1).optional(),
   style: graphPathStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })
@@ -389,6 +392,7 @@ const graphShapeNodeObjectSchema = z.object({
   angle: z.number().optional(),
   angleAnchor: graphAngleAnchorSchema.optional(),
   groupId: z.string().optional(),
+  followHostId: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphShapeNodeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -432,6 +436,8 @@ const patchOpSchema = z.discriminatedUnion('op', [
     patch: graphNodeSchema.partial().omit({ id: true }).extend({
       /** `null` clears membership (`groupId` omitted). */
       groupId: z.union([z.string().min(1), z.null()]).optional(),
+      /** `null` clears follow (`followHostId` omitted). */
+      followHostId: z.union([z.string().min(1), z.null()]).optional(),
     }),
   }),
   z.object({ op: z.literal('removeNode'), id: z.string().min(1) }),
@@ -443,13 +449,23 @@ const patchOpSchema = z.discriminatedUnion('op', [
   }),
   z.object({ op: z.literal('removeEdge'), id: z.string().min(1) }),
   z.object({ op: z.literal('addGroup'), group: graphGroupSchema }),
-  z.object({ op: z.literal('updateGroup'), id: z.string().min(1), patch: graphGroupSchema.partial().omit({ id: true }) }),
+  z.object({
+    op: z.literal('updateGroup'),
+    id: z.string().min(1),
+    patch: graphGroupSchema.partial().omit({ id: true }).extend({
+      /** `null` clears follow (`followHostId` omitted). */
+      followHostId: z.union([z.string().min(1), z.null()]).optional(),
+    }),
+  }),
   z.object({ op: z.literal('removeGroup'), id: z.string().min(1) }),
   z.object({ op: z.literal('addPath'), path: graphPathSchema }),
   z.object({
     op: z.literal('updatePath'),
     id: z.string().min(1),
-    patch: graphPathObjectSchema.partial().omit({ id: true }).superRefine((patch, ctx) => {
+    patch: graphPathObjectSchema.partial().omit({ id: true }).extend({
+      /** `null` clears follow (`followHostId` omitted). */
+      followHostId: z.union([z.string().min(1), z.null()]).optional(),
+    }).superRefine((patch, ctx) => {
       if (patch.points === undefined) return
       refinePathPointsArity(patch.points, patch.style?.shapeKind, ctx)
     }),
@@ -459,7 +475,10 @@ const patchOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('updateShapeNode'),
     id: z.string().min(1),
-    patch: graphShapeNodeObjectSchema.partial().omit({ id: true }).superRefine((patch, ctx) => {
+    patch: graphShapeNodeObjectSchema.partial().omit({ id: true }).extend({
+      /** `null` clears follow (`followHostId` omitted). */
+      followHostId: z.union([z.string().min(1), z.null()]).optional(),
+    }).superRefine((patch, ctx) => {
       if (patch.points === undefined) return
       refinePathPointsArity(patch.points, patch.style?.shapeKind, ctx)
     }),

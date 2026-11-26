@@ -8,7 +8,6 @@ import {
   hitRect,
   intersectsRect,
   inverseRotatePointAround,
-  rotatePointAround,
   rotatedAabbOfRectAbout,
   unionRect,
   distanceToPolyline,
@@ -41,6 +40,8 @@ import {
   MarqueeSelectInteraction,
   MoveEdgeBendInteraction,
   MoveNodeInteraction,
+  MovePathVertexInteraction,
+  MoveShapeNodeVertexInteraction,
   PanZoomInteraction,
   ResizeNodeInteraction,
   SelectActivateInteraction,
@@ -234,7 +235,8 @@ export class Network {
    * Replace the interaction stack with basic or full-edit packs.
    * Basic (`false`, host default): pan/zoom, select/activate, drag-move, Shift-marquee
    * (same as constructor `defaultInteractions`).
-   * Edit (`true`): basic + edge bend handles, resize corners, Delete edge, Alt+drag create.
+   * Edit (`true`): basic + edge bend / path·shape vertex handles, resize corners,
+   * Delete edge, Alt+drag create.
    * Does not remount the canvas (camera/selection stay).
    * @param enabled - true for full edit pack, false for basic drag/pan.
    */
@@ -251,6 +253,8 @@ export class Network {
       ? [
         new PanZoomInteraction(),
         new SelectActivateInteraction(),
+        new MovePathVertexInteraction(),
+        new MoveShapeNodeVertexInteraction(),
         new MoveEdgeBendInteraction(),
         new ResizeNodeInteraction(),
         new MoveNodeInteraction(),
@@ -1463,7 +1467,6 @@ export class Network {
 
   private paintOverlayPass(renderer: Renderer): void {
     const hoverId = this.scene.hover
-    const handleSize = 10 / this.viewport.state.zoom
     for (const path of this.scene.paths.values()) {
       const view = this.views.getPath(path.id)
       if (view === undefined || view.points.length < 2) continue
@@ -1471,14 +1474,6 @@ export class Network {
       const hovered = hoverId === path.id
       if (selected || hovered) {
         renderer.drawPath(path, view.toPaintView(selected, hovered))
-      }
-      if (selected) {
-        for (const point of path.points) {
-          renderer.drawResizeHandle(
-            view.angle === 0 ? point : rotatePointAround(point, view.pivot, view.angle),
-            handleSize,
-          )
-        }
       }
     }
     for (const edge of this.scene.edges.values()) {
@@ -1517,14 +1512,6 @@ export class Network {
       const hovered = hoverId === shapeNode.id
       if (selected || hovered) {
         renderer.drawShapeNode(shapeNode, view.toPaintView(selected, hovered))
-      }
-      if (selected) {
-        for (const point of shapeNode.points) {
-          renderer.drawResizeHandle(
-            view.angle === 0 ? point : rotatePointAround(point, view.pivot, view.angle),
-            handleSize,
-          )
-        }
       }
     }
     for (const node of this.scene.nodes.values()) {

@@ -2,6 +2,7 @@
  * Scene apply uses validated GraphPatch; navigation ops are handled by Network.
  */
 
+import { expandFollowMotion, translateFollowersLive } from './follow.ts'
 import { applyPatch as applyDocumentPatch, type GraphPatch } from '../protocol/patch.ts'
 import { graphPatchSchema } from '../protocol/schema.ts'
 import { parseDocument } from '../protocol/parse.ts'
@@ -115,9 +116,10 @@ export class GraphScene {
    */
   apply(patch: GraphPatch): void {
     const parsed = graphPatchSchema.parse(patch)
+    const expanded = expandFollowMotion(this.active, parsed)
     const before = this.sceneVersion
-    const dirty = collectPatchDirty(this.active, parsed.ops)
-    const next = applyDocumentPatch(this.active, parsed)
+    const dirty = collectPatchDirty(this.active, expanded.ops)
+    const next = applyDocumentPatch(this.active, expanded)
     this.commitActive(next, dirty.invalidateAll, dirty.ids)
     this.rootDocument = writeDocAtStack(this.rootDocument, this.networkStackIds, next)
     if (next.viewport !== undefined) {
@@ -204,11 +206,29 @@ export class GraphScene {
    * @param positions - id → x/y.
    */
   writePositions(positions: Readonly<Record<string, { x: number; y: number }>>): void {
+    const skipIds = new Set(Object.keys(positions))
+    const hostMoves: { id: string; dx: number; dy: number }[] = []
     for (const [id, pos] of Object.entries(positions)) {
       const node = this.nodeMap.get(id)
       if (node === undefined) continue
+      const dx = pos.x - (node.x ?? 0)
+      const dy = pos.y - (node.y ?? 0)
       this.nodeMap.set(id, { ...node, x: pos.x, y: pos.y })
       this.markDirty(id)
+      if (dx !== 0 || dy !== 0) hostMoves.push({ id, dx, dy })
+    }
+    for (const move of hostMoves) {
+      translateFollowersLive({
+        hostId: move.id,
+        dx: move.dx,
+        dy: move.dy,
+        skipIds,
+        nodes: this.nodeMap,
+        groups: this.groupMap,
+        paths: this.pathMap,
+        shapeNodes: this.shapeNodeMap,
+        markDirty: id => this.markDirty(id),
+      })
     }
     this.sceneVersion += 1
     this.syncActiveFromMaps()
@@ -219,11 +239,29 @@ export class GraphScene {
    * @param positions - group id → x/y.
    */
   writeGroupPositions(positions: Readonly<Record<string, { x: number; y: number }>>): void {
+    const skipIds = new Set(Object.keys(positions))
+    const hostMoves: { id: string; dx: number; dy: number }[] = []
     for (const [id, pos] of Object.entries(positions)) {
       const group = this.groupMap.get(id)
       if (group === undefined) continue
+      const dx = pos.x - (group.x ?? 0)
+      const dy = pos.y - (group.y ?? 0)
       this.groupMap.set(id, { ...group, x: pos.x, y: pos.y })
       this.markDirty(id)
+      if (dx !== 0 || dy !== 0) hostMoves.push({ id, dx, dy })
+    }
+    for (const move of hostMoves) {
+      translateFollowersLive({
+        hostId: move.id,
+        dx: move.dx,
+        dy: move.dy,
+        skipIds,
+        nodes: this.nodeMap,
+        groups: this.groupMap,
+        paths: this.pathMap,
+        shapeNodes: this.shapeNodeMap,
+        markDirty: id => this.markDirty(id),
+      })
     }
     this.sceneVersion += 1
     this.syncActiveFromMaps()
@@ -234,11 +272,29 @@ export class GraphScene {
    * @param bounds - id → x/y/w/h.
    */
   writeBounds(bounds: Readonly<Record<string, { x: number; y: number; w: number; h: number }>>): void {
+    const skipIds = new Set(Object.keys(bounds))
+    const hostMoves: { id: string; dx: number; dy: number }[] = []
     for (const [id, box] of Object.entries(bounds)) {
       const node = this.nodeMap.get(id)
       if (node === undefined) continue
+      const dx = box.x - (node.x ?? 0)
+      const dy = box.y - (node.y ?? 0)
       this.nodeMap.set(id, { ...node, x: box.x, y: box.y, w: box.w, h: box.h })
       this.markDirty(id)
+      if (dx !== 0 || dy !== 0) hostMoves.push({ id, dx, dy })
+    }
+    for (const move of hostMoves) {
+      translateFollowersLive({
+        hostId: move.id,
+        dx: move.dx,
+        dy: move.dy,
+        skipIds,
+        nodes: this.nodeMap,
+        groups: this.groupMap,
+        paths: this.pathMap,
+        shapeNodes: this.shapeNodeMap,
+        markDirty: id => this.markDirty(id),
+      })
     }
     this.sceneVersion += 1
     this.syncActiveFromMaps()
@@ -280,11 +336,26 @@ export class GraphScene {
   ): void {
     const path = this.pathMap.get(pathId)
     if (path === undefined) return
+    const from = path.points[0]
+    const to = points[0]
+    const dx = from !== undefined && to !== undefined ? to.x - from.x : 0
+    const dy = from !== undefined && to !== undefined ? to.y - from.y : 0
     this.pathMap.set(pathId, {
       ...path,
       points: points.map(p => ({ x: p.x, y: p.y })),
     })
     this.markDirty(pathId)
+    translateFollowersLive({
+      hostId: pathId,
+      dx,
+      dy,
+      skipIds: new Set([pathId]),
+      nodes: this.nodeMap,
+      groups: this.groupMap,
+      paths: this.pathMap,
+      shapeNodes: this.shapeNodeMap,
+      markDirty: id => this.markDirty(id),
+    })
     this.sceneVersion += 1
     this.syncActiveFromMaps()
   }
@@ -300,11 +371,26 @@ export class GraphScene {
   ): void {
     const shapeNode = this.shapeNodeMap.get(shapeNodeId)
     if (shapeNode === undefined) return
+    const from = shapeNode.points[0]
+    const to = points[0]
+    const dx = from !== undefined && to !== undefined ? to.x - from.x : 0
+    const dy = from !== undefined && to !== undefined ? to.y - from.y : 0
     this.shapeNodeMap.set(shapeNodeId, {
       ...shapeNode,
       points: points.map(p => ({ x: p.x, y: p.y })),
     })
     this.markDirty(shapeNodeId)
+    translateFollowersLive({
+      hostId: shapeNodeId,
+      dx,
+      dy,
+      skipIds: new Set([shapeNodeId]),
+      nodes: this.nodeMap,
+      groups: this.groupMap,
+      paths: this.pathMap,
+      shapeNodes: this.shapeNodeMap,
+      markDirty: id => this.markDirty(id),
+    })
     this.sceneVersion += 1
     this.syncActiveFromMaps()
   }

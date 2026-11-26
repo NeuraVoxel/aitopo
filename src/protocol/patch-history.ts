@@ -2,6 +2,7 @@
  * Optional undo/redo stack as forward/inverse GraphPatch pairs (AT-E8).
  */
 
+import { expandFollowMotion } from '../model/follow.ts'
 import { invertPatch } from './invert.ts'
 import type { GraphPatch, GraphPatchOp } from './patch.ts'
 import type { GraphDocument } from './types.ts'
@@ -33,9 +34,11 @@ export class PatchHistory {
    * @param forward - patch to apply and record.
    */
   pushAndApply(forward: GraphPatch): void {
-    const inverseOps = invertPatch(structuredClone(this.getDoc()), forward)
-    this.apply(forward)
-    this.undoStack.push({ forward, inverseOps })
+    const doc = structuredClone(this.getDoc())
+    const expanded = expandFollowMotion(doc, forward)
+    const inverseOps = invertPatch(doc, expanded)
+    this.apply(expanded)
+    this.undoStack.push({ forward: expanded, inverseOps })
     this.redoStack.length = 0
   }
 
@@ -45,8 +48,10 @@ export class PatchHistory {
    * @param forward - patch already applied (or about to be applied) by the caller.
    */
   pushApplied(forward: GraphPatch): void {
-    const inverseOps = invertPatch(structuredClone(this.getDoc()), forward)
-    this.undoStack.push({ forward, inverseOps })
+    const doc = structuredClone(this.getDoc())
+    const expanded = expandFollowMotion(doc, forward)
+    const inverseOps = invertPatch(doc, expanded)
+    this.undoStack.push({ forward: expanded, inverseOps })
     this.redoStack.length = 0
   }
 

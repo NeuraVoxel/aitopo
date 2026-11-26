@@ -51,6 +51,9 @@ describe('demo sample registry', () => {
       expect(count).toBeLessThanOrEqual(id === 'edge' ? 120 : 15)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
     }
+    const node = parseDocument(getSample('node')!.document)
+    expect(node.nodes.find(n => n.id === 'follow-node')?.followHostId).toBe('follow-host')
+    expect(node.paths?.find(p => p.id === 'follow-trail')?.followHostId).toBe('follow-host')
     const path = parseDocument(getSample('path')!.document)
     expect(path.paths?.map(p => p.id).sort()).toEqual([
       'angled-path',
@@ -227,6 +230,8 @@ describe('demo sample registry', () => {
     const adasGroup = listSamples().filter(s => s.group === 'adas')
     expect(adasGroup.map(s => s.id)).toEqual([
       'adas-ego',
+      'adas-agent',
+      'adas-static',
       'adas-lane-lines',
       'adas-lane-centerline',
       'adas-road-boundary',
@@ -282,6 +287,115 @@ describe('demo sample registry', () => {
     ])
     expect(ego.edges).toHaveLength(0)
     expect(ego.paths ?? []).toHaveLength(0)
+
+    const agent = parseDocument(getSample('adas-agent')!.document)
+    expect(agent.nodes.map(n => n.data?.trackedObjectType)).toEqual([
+      'EGO',
+      'VEHICLE',
+      'PEDESTRIAN',
+      'BICYCLE',
+      'TRUCK',
+      'BUS',
+      'UNCLASSIFIED',
+    ])
+    expect(agent.nodes.filter(n => n.data?.agentKind === 'dynamic')).toHaveLength(6)
+    expect(agent.nodes.filter(n => n.data?.agentKind === 'static')).toHaveLength(0)
+    const agentEgo = agent.nodes.find(n => n.id === 'ego')
+    expect(agentEgo?.vectorImage).toBe('demo-ego-axle-frame')
+    expect(agentEgo?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
+    // Pacifica-scale: length 5.176 m → 80 px; width 2.297 m → ~35 px.
+    expect(agentEgo?.h).toBe(80)
+    expect(agentEgo?.w).toBe(Math.round(2.297 * (80 / 5.176)))
+    expect(agentEgo?.data?.lengthM).toBe(5.176)
+    expect(agentEgo?.data?.widthM).toBe(2.297)
+    expect(agentEgo?.data?.axle).toBe('rear')
+    expect(agentEgo?.data?.speedMs).toBe(16)
+    expect(agentEgo?.label).toBe('Ego')
+    expect(agentEgo?.label2).toBeUndefined()
+    expect(agentEgo?.style?.labelPosition).toBeUndefined()
+    const vehicle = agent.nodes.find(n => n.id === 'vehicle-1')
+    expect(vehicle?.label).toBe('Vehicle')
+    expect(vehicle?.label2).toBe('车辆')
+    expect(vehicle?.data?.lengthM).toBe(4.5)
+    expect(vehicle?.data?.widthM).toBe(2.0)
+    expect(vehicle?.h).toBe(Math.round(4.5 * (80 / 5.176)))
+    expect(vehicle?.w).toBe(Math.round(2.0 * (80 / 5.176)))
+    expect(agent.nodes.find(n => n.id === 'truck-1')?.label2).toBe('卡车')
+    expect(agent.nodes.find(n => n.id === 'bus-1')?.label2).toBe('公交车')
+    expect(agent.nodes.find(n => n.id === 'unclassified-1')?.label2).toBe('未分类')
+    const pedestrian = agent.nodes.find(n => n.id === 'pedestrian-1')
+    expect(pedestrian?.label).toBe('Pedestrian')
+    expect(pedestrian?.label2).toBe('行人')
+    // Ped footprint is below the 16 px floor on both sides.
+    expect(pedestrian?.w).toBe(16)
+    expect(pedestrian?.h).toBe(16)
+    const historyPaths = agent.paths ?? []
+    expect(historyPaths).toHaveLength(6)
+    expect(historyPaths.map(p => p.followHostId)).toEqual([
+      'vehicle-1',
+      'pedestrian-1',
+      'bicycle-1',
+      'truck-1',
+      'bus-1',
+      'unclassified-1',
+    ])
+    expect(historyPaths.every(p => p.id === `${p.followHostId}-history`)).toBe(true)
+    expect(historyPaths.every(p => (p.points?.length ?? 0) >= 2)).toBe(true)
+    // Trails end at box center, run opposite heading, and clear the rear of tall boxes.
+    for (const path of historyPaths) {
+      const host = agent.nodes.find(n => n.id === path.followHostId)!
+      const tip = path.points[path.points.length - 1]!
+      expect(tip.x).toBeCloseTo((host.x ?? 0) + (host.w ?? 0) / 2, 5)
+      expect(tip.y).toBeCloseTo((host.y ?? 0) + (host.h ?? 0) / 2, 5)
+      const rad = ((host.angle ?? 0) * Math.PI) / 180
+      const fwd = { x: Math.sin(rad), y: -Math.cos(rad) }
+      const tail = path.points[0]!
+      const back = { x: tip.x - tail.x, y: tip.y - tail.y }
+      const trailLen = Math.hypot(back.x, back.y)
+      const dot = back.x * fwd.x + back.y * fwd.y
+      expect(dot, path.id).toBeGreaterThan(0)
+      expect(trailLen, path.id).toBeGreaterThan((host.h ?? 0) * 0.5 + 32)
+    }
+    // All dynamic agents: heading arrow + speed.
+    for (const id of [
+      'vehicle-1',
+      'pedestrian-1',
+      'bicycle-1',
+      'truck-1',
+      'bus-1',
+      'unclassified-1',
+    ] as const) {
+      const node = agent.nodes.find(n => n.id === id)
+      expect(node?.vectorImage, id).toBe('demo-heading-arrow')
+      expect(typeof node?.data?.speedMs, id).toBe('number')
+      expect(node?.angleAnchor, id).toBeDefined()
+      expect(typeof node?.angle, id).toBe('number')
+    }
+    expect(agent.nodes.find(n => n.id === 'vehicle-1')?.angleAnchor).toEqual({
+      u: 0.5,
+      v: 0.82,
+    })
+    expect(agent.nodes.find(n => n.id === 'pedestrian-1')?.angleAnchor).toEqual({
+      u: 0.5,
+      v: 0.5,
+    })
+
+    const staticDoc = parseDocument(getSample('adas-static')!.document)
+    expect(staticDoc.nodes.map(n => n.data?.trackedObjectType)).toEqual([
+      'EGO',
+      'CZONE_SIGN',
+      'BARRIER',
+      'TRAFFIC_CONE',
+      'UNCLASSIFIED',
+    ])
+    expect(staticDoc.nodes.filter(n => n.data?.agentKind === 'static')).toHaveLength(4)
+    expect(staticDoc.nodes.find(n => n.id === 'czone-1')?.label2).toBe('施工区标志牌')
+    expect(staticDoc.nodes.find(n => n.id === 'barrier-1')?.label2).toBe('护栏')
+    expect(staticDoc.nodes.find(n => n.id === 'cone-1')?.label2).toBe('交通锥')
+    expect(staticDoc.nodes.find(n => n.id === 'unclassified-1')?.label2).toBe('未分类')
+    expect(staticDoc.nodes.find(n => n.id === 'cone-1')?.vectorImage).toBeUndefined()
+    expect(staticDoc.nodes.find(n => n.id === 'barrier-1')?.data?.speedMs).toBeUndefined()
+    expect(staticDoc.nodes.find(n => n.id === 'ego')?.vectorImage).toBe('demo-ego-axle-frame')
     for (const id of ['ego-base', 'ego-angle', 'ego-length', 'ego-animate'] as const) {
       const node = ego.nodes.find(n => n.id === id)
       expect(node?.type).toBe('vehicle')

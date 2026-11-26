@@ -6,3 +6,7 @@
 	path = vendor/diagram-design
 	url = https://github.com/cathrynlavery/diagram-design.git
 	shallow = true
+[submodule "vendor/nuplan-devkit"]
+	path = vendor/nuplan-devkit
+	url = https://github.com/motional/nuplan-devkit.git
+	shallow = true

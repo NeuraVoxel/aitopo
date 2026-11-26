@@ -3,6 +3,7 @@ import { ADAS_BRAND } from '../../lib/adas-theme.ts'
 
 /** Shared ADAS node chrome — engine body paint reads `data.fill` / `data.stroke`.
  * Callers must pass tokens from `demo/lib/adas-theme.ts` (nuBoard default / Foxglove).
+ * Label sides follow the engine Node defaults when omitted (`label` → bottom, `label2` → top).
  */
 export function adasBox(opts: {
   readonly id: string
@@ -20,6 +21,10 @@ export function adasBox(opts: {
   readonly alarms?: GraphNode['alarms']
   readonly groupId?: string
   readonly data?: Readonly<Record<string, unknown>>
+  readonly style?: GraphNode['style']
+  readonly angle?: number
+  readonly angleAnchor?: GraphNode['angleAnchor']
+  readonly vectorImage?: string
 }): GraphNode {
   return {
     id: opts.id,
@@ -30,6 +35,9 @@ export function adasBox(opts: {
     ...(opts.tooltip !== undefined ? { tooltip: opts.tooltip } : {}),
     ...(opts.alarms !== undefined ? { alarms: opts.alarms } : {}),
     ...(opts.groupId !== undefined ? { groupId: opts.groupId } : {}),
+    ...(opts.angle !== undefined ? { angle: opts.angle } : {}),
+    ...(opts.angleAnchor !== undefined ? { angleAnchor: opts.angleAnchor } : {}),
+    ...(opts.vectorImage !== undefined ? { vectorImage: opts.vectorImage } : {}),
     x: opts.x,
     y: opts.y,
     w: opts.w,
@@ -40,15 +48,15 @@ export function adasBox(opts: {
       ...(opts.data ?? {}),
     },
     style: {
-      labelPosition: 'center',
+      // Omit labelPosition / label2Position → engine defaults (bottom / top).
       label: { color: ADAS_BRAND.navy, fontWeight: 'bold', fontSize: 11 },
       ...(opts.label2 !== undefined
         ? {
-            label2Position: 'bottom' as const,
             label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 10 },
           }
         : {}),
       showIcon: false,
+      ...opts.style,
     },
   }
 }

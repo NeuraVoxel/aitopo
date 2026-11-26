@@ -2,7 +2,14 @@
  * Drag control-point handles on selected shape nodes.
  */
 
-import type { Point } from '../geom.ts'
+import {
+  anglePivot,
+  inverseRotatePointAround,
+  rotatePointAround,
+  type Point,
+  type Rect,
+} from '../geom.ts'
+import { unionPoint } from '../ui/bounds.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
 const HANDLE_SIZE = 10
@@ -16,10 +23,9 @@ interface VertexDrag {
 }
 
 /**
- * When a shape node is selected, pointer on a control handle drags that vertex.
+ * When a shape node is selected in Edit, paint control handles and drag a vertex.
  * Pack **before** MoveNodeInteraction so capture-phase handle hits win over body drag.
- * Ignores locked shape nodes. Network already paints selection handles; chrome here
- * shows the in-flight vertex until commit. Closed bodies preview the closing edge.
+ * Ignores locked shape nodes. Selection highlight alone (Observe) does not show handles.
  */
 export class MoveShapeNodeVertexInteraction implements Interaction {
   /**
@@ -32,24 +38,33 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
     if (canvas === null) return () => {}
 
     let drag: VertexDrag | undefined
-    let removeChrome: (() => void) | undefined
 
     const handleSize = (): number => HANDLE_SIZE / network.viewport.state.zoom
 
-    const clearChrome = (): void => {
-      removeChrome?.()
-      removeChrome = undefined
+    const pointsBox = (points: readonly Point[]): Rect | undefined => {
+      let box: Rect | undefined
+      for (const point of points) box = unionPoint(box, point)
+      return box
     }
 
-    const ensureChrome = (): void => {
-      if (removeChrome !== undefined) {
-        network.requestOverlayPaint()
-        return
+    const worldHandles = (
+      points: readonly Point[],
+      angle: number,
+      anchor: { readonly u: number; readonly v: number } | undefined,
+    ): Point[] => {
+      if (angle === 0 || points.length === 0) {
+        return points.map(p => ({ x: p.x, y: p.y }))
       }
-      removeChrome = network.addOverlayChrome({
-        paint(renderer) {
-          if (drag === undefined) return
-          const size = handleSize()
+      const box = pointsBox(points)
+      if (box === undefined) return points.map(p => ({ x: p.x, y: p.y }))
+      const pivot = anglePivot(box, anchor)
+      return points.map(p => rotatePointAround(p, pivot, angle))
+    }
+
+    const removeChrome = network.addOverlayChrome({
+      paint(renderer) {
+        const size = handleSize()
+        if (drag !== undefined) {
           for (let i = 0; i < drag.points.length - 1; i += 1) {
             renderer.drawEdgeRubberBand(drag.points[i]!, drag.points[i + 1]!)
           }
@@ -61,9 +76,21 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
           for (const point of drag.points) {
             renderer.drawResizeHandle(point, size)
           }
-        },
-      })
-    }
+          return
+        }
+        for (const id of network.getSelectedIds()) {
+          const shapeNode = network.getShapeNodes().find(s => s.id === id)
+          if (shapeNode === undefined || shapeNode.locked === true) continue
+          for (const point of worldHandles(
+            shapeNode.points,
+            shapeNode.angle ?? 0,
+            shapeNode.angleAnchor,
+          )) {
+            renderer.drawResizeHandle(point, size)
+          }
+        }
+      },
+    })
 
     const hitHandle = (
       shapeNodeId: string,
@@ -73,11 +100,17 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
       if (shapeNode === undefined || shapeNode.locked === true) return undefined
       const pad = HIT_PAD / network.viewport.state.zoom
       const half = handleSize() / 2
+      const angle = shapeNode.angle ?? 0
+      const box = pointsBox(shapeNode.points)
+      const pivot = box === undefined ? undefined : anglePivot(box, shapeNode.angleAnchor)
+      const local = angle === 0 || pivot === undefined
+        ? world
+        : inverseRotatePointAround(world, pivot, angle)
       for (let i = shapeNode.points.length - 1; i >= 0; i -= 1) {
         const p = shapeNode.points[i]!
         if (
-          Math.abs(world.x - p.x) <= pad + half
-          && Math.abs(world.y - p.y) <= pad + half
+          Math.abs(local.x - p.x) <= pad + half
+          && Math.abs(local.y - p.y) <= pad + half
         ) {
           return {
             index: i,
@@ -104,7 +137,7 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
         }
         network.clearGestureDragged()
         network.markGestureDragged()
-        ensureChrome()
+        network.requestOverlayPaint()
         try {
           canvas.setPointerCapture(event.pointerId)
         } catch {
@@ -119,19 +152,25 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
       if (drag === undefined) return
       const rect = canvas.getBoundingClientRect()
       const world = network.screenToWorld(event.clientX - rect.left, event.clientY - rect.top)
+      const shapeNode = network.getShapeNodes().find(s => s.id === drag!.shapeNodeId)
+      const angle = shapeNode?.angle ?? 0
+      const box = pointsBox(drag.points)
+      const pivot = box === undefined ? undefined : anglePivot(box, shapeNode?.angleAnchor)
+      const local = angle === 0 || pivot === undefined
+        ? world
+        : inverseRotatePointAround(world, pivot, angle)
       const next = drag.points.map(p => ({ x: p.x, y: p.y }))
-      next[drag.index] = { x: world.x, y: world.y }
+      next[drag.index] = { x: local.x, y: local.y }
       drag.points = next
       network.previewShapeNodePoints(drag.shapeNodeId, next)
       network.markGestureDragged()
-      ensureChrome()
+      network.requestOverlayPaint()
     }
 
     const finish = (event: PointerEvent): void => {
       if (drag === undefined) return
       const finished = drag
       drag = undefined
-      clearChrome()
       try {
         canvas.releasePointerCapture(event.pointerId)
       } catch {
@@ -141,6 +180,7 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
         shapeNodeId: finished.shapeNodeId,
         patch: { points: finished.points },
       })
+      network.requestOverlayPaint()
     }
 
     canvas.addEventListener('pointerdown', onPointerDown, true)
@@ -149,7 +189,7 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
     canvas.addEventListener('pointercancel', finish)
 
     return () => {
-      clearChrome()
+      removeChrome()
       canvas.removeEventListener('pointerdown', onPointerDown, true)
       canvas.removeEventListener('pointermove', onPointerMove)
       canvas.removeEventListener('pointerup', finish)

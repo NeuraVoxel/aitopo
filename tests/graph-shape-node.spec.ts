@@ -828,7 +828,8 @@ describe('Network GraphShapeNode', () => {
     expect(selectedView!.stroke).toBe('#22c55e')
     expect(selectedView!.lineWidth).toBe(4)
     expect(selectedView!.selectStyle?.glow).toBe(false)
-    expect(vi.mocked(renderer.drawResizeHandle).mock.calls.length).toBe(3)
+    // Vertex handles are Edit-only (MoveShapeNodeVertexInteraction), not selection chrome.
+    expect(vi.mocked(renderer.drawResizeHandle).mock.calls.length).toBe(0)
   })
 
   it('hitTestScreen finds a shapeNode on an empty canvas document', async () => {

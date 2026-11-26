@@ -3,6 +3,7 @@
  */
 
 import { normalizeAngleDegrees, resolveAngleAnchor } from '../geom.ts'
+import { assertFollowHostValid, expandFollowMotion } from '../model/follow.ts'
 import { assertGroupParentAcyclic } from './parse.ts'
 import { graphPatchSchema, type GraphPatch, type GraphPatchOp } from './schema.ts'
 import type {
@@ -48,11 +49,13 @@ export function applyPatch(doc: GraphDocument, patch: unknown): GraphDocument {
     const path = issue?.path.join('.') || '(root)'
     throw new Error(`GraphPatch parse failed at ${path}: ${issue?.message ?? 'invalid patch'}`)
   }
+  const expanded = expandFollowMotion(doc, parsed.data)
   let next = structuredClone(doc)
-  for (const op of parsed.data.ops) {
+  for (const op of expanded.ops) {
     next = applyOp(next, op)
   }
   assertGroupParentAcyclic(next.groups ?? [])
+  assertFollowHostValid(next)
   return next
 }
 
@@ -321,6 +324,7 @@ function asNode(raw: {
   groupId?: string | undefined
   networkId?: string | undefined
   locked?: boolean | undefined
+  followHostId?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -347,6 +351,7 @@ function asNode(raw: {
     groupId: raw.groupId,
     networkId: raw.networkId,
     locked: raw.locked,
+    followHostId: raw.followHostId,
     alarms: raw.alarms,
     style: raw.style !== undefined ? asNodeStyle(raw.style) : undefined,
     data: raw.data,
@@ -373,6 +378,7 @@ function mergeNode(
     groupId?: string | null | undefined
     networkId?: string | undefined
     locked?: boolean | undefined
+    followHostId?: string | null | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -391,6 +397,9 @@ function mergeNode(
   const groupId = patch.groupId === null
     ? undefined
     : (patch.groupId ?? current.groupId)
+  const followHostId = patch.followHostId === null
+    ? undefined
+    : (patch.followHostId ?? current.followHostId)
   return applyOptionalNode(base, {
     label2: patch.label2 ?? current.label2,
     icon: patch.icon ?? current.icon,
@@ -409,6 +418,7 @@ function mergeNode(
     groupId,
     networkId: patch.networkId ?? current.networkId,
     locked: patch.locked ?? current.locked,
+    followHostId,
     alarms: patch.alarms ?? current.alarms?.map(a => ({ ...a })),
     style: patch.style !== undefined
       ? mergeNodeStyle(current.style, asNodeStyle(patch.style))
@@ -448,6 +458,7 @@ function applyOptionalNode(
     groupId?: string | undefined
     networkId?: string | undefined
     locked?: boolean | undefined
+    followHostId?: string | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -475,6 +486,7 @@ function applyOptionalNode(
     ...(raw.groupId !== undefined ? { groupId: raw.groupId } : {}),
     ...(raw.networkId !== undefined ? { networkId: raw.networkId } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
     ...(raw.alarms !== undefined ? { alarms: [...raw.alarms].map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: raw.style } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
@@ -625,6 +637,7 @@ function asGroup(raw: {
   angle?: number | undefined
   angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   locked?: boolean | undefined
+  followHostId?: string | undefined
   icon?: string | undefined
   alarms?: Array<{
     id: string
@@ -652,6 +665,7 @@ function asGroup(raw: {
     ...(angle !== undefined ? { angle } : {}),
     ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
     ...(raw.icon !== undefined ? { icon: raw.icon } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asGroupStyle(raw.style) } : {}),
@@ -675,6 +689,7 @@ function mergeGroup(
     angle?: number | undefined
     angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     locked?: boolean | undefined
+    followHostId?: string | null | undefined
     icon?: string | undefined
     alarms?: Array<{
       id: string
@@ -686,6 +701,9 @@ function mergeGroup(
     data?: Readonly<Record<string, unknown>> | undefined
   },
 ): GraphGroup {
+  const followHostId = patch.followHostId === null
+    ? undefined
+    : (patch.followHostId ?? current.followHostId)
   return asGroup({
     id: current.id,
     label: patch.label ?? current.label,
@@ -703,6 +721,7 @@ function mergeGroup(
       ? patch.angleAnchor
       : current.angleAnchor,
     locked: patch.locked ?? current.locked,
+    followHostId,
     icon: patch.icon ?? current.icon,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
       id: a.id,
@@ -739,6 +758,7 @@ function asPath(raw: {
   locked?: boolean | undefined
   angle?: number | undefined
   angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
+  followHostId?: string | undefined
   style?: GraphPathStyle | undefined
   data?: Readonly<Record<string, unknown>> | undefined
 }): GraphPath {
@@ -753,6 +773,7 @@ function asPath(raw: {
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
     ...(angle !== undefined ? { angle } : {}),
     ...(angleAnchor !== undefined ? { angleAnchor } : {}),
+    ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
     ...(raw.style !== undefined ? { style: asPathStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
@@ -768,10 +789,14 @@ function mergePath(
     locked?: boolean | undefined
     angle?: number | undefined
     angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
+    followHostId?: string | null | undefined
     style?: GraphPathStyle | undefined
     data?: Readonly<Record<string, unknown>> | undefined
   },
 ): GraphPath {
+  const followHostId = patch.followHostId === null
+    ? undefined
+    : (patch.followHostId ?? current.followHostId)
   return asPath({
     id: current.id,
     points: patch.points !== undefined
@@ -785,6 +810,7 @@ function mergePath(
     angleAnchor: patch.angleAnchor !== undefined
       ? patch.angleAnchor
       : current.angleAnchor,
+    followHostId,
     style: patch.style !== undefined
       ? mergePathStyle(current.style, asPathStyle(patch.style))
       : current.style,
@@ -816,6 +842,7 @@ function asShapeNode(raw: {
   angle?: number | undefined
   angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   groupId?: string | undefined
+  followHostId?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -838,6 +865,7 @@ function asShapeNode(raw: {
     ...(angle !== undefined ? { angle } : {}),
     ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.groupId !== undefined ? { groupId: raw.groupId } : {}),
+    ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asShapeNodeStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
@@ -856,6 +884,7 @@ function mergeShapeNode(
     angle?: number | undefined
     angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     groupId?: string | undefined
+    followHostId?: string | null | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -866,6 +895,9 @@ function mergeShapeNode(
     data?: Readonly<Record<string, unknown>> | undefined
   },
 ): GraphShapeNode {
+  const followHostId = patch.followHostId === null
+    ? undefined
+    : (patch.followHostId ?? current.followHostId)
   return asShapeNode({
     id: current.id,
     points: patch.points !== undefined
@@ -881,6 +913,7 @@ function mergeShapeNode(
       ? patch.angleAnchor
       : current.angleAnchor,
     groupId: patch.groupId ?? current.groupId,
+    followHostId,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
       id: a.id,
       level: a.level,

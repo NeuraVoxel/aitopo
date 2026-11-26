@@ -184,6 +184,13 @@ export interface GraphNode {
   readonly networkId?: string
   /** When true, move and membership edits skip this node. */
   readonly locked?: boolean
+  /**
+   * When set, this element translates by the same `(dx, dy)` as the host
+   * whenever the host moves (preview + commit). Host may be a Node, Group,
+   * Path, or ShapeNode id. Cycles and missing hosts fail loud at parse/apply.
+   * Host delete clears this field on followers.
+   */
+  readonly followHostId?: string
   readonly alarms?: readonly Alarm[]
   readonly style?: GraphNodeStyle
   readonly data?: Readonly<Record<string, unknown>>
@@ -524,6 +531,10 @@ export interface GraphPath {
   readonly angle?: number
   /** Relative pivot in original path AABB. Omitted ≡ center. */
   readonly angleAnchor?: GraphAngleAnchor
+  /**
+   * Translate with host on host move. See {@link GraphNode.followHostId}.
+   */
+  readonly followHostId?: string
   readonly style?: GraphPathStyle
   readonly data?: Readonly<Record<string, unknown>>
 }
@@ -571,6 +582,10 @@ export interface GraphShapeNode {
   readonly angleAnchor?: GraphAngleAnchor
   /** Group membership (dual bookkeeping with `GraphGroup.memberIds`). */
   readonly groupId?: string
+  /**
+   * Translate with host on host move. See {@link GraphNode.followHostId}.
+   */
+  readonly followHostId?: string
   readonly alarms?: readonly Alarm[]
   readonly style?: GraphShapeNodeStyle
   readonly data?: Readonly<Record<string, unknown>>
@@ -619,6 +634,11 @@ export interface GraphGroup {
   readonly angleAnchor?: GraphAngleAnchor
   /** When true, move and expand-toggle edits skip this group. */
   readonly locked?: boolean
+  /**
+   * Translate with host on host move. See {@link GraphNode.followHostId}.
+   * Group followers move band origin only (members keep independent coords).
+   */
+  readonly followHostId?: string
   /**
    * IconRegistry key for collapsed IconsAttachment; omitted → `group`.
    * Unknown keys fall back to `group`.

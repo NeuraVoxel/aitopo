@@ -648,6 +648,7 @@ describe('Network GraphPath', () => {
     expect(baseView.selectStyle?.color).toBe('#22c55e')
 
     vi.mocked(renderer.drawPath).mockClear()
+    vi.mocked(renderer.drawResizeHandle).mockClear()
     network.setSelection(['p1'])
     await flushFrames(3)
     const overlayCalls = vi.mocked(renderer.drawPath).mock.calls
@@ -656,6 +657,8 @@ describe('Network GraphPath', () => {
     expect(selectedView!.stroke).toBe('#22c55e')
     expect(selectedView!.lineWidth).toBe(4)
     expect(selectedView!.selectStyle?.glow).toBe(false)
+    // Vertex handles are Edit-only (MovePathVertexInteraction), not selection chrome.
+    expect(vi.mocked(renderer.drawResizeHandle).mock.calls.length).toBe(0)
   })
 
   it('hitTestScreen finds a path on an empty canvas document', async () => {
