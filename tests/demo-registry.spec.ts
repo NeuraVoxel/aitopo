@@ -27,16 +27,33 @@ describe('demo sample registry', () => {
 
   it('registers element showcases', () => {
     const ids = new Set(listSamples().map(s => s.id))
-    for (const id of ['node', 'edge', 'group', 'alarm', 'subnetwork']) {
+    for (const id of ['node', 'edge', 'path', 'group', 'alarm', 'subnetwork']) {
       expect(ids.has(id)).toBe(true)
       const sample = getSample(id)
       expect(sample?.group).toBe('elements')
       const doc = parseDocument(sample!.document)
-      const count = doc.nodes.length + doc.edges.length + (doc.groups?.length ?? 0)
+      const count =
+        doc.nodes.length
+        + doc.edges.length
+        + (doc.groups?.length ?? 0)
+        + (doc.paths?.length ?? 0)
       // Edge is a full style.route catalog; other element demos stay compact.
       expect(count).toBeLessThanOrEqual(id === 'edge' ? 120 : 15)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
     }
+    const path = parseDocument(getSample('path')!.document)
+    expect(path.paths?.map(p => p.id).sort()).toEqual([
+      'closed-fill',
+      'cubicto-curve',
+      'lineto-dash',
+      'lineto-open',
+      'locked-path',
+      'quadto-curve',
+    ])
+    expect(path.paths?.some(p => p.style?.shapeKind === 'quadto')).toBe(true)
+    expect(path.paths?.some(p => p.style?.shapeKind === 'cubicto')).toBe(true)
+    expect(path.paths?.some(p => p.closed === true && p.style?.fill !== undefined)).toBe(true)
+    expect(path.paths?.some(p => p.locked === true)).toBe(true)
     const edge = parseDocument(getSample('edge')!.document)
     expect(edge.groups?.[0]?.id).toBe('band')
     expect(edge.groups?.[0]?.expanded).toBe(true)

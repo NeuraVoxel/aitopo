@@ -107,7 +107,7 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 
 ## Consequences
 
-- Authors model freestanding geometry without fake endpoint nodes; ADAS lane / boundary / planning / prediction demos load as Path documents.
+- Authors model freestanding geometry without fake endpoint nodes; ADAS lane / boundary / planning / prediction demos load as Path documents; Elements catalog has a `path` showcase (`lineto` / `quadto` / `cubicto` / closed / locked).
 - Unique-id checks span four element kinds; collisions fail loud at parse / apply.
 - Quad/cubic densify hit-testing remains approximate (same class as edge ShapeLink).
 - Paint order mistakes can hide lanes under fills or cover nodes — under-node ordering is pinned in ViewSet / Network.
@@ -118,4 +118,4 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 - `tests/graph-path.spec.ts` — protocol parse, patch/invert, densify, PathView, Network paint/hit/selection/commits.
 - `tests/create-path.spec.ts` — CreatePath / vertex edit.
 - `tests/delete-edge.spec.ts`, `tests/move-node.spec.ts` — path delete and body translate.
-- `tests/demo-registry.spec.ts` — five Path samples loadable; only `adas-sensor-fov` reserved.
+- `tests/demo-registry.spec.ts` — Elements `path` showcase; five ADAS Path samples loadable; only `adas-sensor-fov` reserved.
