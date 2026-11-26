@@ -12,15 +12,16 @@ ADAS 已有车道走廊，并删掉了旧的 HD 路口草图，但目录里没�
 
 | Panel | Content |
 |---|---|
-| 左 **SD** | 道路中心线 Path 汇入路口节点 `J1` + ego |
-| 右 **HD** | 同一十字路口：车道 ShapeNode、中心线/边界 Path、虚线 lane connector、停止线、人行横道、信号灯节点、successor Edge、ego |
+| 左 **SD** | 参数化 S 弯干道（同 Lane demo）+ `J1`/`J2`/`J3` + 短 E/W/停车场支路 + ego |
+| 右 **HD** | 同一 spine；双车道路带；路况**分散**：信号/停止线/人行横道在 **J1**，人行道在干道中段，PUDO 在 **J2**，停车场在 **J3**，roadblock 在南向接近段 |
 
-共用局部几何，平移到两个 panel 原点。色值只走 `ADAS_*`。示意草图，非官方瓦片。目录归属：[2026-11-25-demo-adas-group.md](2026-11-25-demo-adas-group.md)。
+共用局部 spine，平移到两个 panel 原点。色值只走 `ADAS_*`。示意草图，非官方瓦片。目录归属：[2026-11-25-demo-adas-group.md](2026-11-25-demo-adas-group.md)。
 
 ## Alternatives considered
 
 - **SD / HD 拆成两行目录：** 否决 — 产品要一页左右对比。
-- **只有 SD 中心线、没有配对 HD：** 否决 — 重点是同一路口的精度差。
+- **只有 SD 中心线、没有配对 HD：** 否决 — 重点是同一走廊的精度差。
+- **把所有 HD 叠加挤在一个十字路口：** 否决 — 路况应分散在不同路口 / 路段。
 - **单独复活已删的 `adas-hdmap-junction`：** 否决 — 新故事是 SD|HD 成对；旧行保持裁剪。
 
 ## Consequences

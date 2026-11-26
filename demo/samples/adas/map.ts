@@ -17,21 +17,98 @@ import { egoAxleFrameNode, EGO_H, EGO_W } from './bev-scale.ts'
 import { adasBox } from './shared.ts'
 
 /**
- * Side-by-side SD vs HD map of the same crossroads (schematic, not official tiles).
- * Left = SD (centerlines + junction). Right = HD (lanes, connectors, stop lines, signals).
+ * Side-by-side SD vs HD of one shared corridor (schematic).
+ * Main spine = parametric S-curve (same approach as Lane demo).
+ * Three junctions along the trunk; HD conditions spread by segment.
  */
 
 type Pt = { readonly x: number; readonly y: number }
 
-const SD_OX = 40
-const HD_OX = 520
-const OY = 40
-/** Local junction center inside each panel. */
-const CX = 200
-const CY = 260
-const ARM = 150
-const LANE_HALF = 22
-const ROAD_HALF = 48
+const SD_OX = 24
+const HD_OX = 500
+const OY = 16
+/** Top band reserved for SD/HD panel titles (keeps labels off the corridor). */
+const TITLE_BAND = 44
+
+/** Corridor extents (local; y-down). North tip sits below the title band. */
+const Y_SOUTH = 680
+const Y_NORTH = TITLE_BAND + 28
+const SPINE_X0 = 200
+const S_AMP = 78
+const SPINE_SAMPLES = 28
+
+const ROAD_HALF = 22
+const LANE_W = 40
+
+/** Junction stations along the main spine (`t` south→north). */
+const T_J1 = 0.28 // signalized crossroads
+const T_J2 = 0.55 // bend + PUDO
+const T_J3 = 0.82 // T + carpark
+const T_BLOCK = 0.12 // roadblock on south approach
+const T_WALK0 = 0.4
+const T_WALK1 = 0.5
+const T_EGO = 0.08
+
+function clamp01(t: number): number {
+  return Math.min(1, Math.max(0, t))
+}
+
+function unit(v: Pt): Pt {
+  const len = Math.hypot(v.x, v.y) || 1
+  return { x: v.x / len, y: v.y / len }
+}
+
+/** `t=0` south tip → `t=1` north tip. */
+function spineAt(t: number): Pt {
+  const u = clamp01(t)
+  return {
+    x: SPINE_X0 + S_AMP * Math.sin(2 * Math.PI * u),
+    y: Y_SOUTH + (Y_NORTH - Y_SOUTH) * u,
+  }
+}
+
+function frameAt(t: number): { readonly point: Pt; readonly tangent: Pt; readonly left: Pt } {
+  const eps = 1e-3
+  const a = spineAt(t - eps)
+  const b = spineAt(t + eps)
+  const tangent = unit({ x: b.x - a.x, y: b.y - a.y })
+  const left = unit({ x: tangent.y, y: -tangent.x })
+  return { point: spineAt(t), tangent, left }
+}
+
+/** Heading degrees: 0 = −Y (north); positive toward +X (matches ego world heading). */
+function headingDeg(tangent: Pt): number {
+  const deg = Math.atan2(tangent.x, -tangent.y) * (180 / Math.PI)
+  const wrapped = ((deg % 360) + 360) % 360
+  return Math.round(wrapped * 100) / 100
+}
+
+function sampleSpine(count: number, t0 = 0, t1 = 1): Pt[] {
+  const n = Math.max(2, count)
+  const out: Pt[] = []
+  for (let i = 0; i < n; i += 1) {
+    const t = t0 + (t1 - t0) * (i / (n - 1))
+    out.push(spineAt(t))
+  }
+  return out
+}
+
+function offsetPolyline(points: readonly Pt[], distance: number): Pt[] {
+  if (points.length < 2) return [...points]
+  return points.map((point, i) => {
+    const prev = points[Math.max(0, i - 1)]!
+    const next = points[Math.min(points.length - 1, i + 1)]!
+    const tangent = unit({ x: next.x - prev.x, y: next.y - prev.y })
+    const left = unit({ x: tangent.y, y: -tangent.x })
+    return { x: point.x + left.x * distance, y: point.y + left.y * distance }
+  })
+}
+
+function ribbonPolygon(centerline: readonly Pt[], halfWidth: number): Pt[] {
+  const left = offsetPolyline(centerline, halfWidth)
+  const right = offsetPolyline(centerline, -halfWidth)
+  return [...left, ...right.slice().reverse()]
+}
 
 function T(ox: number, oy: number, p: Pt): Pt {
   return { x: ox + p.x, y: oy + p.y }
@@ -41,6 +118,18 @@ function translatePoints(ox: number, oy: number, points: readonly Pt[]): Pt[] {
   return points.map(p => T(ox, oy, p))
 }
 
+/** Straight arm from a junction along world axes (schematic stubs). */
+function armPoints(center: Pt, dir: 'e' | 'w' | 'n' | 's', length: number, samples = 8): Pt[] {
+  const dx = dir === 'e' ? 1 : dir === 'w' ? -1 : 0
+  const dy = dir === 's' ? 1 : dir === 'n' ? -1 : 0
+  const out: Pt[] = []
+  for (let i = 0; i < samples; i += 1) {
+    const u = i / (samples - 1)
+    out.push({ x: center.x + dx * length * u, y: center.y + dy * length * u })
+  }
+  return out
+}
+
 function panelTitle(id: string, ox: number, oy: number, title: string, tagline: string): GraphNode {
   return adasBox({
     id,
@@ -48,9 +137,9 @@ function panelTitle(id: string, ox: number, oy: number, title: string, tagline: 
     label: title,
     label2: tagline,
     x: ox + 8,
-    y: oy + 4,
-    w: 120,
-    h: 28,
+    y: oy + 6,
+    w: 176,
+    h: TITLE_BAND - 12,
     fill: ADAS_AGENT.ego.fill,
     stroke: ADAS_AGENT.ego.stroke,
     data: { role: 'panel_title' },
@@ -58,7 +147,7 @@ function panelTitle(id: string, ox: number, oy: number, title: string, tagline: 
       showIcon: false,
       shadow: null,
       labelPosition: 'center',
-      label: { color: ADAS_BRAND.navy, fontWeight: 'bold', fontSize: 13 },
+      label: { color: ADAS_BRAND.navy, fontWeight: 'bold', fontSize: 12 },
       label2Position: 'bottom',
       label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 9, offsetY: 2 },
     },
@@ -70,13 +159,12 @@ function roadLine(args: {
   readonly points: readonly Pt[]
   readonly stroke: string
   readonly lineWidth: number
-  readonly label?: string
   readonly dash?: readonly number[]
   readonly layerId?: string
+  readonly alpha?: number
 }): GraphPath {
   return {
     id: args.id,
-    ...(args.label !== undefined ? { label: args.label } : {}),
     points: args.points,
     closed: false,
     layerId: args.layerId ?? 'map',
@@ -84,62 +172,126 @@ function roadLine(args: {
       stroke: args.stroke,
       lineWidth: args.lineWidth,
       shapeKind: 'lineto',
+      ...(args.alpha !== undefined ? { alpha: args.alpha } : {}),
       ...(args.dash !== undefined ? { strokeDash: args.dash } : {}),
-      ...(args.label !== undefined
-        ? { label: { color: ADAS_BRAND.mediumAsphalt, fontSize: 10 } }
-        : {}),
     },
     data: { role: 'map_path' },
   }
 }
 
-function rectPoly(x: number, y: number, w: number, h: number): Pt[] {
-  return [
-    { x, y },
-    { x: x + w, y },
-    { x: x + w, y: y + h },
-    { x, y: y + h },
-  ]
+function laneRibbon(args: {
+  readonly id: string
+  readonly label: string
+  readonly centerline: readonly Pt[]
+  readonly halfWidth: number
+  readonly ox: number
+  readonly oy: number
+  readonly approach: string
+  readonly alpha?: number
+}): GraphShapeNode {
+  return {
+    id: args.id,
+    label: args.label,
+    layerId: 'ground',
+    closed: true,
+    points: translatePoints(args.ox, args.oy, ribbonPolygon(args.centerline, args.halfWidth)),
+    style: {
+      fill: ADAS_MAP.lane.fill,
+      stroke: ADAS_MAP.lane.stroke,
+      lineWidth: 1.25,
+      alpha: args.alpha ?? 0.5,
+      label: { color: ADAS_BRAND.lightAsphalt, fontSize: 9 },
+    },
+    data: { role: 'hd_lane', mapKind: 'hd', approach: args.approach },
+  }
 }
 
-/** SD panel: topological centerlines into one junction node. */
+function filledPoly(args: {
+  readonly id: string
+  readonly label: string
+  readonly points: readonly Pt[]
+  readonly fill: string
+  readonly stroke: string
+  readonly alpha: number
+  readonly role: string
+  readonly ox: number
+  readonly oy: number
+  readonly layerId?: string
+}): GraphShapeNode {
+  return {
+    id: args.id,
+    label: args.label,
+    layerId: args.layerId ?? 'map',
+    closed: true,
+    points: translatePoints(args.ox, args.oy, args.points),
+    style: {
+      fill: args.fill,
+      stroke: args.stroke,
+      lineWidth: 1.2,
+      alpha: args.alpha,
+      label: { color: ADAS_BRAND.mediumAsphalt, fontSize: 8 },
+    },
+    data: { role: args.role, mapKind: 'hd' },
+  }
+}
+
+function sdJunction(
+  id: string,
+  ox: number,
+  oy: number,
+  center: Pt,
+  label: string,
+  label2: string,
+  size: number,
+): GraphNode {
+  return adasBox({
+    id,
+    type: 'junction',
+    label,
+    label2,
+    x: ox + center.x - size / 2,
+    y: oy + center.y - size / 2,
+    w: size,
+    h: size,
+    fill: ADAS_MAP.intersection.fill,
+    stroke: ADAS_MAP.intersection.stroke,
+    data: { role: 'sd_junction', mapKind: 'sd' },
+    style: {
+      showIcon: false,
+      labelPosition: 'center',
+      label: { color: ADAS_BRAND.navy, fontWeight: 'bold', fontSize: 11 },
+      label2Position: 'bottom',
+      label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 8, offsetY: 3 },
+    },
+  })
+}
+
 function buildSdPanel(ox: number, oy: number): {
   readonly nodes: GraphNode[]
   readonly paths: GraphPath[]
   readonly shapeNodes: GraphShapeNode[]
   readonly edges: GraphEdge[]
 } {
-  const j = T(ox, oy, { x: CX, y: CY })
+  const j1 = spineAt(T_J1)
+  const j2 = spineAt(T_J2)
+  const j3 = spineAt(T_J3)
+  const egoFrame = frameAt(T_EGO)
+  const trunk = sampleSpine(SPINE_SAMPLES)
+
   const nodes: GraphNode[] = [
-    panelTitle('sd-title', ox, oy, 'SD Map', 'centerline topology'),
-    adasBox({
-      id: 'sd-junction',
-      type: 'junction',
-      label: 'J1',
-      label2: 'crossroads',
-      x: j.x - 18,
-      y: j.y - 18,
-      w: 36,
-      h: 36,
-      fill: ADAS_MAP.intersection.fill,
-      stroke: ADAS_MAP.intersection.stroke,
-      data: { role: 'sd_junction', mapKind: 'sd' },
-      style: {
-        showIcon: false,
-        labelPosition: 'center',
-        label: { color: ADAS_BRAND.navy, fontWeight: 'bold', fontSize: 11 },
-        label2Position: 'bottom',
-        label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 9, offsetY: 4 },
-      },
-    }),
+    panelTitle('sd-title', ox, oy, 'SD Map', 'S-curve · 3 junctions'),
+    sdJunction('sd-j1', ox, oy, j1, 'J1', 'signals', 34),
+    sdJunction('sd-j2', ox, oy, j2, 'J2', 'bend', 26),
+    sdJunction('sd-j3', ox, oy, j3, 'J3', 'T', 26),
     {
       ...egoAxleFrameNode({
-        x: ox + CX - EGO_W / 2,
-        y: oy + CY + ARM * 0.45,
+        x: ox + egoFrame.point.x - EGO_W / 2,
+        y: oy + egoFrame.point.y - EGO_H / 2,
       }),
       id: 'sd-ego',
       label: 'Ego',
       label2: 'SD',
+      angle: headingDeg(egoFrame.tangent),
       layerId: 'agents',
       style: {
         showIcon: false,
@@ -151,252 +303,375 @@ function buildSdPanel(ox: number, oy: number): {
     },
   ]
 
-  const arms: { id: string; label: string; a: Pt; b: Pt }[] = [
-    { id: 'sd-ns-n', label: 'N Ave', a: { x: CX, y: CY - ARM }, b: { x: CX, y: CY - 24 } },
-    { id: 'sd-ns-s', label: 'S Ave', a: { x: CX, y: CY + 24 }, b: { x: CX, y: CY + ARM } },
-    { id: 'sd-ew-w', label: 'W Rd', a: { x: CX - ARM, y: CY }, b: { x: CX - 24, y: CY } },
-    { id: 'sd-ew-e', label: 'E Rd', a: { x: CX + 24, y: CY }, b: { x: CX + ARM, y: CY } },
-  ]
-
-  const paths = arms.map(arm =>
+  const paths: GraphPath[] = [
     roadLine({
-      id: arm.id,
-      label: arm.label,
-      points: translatePoints(ox, oy, [arm.a, arm.b]),
+      id: 'sd-trunk',
+      points: translatePoints(ox, oy, trunk),
+      stroke: ADAS_MAP.baseline,
+      lineWidth: 5,
+    }),
+    roadLine({
+      id: 'sd-j1-e',
+      points: translatePoints(ox, oy, armPoints(j1, 'e', 130)),
       stroke: ADAS_MAP.baseline,
       lineWidth: 4,
-      layerId: 'map',
     }),
-  )
+    roadLine({
+      id: 'sd-j1-w',
+      points: translatePoints(ox, oy, armPoints(j1, 'w', 110)),
+      stroke: ADAS_MAP.baseline,
+      lineWidth: 4,
+    }),
+    roadLine({
+      id: 'sd-j3-w',
+      points: translatePoints(ox, oy, armPoints(j3, 'w', 120)),
+      stroke: ADAS_MAP.baseline,
+      lineWidth: 3.5,
+    }),
+  ]
 
-  return { nodes, paths, shapeNodes: [], edges: [] }
+  const edges: GraphEdge[] = [
+    {
+      id: 'sd-link-j1-j2',
+      from: 'sd-j1',
+      to: 'sd-j2',
+      kind: 'successor',
+      layerId: 'map',
+      style: {
+        route: 'straight',
+        arrowTo: true,
+        stroke: ADAS_BRAND.mediumAsphalt,
+        lineWidth: 1.25,
+        strokeDash: [4, 4],
+        alpha: 0.55,
+      },
+      data: { role: 'sd_link', mapKind: 'sd' },
+    },
+    {
+      id: 'sd-link-j2-j3',
+      from: 'sd-j2',
+      to: 'sd-j3',
+      kind: 'successor',
+      layerId: 'map',
+      style: {
+        route: 'straight',
+        arrowTo: true,
+        stroke: ADAS_BRAND.mediumAsphalt,
+        lineWidth: 1.25,
+        strokeDash: [4, 4],
+        alpha: 0.55,
+      },
+      data: { role: 'sd_link', mapKind: 'sd' },
+    },
+  ]
+
+  return { nodes, paths, shapeNodes: [], edges }
 }
 
-/** HD panel: same crossroads with lanes, connectors, stop lines, signals. */
 function buildHdPanel(ox: number, oy: number): {
   readonly nodes: GraphNode[]
   readonly paths: GraphPath[]
   readonly shapeNodes: GraphShapeNode[]
   readonly edges: GraphEdge[]
 } {
+  const j1 = spineAt(T_J1)
+  const j2 = spineAt(T_J2)
+  const j3 = spineAt(T_J3)
+  const block = spineAt(T_BLOCK)
+  const egoFrame = frameAt(T_EGO)
+  const trunk = sampleSpine(SPINE_SAMPLES)
+  const armE = armPoints(j1, 'e', 130)
+  const armW = armPoints(j1, 'w', 110)
+  const armPark = armPoints(j3, 'w', 120)
+
+  const half = LANE_W / 2
   const shapeNodes: GraphShapeNode[] = [
-    {
-      id: 'hd-intersection',
-      label: 'Intersection',
-      layerId: 'ground',
-      points: translatePoints(ox, oy, rectPoly(CX - ROAD_HALF, CY - ROAD_HALF, ROAD_HALF * 2, ROAD_HALF * 2)),
-      style: {
-        fill: ADAS_MAP.intersection.fill,
-        stroke: ADAS_MAP.intersection.stroke,
-        lineWidth: 1.5,
-        alpha: 0.45,
-        label: { color: ADAS_BRAND.lightAsphalt, fontSize: 10 },
-      },
-      data: { role: 'hd_intersection', mapKind: 'hd' },
-    },
-    // Approach lane surfaces (single lane ribbons into the box).
-    {
-      id: 'hd-lane-n',
-      label: 'L-N',
-      layerId: 'ground',
-      points: translatePoints(ox, oy, rectPoly(CX - LANE_HALF, CY - ARM, LANE_HALF * 2, ARM - ROAD_HALF)),
-      style: {
-        fill: ADAS_MAP.lane.fill,
-        stroke: ADAS_MAP.lane.stroke,
-        lineWidth: 1.25,
-        alpha: 0.5,
-        label: { color: ADAS_BRAND.lightAsphalt, fontSize: 9 },
-      },
-      data: { role: 'hd_lane', mapKind: 'hd', approach: 'n' },
-    },
-    {
-      id: 'hd-lane-s',
-      label: 'L-S',
-      layerId: 'ground',
-      points: translatePoints(ox, oy, rectPoly(CX - LANE_HALF, CY + ROAD_HALF, LANE_HALF * 2, ARM - ROAD_HALF)),
-      style: {
-        fill: ADAS_MAP.lane.fill,
-        stroke: ADAS_MAP.lane.stroke,
-        lineWidth: 1.25,
-        alpha: 0.5,
-        label: { color: ADAS_BRAND.lightAsphalt, fontSize: 9 },
-      },
-      data: { role: 'hd_lane', mapKind: 'hd', approach: 's' },
-    },
-    {
-      id: 'hd-lane-w',
-      label: 'L-W',
-      layerId: 'ground',
-      points: translatePoints(ox, oy, rectPoly(CX - ARM, CY - LANE_HALF, ARM - ROAD_HALF, LANE_HALF * 2)),
-      style: {
-        fill: ADAS_MAP.lane.fill,
-        stroke: ADAS_MAP.lane.stroke,
-        lineWidth: 1.25,
-        alpha: 0.5,
-        label: { color: ADAS_BRAND.lightAsphalt, fontSize: 9 },
-      },
-      data: { role: 'hd_lane', mapKind: 'hd', approach: 'w' },
-    },
-    {
+    // One clean dual-lane trunk (Lane-demo style)
+    laneRibbon({
+      id: 'hd-lane-l0',
+      label: 'L0',
+      centerline: offsetPolyline(trunk, half),
+      halfWidth: half * 0.92,
+      ox,
+      oy,
+      approach: 'trunk',
+    }),
+    laneRibbon({
+      id: 'hd-lane-l1',
+      label: 'L1',
+      centerline: offsetPolyline(trunk, -half),
+      halfWidth: half * 0.92,
+      ox,
+      oy,
+      approach: 'trunk',
+    }),
+    laneRibbon({
       id: 'hd-lane-e',
-      label: 'L-E',
+      label: 'E',
+      centerline: armE,
+      halfWidth: ROAD_HALF,
+      ox,
+      oy,
+      approach: 'e',
+      alpha: 0.42,
+    }),
+    laneRibbon({
+      id: 'hd-lane-w',
+      label: 'W',
+      centerline: armW,
+      halfWidth: ROAD_HALF,
+      ox,
+      oy,
+      approach: 'w',
+      alpha: 0.42,
+    }),
+    laneRibbon({
+      id: 'hd-lane-park',
+      label: 'P-rd',
+      centerline: armPark,
+      halfWidth: ROAD_HALF * 0.9,
+      ox,
+      oy,
+      approach: 'park',
+      alpha: 0.4,
+    }),
+    // Soft junction pads (small, not overlapping everything)
+    filledPoly({
+      id: 'hd-intersection-j1',
+      label: '',
+      ox,
+      oy,
+      points: [
+        { x: j1.x - 34, y: j1.y - 34 },
+        { x: j1.x + 34, y: j1.y - 34 },
+        { x: j1.x + 34, y: j1.y + 34 },
+        { x: j1.x - 34, y: j1.y + 34 },
+      ],
+      fill: ADAS_MAP.intersection.fill,
+      stroke: ADAS_MAP.intersection.stroke,
+      alpha: 0.35,
+      role: 'hd_intersection',
       layerId: 'ground',
-      points: translatePoints(ox, oy, rectPoly(CX + ROAD_HALF, CY - LANE_HALF, ARM - ROAD_HALF, LANE_HALF * 2)),
-      style: {
-        fill: ADAS_MAP.lane.fill,
-        stroke: ADAS_MAP.lane.stroke,
-        lineWidth: 1.25,
-        alpha: 0.5,
-        label: { color: ADAS_BRAND.lightAsphalt, fontSize: 9 },
-      },
-      data: { role: 'hd_lane', mapKind: 'hd', approach: 'e' },
-    },
-    // Stop lines
-    {
-      id: 'hd-stop-s',
+    }),
+    filledPoly({
+      id: 'hd-intersection-j2',
+      label: '',
+      ox,
+      oy,
+      points: [
+        { x: j2.x - 24, y: j2.y - 24 },
+        { x: j2.x + 24, y: j2.y - 24 },
+        { x: j2.x + 24, y: j2.y + 24 },
+        { x: j2.x - 24, y: j2.y + 24 },
+      ],
+      fill: ADAS_MAP.intersection.fill,
+      stroke: ADAS_MAP.intersection.stroke,
+      alpha: 0.28,
+      role: 'hd_intersection',
+      layerId: 'ground',
+    }),
+    filledPoly({
+      id: 'hd-intersection-j3',
+      label: '',
+      ox,
+      oy,
+      points: [
+        { x: j3.x - 24, y: j3.y - 24 },
+        { x: j3.x + 24, y: j3.y - 24 },
+        { x: j3.x + 24, y: j3.y + 24 },
+        { x: j3.x - 24, y: j3.y + 24 },
+      ],
+      fill: ADAS_MAP.intersection.fill,
+      stroke: ADAS_MAP.intersection.stroke,
+      alpha: 0.28,
+      role: 'hd_intersection',
+      layerId: 'ground',
+    }),
+    // Stop + XW only at J1 (south approach)
+    filledPoly({
+      id: 'hd-stop-j1',
       label: 'Stop',
-      layerId: 'map',
-      points: translatePoints(ox, oy, rectPoly(CX - LANE_HALF, CY + ROAD_HALF + 2, LANE_HALF * 2, 5)),
-      style: {
-        fill: ADAS_MAP.stopLine.fill,
-        stroke: ADAS_MAP.stopLine.stroke,
-        lineWidth: 1,
-        alpha: 0.9,
-        label: { color: ADAS_MAP.stopLine.stroke, fontSize: 8 },
-      },
-      data: { role: 'hd_stop_line', mapKind: 'hd' },
-    },
-    {
-      id: 'hd-stop-e',
-      label: 'Stop',
-      layerId: 'map',
-      points: translatePoints(ox, oy, rectPoly(CX + ROAD_HALF + 2, CY - LANE_HALF, 5, LANE_HALF * 2)),
-      style: {
-        fill: ADAS_MAP.stopLine.fill,
-        stroke: ADAS_MAP.stopLine.stroke,
-        lineWidth: 1,
-        alpha: 0.9,
-        label: { color: ADAS_MAP.stopLine.stroke, fontSize: 8 },
-      },
-      data: { role: 'hd_stop_line', mapKind: 'hd' },
-    },
-    // Crosswalks
-    {
-      id: 'hd-xw-s',
+      ox,
+      oy,
+      points: [
+        { x: j1.x - 28, y: j1.y + 28 },
+        { x: j1.x + 28, y: j1.y + 28 },
+        { x: j1.x + 28, y: j1.y + 33 },
+        { x: j1.x - 28, y: j1.y + 33 },
+      ],
+      fill: ADAS_MAP.stopLine.fill,
+      stroke: ADAS_MAP.stopLine.stroke,
+      alpha: 0.9,
+      role: 'hd_stop_line',
+    }),
+    filledPoly({
+      id: 'hd-xw-j1',
       label: 'XW',
-      layerId: 'map',
-      points: translatePoints(ox, oy, rectPoly(CX - ROAD_HALF, CY + ROAD_HALF + 10, ROAD_HALF * 2, 14)),
-      style: {
-        fill: ADAS_MAP.crosswalk.fill,
-        stroke: ADAS_MAP.crosswalk.stroke,
-        lineWidth: 1,
-        alpha: 0.55,
-        label: { color: ADAS_BRAND.mediumAsphalt, fontSize: 8 },
-      },
-      data: { role: 'hd_crosswalk', mapKind: 'hd' },
-    },
+      ox,
+      oy,
+      points: [
+        { x: j1.x - 30, y: j1.y + 38 },
+        { x: j1.x + 30, y: j1.y + 38 },
+        { x: j1.x + 30, y: j1.y + 52 },
+        { x: j1.x - 30, y: j1.y + 52 },
+      ],
+      fill: ADAS_MAP.crosswalk.fill,
+      stroke: ADAS_MAP.crosswalk.stroke,
+      alpha: 0.5,
+      role: 'hd_crosswalk',
+    }),
+    // Walkway mid-trunk (between J1 and J2)
+    filledPoly({
+      id: 'hd-walk-trunk',
+      label: 'Walk',
+      ox,
+      oy,
+      points: (() => {
+        const a = frameAt(T_WALK0)
+        const b = frameAt(T_WALK1)
+        const d = LANE_W + 6
+        const w = 12
+        return [
+          { x: a.point.x + a.left.x * d, y: a.point.y + a.left.y * d },
+          { x: b.point.x + b.left.x * d, y: b.point.y + b.left.y * d },
+          { x: b.point.x + b.left.x * (d + w), y: b.point.y + b.left.y * (d + w) },
+          { x: a.point.x + a.left.x * (d + w), y: a.point.y + a.left.y * (d + w) },
+        ]
+      })(),
+      fill: ADAS_MAP.walkway.fill,
+      stroke: ADAS_MAP.walkway.stroke,
+      alpha: 0.48,
+      role: 'hd_walkway',
+      layerId: 'ground',
+    }),
+    // PUDO at J2 (east of bend)
+    filledPoly({
+      id: 'hd-pudo',
+      label: 'PUDO',
+      ox,
+      oy,
+      points: [
+        { x: j2.x + 36, y: j2.y - 16 },
+        { x: j2.x + 72, y: j2.y - 18 },
+        { x: j2.x + 74, y: j2.y + 14 },
+        { x: j2.x + 38, y: j2.y + 16 },
+      ],
+      fill: ADAS_MAP.pudo.fill,
+      stroke: ADAS_MAP.pudo.stroke,
+      alpha: 0.42,
+      role: 'hd_pudo',
+      layerId: 'ground',
+    }),
+    // Carpark at J3 west tip
+    filledPoly({
+      id: 'hd-carpark',
+      label: 'P',
+      ox,
+      oy,
+      points: [
+        { x: j3.x - 145, y: j3.y - 40 },
+        { x: j3.x - 75, y: j3.y - 42 },
+        { x: j3.x - 72, y: j3.y + 22 },
+        { x: j3.x - 142, y: j3.y + 24 },
+      ],
+      fill: ADAS_MAP.carpark.fill,
+      stroke: ADAS_MAP.carpark.stroke,
+      alpha: 0.38,
+      role: 'hd_carpark',
+      layerId: 'ground',
+    }),
+    // Roadblock on south approach (not at junction)
+    filledPoly({
+      id: 'hd-roadblock',
+      label: 'Block',
+      ox,
+      oy,
+      points: [
+        { x: block.x - 16, y: block.y - 8 },
+        { x: block.x + 16, y: block.y - 8 },
+        { x: block.x + 16, y: block.y + 10 },
+        { x: block.x - 16, y: block.y + 10 },
+      ],
+      fill: ADAS_MAP.roadblock.fill,
+      stroke: ADAS_MAP.roadblock.stroke,
+      alpha: 0.78,
+      role: 'hd_roadblock',
+    }),
   ]
 
   const paths: GraphPath[] = [
-    // Lane centerlines
     roadLine({
-      id: 'hd-cl-n',
-      points: translatePoints(ox, oy, [
-        { x: CX, y: CY - ARM },
-        { x: CX, y: CY - ROAD_HALF },
-      ]),
+      id: 'hd-cl-l0',
+      points: translatePoints(ox, oy, offsetPolyline(trunk, half)),
       stroke: ADAS_MAP.baseline,
       lineWidth: 2,
       layerId: 'lanes',
     }),
     roadLine({
-      id: 'hd-cl-s',
-      points: translatePoints(ox, oy, [
-        { x: CX, y: CY + ROAD_HALF },
-        { x: CX, y: CY + ARM },
-      ]),
+      id: 'hd-cl-l1',
+      points: translatePoints(ox, oy, offsetPolyline(trunk, -half)),
+      stroke: ADAS_MAP.baseline,
+      lineWidth: 2,
+      layerId: 'lanes',
+    }),
+    roadLine({
+      id: 'hd-sep',
+      points: translatePoints(ox, oy, trunk),
+      stroke: ADAS_BRAND.darkAsphalt,
+      lineWidth: 1.4,
+      dash: [10, 8],
+      layerId: 'lanes',
+    }),
+    roadLine({
+      id: 'hd-bd-l',
+      points: translatePoints(ox, oy, offsetPolyline(trunk, LANE_W)),
+      stroke: ADAS_BRAND.lightAsphalt,
+      lineWidth: 1.1,
+      dash: [6, 5],
+      layerId: 'lanes',
+      alpha: 0.7,
+    }),
+    roadLine({
+      id: 'hd-bd-r',
+      points: translatePoints(ox, oy, offsetPolyline(trunk, -LANE_W)),
+      stroke: ADAS_BRAND.lightAsphalt,
+      lineWidth: 1.1,
+      dash: [6, 5],
+      layerId: 'lanes',
+      alpha: 0.7,
+    }),
+    roadLine({
+      id: 'hd-cl-e',
+      points: translatePoints(ox, oy, armE),
       stroke: ADAS_MAP.baseline,
       lineWidth: 2,
       layerId: 'lanes',
     }),
     roadLine({
       id: 'hd-cl-w',
-      points: translatePoints(ox, oy, [
-        { x: CX - ARM, y: CY },
-        { x: CX - ROAD_HALF, y: CY },
-      ]),
+      points: translatePoints(ox, oy, armW),
       stroke: ADAS_MAP.baseline,
       lineWidth: 2,
       layerId: 'lanes',
     }),
     roadLine({
-      id: 'hd-cl-e',
-      points: translatePoints(ox, oy, [
-        { x: CX + ROAD_HALF, y: CY },
-        { x: CX + ARM, y: CY },
-      ]),
+      id: 'hd-cl-park',
+      points: translatePoints(ox, oy, armPark),
       stroke: ADAS_MAP.baseline,
       lineWidth: 2,
-      layerId: 'lanes',
-    }),
-    // Lane boundaries (dashed)
-    roadLine({
-      id: 'hd-bd-s-l',
-      points: translatePoints(ox, oy, [
-        { x: CX - LANE_HALF, y: CY + ROAD_HALF },
-        { x: CX - LANE_HALF, y: CY + ARM },
-      ]),
-      stroke: ADAS_BRAND.lightAsphalt,
-      lineWidth: 1.25,
-      dash: [6, 6],
-      layerId: 'lanes',
-    }),
-    roadLine({
-      id: 'hd-bd-s-r',
-      points: translatePoints(ox, oy, [
-        { x: CX + LANE_HALF, y: CY + ROAD_HALF },
-        { x: CX + LANE_HALF, y: CY + ARM },
-      ]),
-      stroke: ADAS_BRAND.lightAsphalt,
-      lineWidth: 1.25,
-      dash: [6, 6],
-      layerId: 'lanes',
-    }),
-    // Lane connectors through the intersection (S→N and E→W)
-    roadLine({
-      id: 'hd-conn-s-n',
-      label: 'conn',
-      points: translatePoints(ox, oy, [
-        { x: CX, y: CY + ROAD_HALF },
-        { x: CX, y: CY - ROAD_HALF },
-      ]),
-      stroke: ADAS_MAP.laneConnector,
-      lineWidth: 2,
-      dash: [4, 5],
-      layerId: 'lanes',
-    }),
-    roadLine({
-      id: 'hd-conn-e-w',
-      points: translatePoints(ox, oy, [
-        { x: CX + ROAD_HALF, y: CY },
-        { x: CX - ROAD_HALF, y: CY },
-      ]),
-      stroke: ADAS_MAP.laneConnector,
-      lineWidth: 2,
-      dash: [4, 5],
       layerId: 'lanes',
     }),
   ]
 
-  const laneEnd = (id: string, x: number, y: number, label: string): GraphNode =>
+  const laneEnd = (id: string, p: Pt, label: string): GraphNode =>
     adasBox({
       id,
       type: 'lane_end',
       label,
-      x: ox + x - 8,
-      y: oy + y - 8,
-      w: 16,
-      h: 16,
+      x: ox + p.x - 7,
+      y: oy + p.y - 7,
+      w: 14,
+      h: 14,
       fill: ADAS_MAP.lane.fill,
       stroke: ADAS_TRAJECTORY.ego,
       data: { role: 'hd_lane_end', mapKind: 'hd' },
@@ -415,40 +690,71 @@ function buildHdPanel(ox: number, oy: number): {
       type: 'traffic_light',
       label: 'TL',
       label2: phase,
-      x: ox + x - 10,
-      y: oy + y - 10,
-      w: 20,
-      h: 20,
+      x: ox + x - 9,
+      y: oy + y - 9,
+      w: 18,
+      h: 18,
       fill: paint.fill,
       stroke: paint.stroke,
       data: { role: 'hd_signal', mapKind: 'hd', phase },
       style: {
         showIcon: false,
         labelPosition: 'center',
-        label: { color: ADAS_BRAND.navy, fontSize: 8, fontWeight: 'bold' },
+        label: { color: ADAS_BRAND.navy, fontSize: 7, fontWeight: 'bold' },
         label2Position: 'bottom',
-        label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 8, offsetY: 2 },
+        label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 7, offsetY: 2 },
+      },
+    })
+  }
+
+  const hazard = (
+    id: string,
+    x: number,
+    y: number,
+    kind: 'cone' | 'barrier',
+    label: string,
+  ): GraphNode => {
+    const paint = kind === 'cone' ? ADAS_AGENT.trafficCone : ADAS_AGENT.barrier
+    return adasBox({
+      id,
+      type: kind,
+      label,
+      x: ox + x - 6,
+      y: oy + y - 6,
+      w: 12,
+      h: 12,
+      fill: paint.fill,
+      stroke: paint.stroke,
+      data: { role: 'hd_hazard', mapKind: 'hd', hazard: kind },
+      style: {
+        showIcon: false,
+        shadow: null,
+        labelPosition: 'center',
+        label: { color: ADAS_BRAND.navy, fontSize: 7, fontWeight: 'bold' },
       },
     })
   }
 
   const nodes: GraphNode[] = [
-    panelTitle('hd-title', ox, oy, 'HD Map', 'lanes · connectors · signals'),
-    laneEnd('hd-end-s', CX, CY + ROAD_HALF, 'S'),
-    laneEnd('hd-end-n', CX, CY - ROAD_HALF, 'N'),
-    laneEnd('hd-end-e', CX + ROAD_HALF, CY, 'E'),
-    laneEnd('hd-end-w', CX - ROAD_HALF, CY, 'W'),
-    signal('hd-tl-se', CX + ROAD_HALF + 18, CY + ROAD_HALF + 18, 'red'),
-    signal('hd-tl-sw', CX - ROAD_HALF - 18, CY + ROAD_HALF + 18, 'green'),
-    signal('hd-tl-ne', CX + ROAD_HALF + 18, CY - ROAD_HALF - 18, 'amber'),
+    panelTitle('hd-title', ox, oy, 'HD Map', 'conditions along corridor'),
+    laneEnd('hd-end-j1', j1, 'J1'),
+    laneEnd('hd-end-j2', j2, 'J2'),
+    laneEnd('hd-end-j3', j3, 'J3'),
+    signal('hd-tl-se', j1.x + 40, j1.y + 40, 'red'),
+    signal('hd-tl-sw', j1.x - 40, j1.y + 40, 'green'),
+    signal('hd-tl-ne', j1.x + 40, j1.y - 40, 'amber'),
+    hazard('hd-cone-1', block.x - 22, block.y, 'cone', 'C'),
+    hazard('hd-cone-2', block.x + 22, block.y, 'cone', 'C'),
+    hazard('hd-barrier-1', block.x, block.y + 16, 'barrier', 'B'),
     {
       ...egoAxleFrameNode({
-        x: ox + CX - EGO_W / 2,
-        y: oy + CY + ARM * 0.45,
+        x: ox + egoFrame.point.x - EGO_W / 2,
+        y: oy + egoFrame.point.y - EGO_H / 2,
       }),
       id: 'hd-ego',
       label: 'Ego',
       label2: 'HD',
+      angle: headingDeg(egoFrame.tangent),
       layerId: 'agents',
       style: {
         showIcon: false,
@@ -462,34 +768,32 @@ function buildHdPanel(ox: number, oy: number): {
 
   const edges: GraphEdge[] = [
     {
-      id: 'hd-succ-s-n',
-      from: 'hd-end-s',
-      to: 'hd-end-n',
+      id: 'hd-succ-j1-j2',
+      from: 'hd-end-j1',
+      to: 'hd-end-j2',
       kind: 'successor',
-      label: 'succ',
       layerId: 'lanes',
       style: {
         route: 'straight',
         arrowTo: true,
         stroke: ADAS_TRAJECTORY.ego,
-        lineWidth: 2,
-        label: { color: ADAS_TRAJECTORY.ego, fontSize: 9 },
+        lineWidth: 1.75,
+        alpha: 0.75,
       },
       data: { role: 'lane_successor', mapKind: 'hd' },
     },
     {
-      id: 'hd-succ-e-w',
-      from: 'hd-end-e',
-      to: 'hd-end-w',
+      id: 'hd-succ-j2-j3',
+      from: 'hd-end-j2',
+      to: 'hd-end-j3',
       kind: 'successor',
-      label: 'succ',
       layerId: 'lanes',
       style: {
         route: 'straight',
         arrowTo: true,
         stroke: ADAS_TRAJECTORY.ego,
-        lineWidth: 2,
-        label: { color: ADAS_TRAJECTORY.ego, fontSize: 9 },
+        lineWidth: 1.75,
+        alpha: 0.75,
       },
       data: { role: 'lane_successor', mapKind: 'hd' },
     },
@@ -498,7 +802,6 @@ function buildHdPanel(ox: number, oy: number): {
   return { nodes, paths, shapeNodes, edges }
 }
 
-/** SD | HD crossroads comparison. */
 export function buildAdasMapDocument(): GraphDocument {
   const sd = buildSdPanel(SD_OX, OY)
   const hd = buildHdPanel(HD_OX, OY)
@@ -527,7 +830,7 @@ export const adasMapSample: DemoSample = {
   title: 'Map',
   group: 'adas',
   description:
-    'Same crossroads side-by-side: SD centerline topology (left) vs HD lanes, connectors, stop lines, and signals (right). Schematic, not official tiles.',
+    'Same S-curve corridor side-by-side: SD topology with three junctions (left) vs HD dual lanes with conditions spread along the road — signals at J1, walkway mid-trunk, PUDO at J2, carpark at J3, roadblock on the south approach (right). Schematic.',
   get document() {
     return buildAdasMapDocument()
   },

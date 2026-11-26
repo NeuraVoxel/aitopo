@@ -61,7 +61,8 @@ function frameAt(t: number): { readonly point: Pt; readonly tangent: Pt; readonl
 /** Heading degrees: 0 = −Y (north); positive toward +X (matches ego world heading). */
 function headingDeg(tangent: Pt): number {
   const deg = Math.atan2(tangent.x, -tangent.y) * (180 / Math.PI)
-  return ((deg % 360) + 360) % 360
+  const wrapped = ((deg % 360) + 360) % 360
+  return Math.round(wrapped * 100) / 100
 }
 
 function sampleSpine(count: number, t0 = 0, t1 = 1): Pt[] {

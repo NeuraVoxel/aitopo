@@ -458,17 +458,34 @@ describe('demo sample registry', () => {
 
     expect(getSample('adas-map')!.title).toBe('Map')
     const map = parseDocument(getSample('adas-map')!.document)
-    expect(map.nodes.some(n => n.id === 'sd-junction')).toBe(true)
+    expect(map.nodes.filter(n => n.data?.role === 'sd_junction').map(n => n.id).sort()).toEqual([
+      'sd-j1',
+      'sd-j2',
+      'sd-j3',
+    ])
     expect(map.nodes.some(n => n.id === 'sd-ego')).toBe(true)
     expect(map.nodes.some(n => n.id === 'hd-ego')).toBe(true)
-    expect((map.paths?.length ?? 0) >= 4).toBe(true)
-    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_lane')).toBe(true)
+    expect(typeof map.nodes.find(n => n.id === 'sd-ego')!.angle).toBe('number')
+    expect(typeof map.nodes.find(n => n.id === 'hd-ego')!.angle).toBe('number')
+    expect(map.nodes.find(n => n.id === 'sd-ego')!.angle).toBe(
+      map.nodes.find(n => n.id === 'hd-ego')!.angle,
+    )
+    expect((map.paths?.length ?? 0) >= 12).toBe(true)
+    expect(map.shapeNodes!.filter(s => s.data?.role === 'hd_lane').length).toBeGreaterThanOrEqual(5)
+    expect(map.shapeNodes!.filter(s => s.data?.role === 'hd_intersection').length).toBe(3)
     expect(map.shapeNodes!.some(s => s.data?.role === 'hd_stop_line')).toBe(true)
+    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_roadblock')).toBe(true)
+    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_walkway')).toBe(true)
+    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_carpark')).toBe(true)
+    expect(map.shapeNodes!.some(s => s.data?.role === 'hd_pudo')).toBe(true)
     expect(map.edges.filter(e => e.kind === 'successor').map(e => e.id).sort()).toEqual([
-      'hd-succ-e-w',
-      'hd-succ-s-n',
+      'hd-succ-j1-j2',
+      'hd-succ-j2-j3',
+      'sd-link-j1-j2',
+      'sd-link-j2-j3',
     ])
     expect(map.nodes.filter(n => n.data?.role === 'hd_signal')).toHaveLength(3)
+    expect(map.nodes.filter(n => n.data?.role === 'hd_hazard')).toHaveLength(3)
 
     expect(getSample('adas-fov')!.title).toBe('FOV')
     const fov = parseDocument(getSample('adas-fov')!.document)

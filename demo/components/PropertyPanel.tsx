@@ -428,7 +428,7 @@ function draftFrom(target: PropTarget): FormDraft {
         y: numStr(target.element.y),
         w: numStr(target.element.w),
         h: numStr(target.element.h),
-        angle: numStr(target.element.angle ?? 0),
+        angle: angleStr(target.element.angle ?? 0),
         angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
         angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
         labelPosition: target.element.style?.labelPosition ?? '',
@@ -448,7 +448,7 @@ function draftFrom(target: PropTarget): FormDraft {
         y: numStr(target.element.y),
         w: numStr(target.element.w),
         h: numStr(target.element.h),
-        angle: numStr(target.element.angle ?? 0),
+        angle: angleStr(target.element.angle ?? 0),
         angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
         angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
         labelPosition: target.element.style?.labelPosition ?? '',
@@ -459,7 +459,7 @@ function draftFrom(target: PropTarget): FormDraft {
     case 'path':
       return {
         ...base,
-        angle: numStr(target.element.angle ?? 0),
+        angle: angleStr(target.element.angle ?? 0),
         angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
         angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
         fill: target.element.style?.fill ?? '',
@@ -469,7 +469,7 @@ function draftFrom(target: PropTarget): FormDraft {
     case 'shapeNode':
       return {
         ...base,
-        angle: numStr(target.element.angle ?? 0),
+        angle: angleStr(target.element.angle ?? 0),
         angleAnchorU: numStr(target.element.angleAnchor?.u ?? 0.5),
         angleAnchorV: numStr(target.element.angleAnchor?.v ?? 0.5),
         fill: target.element.style?.fill ?? '',
@@ -544,6 +544,12 @@ function assignNumber(
 
 function numStr(value: number | undefined): string {
   return value === undefined ? '' : String(value)
+}
+
+/** Property-panel angle field: fixed 2 decimal places. */
+function angleStr(value: number | undefined): string {
+  if (value === undefined) return ''
+  return (Math.round(value * 100) / 100).toFixed(2)
 }
 
 function stringData(data: Readonly<Record<string, unknown>> | undefined): Record<string, string> {
