@@ -15,6 +15,8 @@ import type {
   GraphNodeStyle,
   GraphPath,
   GraphPathStyle,
+  GraphShapeNode,
+  GraphShapeNodeStyle,
 } from './types.ts'
 
 export type { GraphPatch, GraphPatchOp }
@@ -53,6 +55,9 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if ((doc.paths ?? []).some(p => p.id === op.node.id)) {
         throw new Error(`addNode: id ${op.node.id} already used by a path`)
       }
+      if ((doc.shapeNodes ?? []).some(s => s.id === op.node.id)) {
+        throw new Error(`addNode: id ${op.node.id} already used by a shapeNode`)
+      }
       return { ...doc, nodes: [...doc.nodes, asNode(op.node)] }
     }
     case 'updateNode': {
@@ -79,6 +84,9 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       }
       if ((doc.paths ?? []).some(p => p.id === op.edge.id)) {
         throw new Error(`addEdge: id ${op.edge.id} already used by a path`)
+      }
+      if ((doc.shapeNodes ?? []).some(s => s.id === op.edge.id)) {
+        throw new Error(`addEdge: id ${op.edge.id} already used by a shapeNode`)
       }
       assertEdgeEndpointsExist(doc, op.edge.from, op.edge.to, op.edge.id)
       const { style: rawStyle, ...edgeRest } = op.edge
@@ -117,6 +125,9 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       }
       if ((doc.paths ?? []).some(p => p.id === op.group.id)) {
         throw new Error(`addGroup: id ${op.group.id} already used by a path`)
+      }
+      if ((doc.shapeNodes ?? []).some(s => s.id === op.group.id)) {
+        throw new Error(`addGroup: id ${op.group.id} already used by a shapeNode`)
       }
       const { style: rawStyle, ...groupRest } = op.group
       return {
@@ -165,6 +176,9 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
       if ((doc.groups ?? []).some(g => g.id === op.path.id)) {
         throw new Error(`addPath: id ${op.path.id} already used by a group`)
       }
+      if ((doc.shapeNodes ?? []).some(s => s.id === op.path.id)) {
+        throw new Error(`addPath: id ${op.path.id} already used by a shapeNode`)
+      }
       const { style: rawStyle, ...pathRest } = op.path
       return {
         ...doc,
@@ -195,6 +209,54 @@ function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {
         throw new Error(`removePath: missing id ${op.id}`)
       }
       return { ...doc, paths: paths.filter(p => p.id !== op.id) }
+    }
+    case 'addShapeNode': {
+      const shapeNodes = doc.shapeNodes ?? []
+      if (shapeNodes.some(s => s.id === op.shapeNode.id)) {
+        throw new Error(`addShapeNode: duplicate id ${op.shapeNode.id}`)
+      }
+      if (doc.nodes.some(n => n.id === op.shapeNode.id)) {
+        throw new Error(`addShapeNode: id ${op.shapeNode.id} already used by a node`)
+      }
+      if (doc.edges.some(e => e.id === op.shapeNode.id)) {
+        throw new Error(`addShapeNode: id ${op.shapeNode.id} already used by an edge`)
+      }
+      if ((doc.groups ?? []).some(g => g.id === op.shapeNode.id)) {
+        throw new Error(`addShapeNode: id ${op.shapeNode.id} already used by a group`)
+      }
+      if ((doc.paths ?? []).some(p => p.id === op.shapeNode.id)) {
+        throw new Error(`addShapeNode: id ${op.shapeNode.id} already used by a path`)
+      }
+      const { style: rawStyle, ...shapeRest } = op.shapeNode
+      return {
+        ...doc,
+        shapeNodes: [...shapeNodes, asShapeNode({
+          ...shapeRest,
+          ...(rawStyle !== undefined ? { style: asShapeNodeStyle(rawStyle) } : {}),
+        })],
+      }
+    }
+    case 'updateShapeNode': {
+      const shapeNodes = doc.shapeNodes ?? []
+      const index = shapeNodes.findIndex(s => s.id === op.id)
+      if (index < 0) throw new Error(`updateShapeNode: missing id ${op.id}`)
+      const current = shapeNodes[index]!
+      const next = shapeNodes.slice()
+      const { style: rawStyle, ...patchRest } = op.patch
+      const merged = mergeShapeNode(current, {
+        ...patchRest,
+        ...(rawStyle !== undefined ? { style: asShapeNodeStyle(rawStyle) } : {}),
+      })
+      assertPathPointsArity(merged, 'updateShapeNode')
+      next[index] = merged
+      return { ...doc, shapeNodes: next }
+    }
+    case 'removeShapeNode': {
+      const shapeNodes = doc.shapeNodes ?? []
+      if (!shapeNodes.some(s => s.id === op.id)) {
+        throw new Error(`removeShapeNode: missing id ${op.id}`)
+      }
+      return { ...doc, shapeNodes: shapeNodes.filter(s => s.id !== op.id) }
     }
     case 'setAlarms': {
       if (op.target === 'node') {
@@ -686,13 +748,109 @@ function asPathStyle(raw: object): GraphPathStyle {
   return raw as GraphPathStyle
 }
 
+function asShapeNode(raw: {
+  id: string
+  points: readonly { readonly x: number; readonly y: number }[]
+  closed?: boolean | undefined
+  label?: string | undefined
+  label2?: string | undefined
+  tooltip?: string | undefined
+  locked?: boolean | undefined
+  groupId?: string | undefined
+  alarms?: Array<{
+    id: string
+    level: Alarm['level']
+    message: string
+    ts?: string | undefined
+  }> | undefined
+  style?: GraphShapeNodeStyle | undefined
+  data?: Readonly<Record<string, unknown>> | undefined
+}): GraphShapeNode {
+  return {
+    id: raw.id,
+    points: raw.points.map(p => ({ x: p.x, y: p.y })),
+    ...(raw.closed !== undefined ? { closed: raw.closed } : {}),
+    ...(raw.label !== undefined ? { label: raw.label } : {}),
+    ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
+    ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
+    ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
+    ...(raw.groupId !== undefined ? { groupId: raw.groupId } : {}),
+    ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
+    ...(raw.style !== undefined ? { style: asShapeNodeStyle(raw.style) } : {}),
+    ...(raw.data !== undefined ? { data: raw.data } : {}),
+  }
+}
+
+function mergeShapeNode(
+  current: GraphShapeNode,
+  patch: {
+    points?: readonly { readonly x: number; readonly y: number }[] | undefined
+    closed?: boolean | undefined
+    label?: string | undefined
+    label2?: string | undefined
+    tooltip?: string | undefined
+    locked?: boolean | undefined
+    groupId?: string | undefined
+    alarms?: Array<{
+      id: string
+      level: Alarm['level']
+      message: string
+      ts?: string | undefined
+    }> | undefined
+    style?: GraphShapeNodeStyle | undefined
+    data?: Readonly<Record<string, unknown>> | undefined
+  },
+): GraphShapeNode {
+  return asShapeNode({
+    id: current.id,
+    points: patch.points !== undefined
+      ? patch.points
+      : current.points.map(p => ({ x: p.x, y: p.y })),
+    closed: patch.closed ?? current.closed,
+    label: patch.label ?? current.label,
+    label2: patch.label2 ?? current.label2,
+    tooltip: patch.tooltip ?? current.tooltip,
+    locked: patch.locked ?? current.locked,
+    groupId: patch.groupId ?? current.groupId,
+    alarms: patch.alarms ?? current.alarms?.map(a => ({
+      id: a.id,
+      level: a.level,
+      message: a.message,
+      ...(a.ts !== undefined ? { ts: a.ts } : {}),
+    })),
+    style: patch.style !== undefined
+      ? mergeShapeNodeStyle(current.style, asShapeNodeStyle(patch.style))
+      : current.style,
+    data: patch.data ?? current.data,
+  })
+}
+
+/** One-level style merge: top keys overwrite; nested objects replace as units. */
+function mergeShapeNodeStyle(
+  current: GraphShapeNodeStyle | undefined,
+  patch: GraphShapeNodeStyle,
+): GraphShapeNodeStyle {
+  return { ...(current ?? {}), ...patch }
+}
+
+/** Normalize zod style bags under exactOptionalPropertyTypes. */
+function asShapeNodeStyle(raw: object): GraphShapeNodeStyle {
+  return raw as GraphShapeNodeStyle
+}
+
 /**
- * Fail loud when merged path points violate effective shapeKind arity.
+ * Fail loud when merged path/shapeNode points violate effective shapeKind arity.
  * Effective kind = style.shapeKind ?? `lineto` (after merge).
  */
-function assertPathPointsArity(path: GraphPath, opLabel: string): void {
-  const kind = path.style?.shapeKind ?? 'lineto'
-  const n = path.points.length
+function assertPathPointsArity(
+  element: {
+    readonly points: readonly unknown[]
+    readonly style?: { readonly shapeKind?: 'lineto' | 'quadto' | 'cubicto' } | undefined
+  },
+  opLabel: string,
+): void {
+  const kind = element.style?.shapeKind ?? 'lineto'
+  const n = element.points.length
   if (kind === 'lineto') {
     if (n < 2) {
       throw new Error(`${opLabel}: paths require points.length ≥ 2`)

@@ -126,6 +126,7 @@ export class SelectActivateInteraction implements Interaction {
         ...network.getGroups().map(g => g.id),
         ...network.getEdges().map(e => e.id),
         ...network.getPaths().map(p => p.id),
+        ...network.getShapeNodes().map(s => s.id),
       ]
       network.setSelection(ids)
     }

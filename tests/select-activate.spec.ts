@@ -56,7 +56,10 @@ class FakeHitCanvas {
 
 function createHost(
   canvas: FakeHitCanvas,
-  hit: { id: string; kind: 'node' | 'edge' | 'group' | 'path' } = { id: 'n1', kind: 'node' },
+  hit: { id: string; kind: 'node' | 'shapeNode' | 'edge' | 'group' | 'path' } = {
+    id: 'n1',
+    kind: 'node',
+  },
   options: {
     node?: { id: string; networkId?: string }
     currentNetworkId?: string | null
@@ -118,10 +121,15 @@ function createHost(
         ],
     getEdges: () => [{ id: 'e1', from: 'n1', to: 'n2' }],
     getPaths: () => [],
+    getShapeNodes: () => [{
+      id: 'sn1',
+      points: [{ x: 0, y: 0 }, { x: 10, y: 0 }, { x: 5, y: 8 }],
+    }],
     getGroups: () => [{ id: 'g1', label: 'G', memberIds: [] }],
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getEdgePathBounds: () => undefined,
     getPathBounds: () => undefined,
+    getShapeNodeBounds: () => undefined,
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: () => ({ x: 0, y: 0 }),
@@ -134,10 +142,15 @@ function createHost(
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
     previewEdgeWaypoints: vi.fn(),
+    previewPathPoints: vi.fn(),
+    previewShapeNodePoints: vi.fn(),
     commitEdgeWaypoints: vi.fn(),
     commitPathCreate: vi.fn(),
     commitPathUpdate: vi.fn(),
     commitPathRemove: vi.fn(),
+    commitShapeNodeCreate: vi.fn(),
+    commitShapeNodeUpdate: vi.fn(),
+    commitShapeNodeRemove: vi.fn(),
     markGestureDragged: () => {
       gestureDragged = true
     },
@@ -325,13 +338,13 @@ describe('SelectActivate multi-select', () => {
     dispose()
   })
 
-  it('Ctrl+A selects all nodes, groups, edges, and paths', () => {
+  it('Ctrl+A selects all nodes, groups, edges, paths, and shapeNodes', () => {
     const canvas = new FakeHitCanvas()
     const host = createHost(canvas)
     const dispose = new SelectActivateInteraction().attach(host)
 
     canvas.dispatch('keydown', { button: 0, clientX: 0, clientY: 0, ctrlKey: true, key: 'a' })
-    expect(host.setSelection).toHaveBeenLastCalledWith(['n1', 'n2', 'g1', 'e1'])
+    expect(host.setSelection).toHaveBeenLastCalledWith(['n1', 'n2', 'g1', 'e1', 'sn1'])
     dispose()
   })
 

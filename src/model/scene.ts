@@ -12,6 +12,7 @@ import type {
   GraphGroup,
   GraphNode,
   GraphPath,
+  GraphShapeNode,
   GraphViewport,
 } from '../protocol/types.ts'
 
@@ -31,6 +32,7 @@ export class GraphScene {
   private readonly edgeMap = new Map<string, GraphEdge>()
   private readonly groupMap = new Map<string, GraphGroup>()
   private readonly pathMap = new Map<string, GraphPath>()
+  private readonly shapeNodeMap = new Map<string, GraphShapeNode>()
   private readonly outEdges = new Map<string, string[]>()
   private readonly inEdges = new Map<string, string[]>()
   private sceneVersion = 0
@@ -75,6 +77,10 @@ export class GraphScene {
 
   get paths(): ReadonlyMap<string, GraphPath> {
     return this.pathMap
+  }
+
+  get shapeNodes(): ReadonlyMap<string, GraphShapeNode> {
+    return this.shapeNodeMap
   }
 
   get selectedIds(): ReadonlySet<string> {
@@ -128,6 +134,7 @@ export class GraphScene {
     const edges = [...this.edgeMap.values()]
     const groups = [...this.groupMap.values()]
     const paths = [...this.pathMap.values()]
+    const shapeNodes = [...this.shapeNodeMap.values()]
     const base: GraphDocument = {
       version: 1,
       nodes,
@@ -135,6 +142,7 @@ export class GraphScene {
       viewport: this.viewport,
       ...(groups.length > 0 ? { groups } : {}),
       ...(paths.length > 0 ? { paths } : {}),
+      ...(shapeNodes.length > 0 ? { shapeNodes } : {}),
     }
     if (this.networkStackIds.length === 0) {
       return {
@@ -261,6 +269,46 @@ export class GraphScene {
     this.syncActiveFromMaps()
   }
 
+  /**
+   * Replace path control points (live path-body / vertex preview).
+   * @param pathId - path id.
+   * @param points - control points (≥2 expected by callers).
+   */
+  writePathPoints(
+    pathId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    const path = this.pathMap.get(pathId)
+    if (path === undefined) return
+    this.pathMap.set(pathId, {
+      ...path,
+      points: points.map(p => ({ x: p.x, y: p.y })),
+    })
+    this.markDirty(pathId)
+    this.sceneVersion += 1
+    this.syncActiveFromMaps()
+  }
+
+  /**
+   * Replace shape-node control points (live body / vertex preview).
+   * @param shapeNodeId - shape-node id.
+   * @param points - control points (≥2 expected by callers).
+   */
+  writeShapeNodePoints(
+    shapeNodeId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    const shapeNode = this.shapeNodeMap.get(shapeNodeId)
+    if (shapeNode === undefined) return
+    this.shapeNodeMap.set(shapeNodeId, {
+      ...shapeNode,
+      points: points.map(p => ({ x: p.x, y: p.y })),
+    })
+    this.markDirty(shapeNodeId)
+    this.sceneVersion += 1
+    this.syncActiveFromMaps()
+  }
+
   setSelection(ids: readonly string[]): void {
     this.selection = new Set(ids)
   }
@@ -316,6 +364,7 @@ export class GraphScene {
     this.edgeMap.clear()
     this.groupMap.clear()
     this.pathMap.clear()
+    this.shapeNodeMap.clear()
     this.outEdges.clear()
     this.inEdges.clear()
     for (const node of doc.nodes) {
@@ -331,6 +380,9 @@ export class GraphScene {
     }
     for (const path of doc.paths ?? []) {
       this.pathMap.set(path.id, path)
+    }
+    for (const shapeNode of doc.shapeNodes ?? []) {
+      this.shapeNodeMap.set(shapeNode.id, shapeNode)
     }
     this.sceneVersion += 1
     if (full) {
@@ -350,6 +402,9 @@ export class GraphScene {
       viewport: this.viewport,
       ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
       ...(this.pathMap.size > 0 ? { paths: [...this.pathMap.values()] } : {}),
+      ...(this.shapeNodeMap.size > 0
+        ? { shapeNodes: [...this.shapeNodeMap.values()] }
+        : {}),
       ...(this.active.meta !== undefined ? { meta: this.active.meta } : {}),
       ...(this.active.networks !== undefined ? { networks: this.active.networks } : {}),
     }
@@ -455,6 +510,13 @@ export function collectPatchDirty(
         break
       case 'updatePath':
       case 'removePath':
+        ids.add(op.id)
+        break
+      case 'addShapeNode':
+        ids.add(op.shapeNode.id)
+        break
+      case 'updateShapeNode':
+      case 'removeShapeNode':
         ids.add(op.id)
         break
       case 'setAlarms':

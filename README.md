@@ -124,7 +124,7 @@ Optional `PatchHistory` records forward/inverse `GraphPatch` pairs around `apply
 **Catalog** (registry-driven; switching a sample remounts `Network` and clears history):
 
 - **Getting started** — `hello-world` (default): two nodes, one edge, explicit coordinates (no layout).
-- **Elements** — Node, Edge, Path, Group, Alarm, SubNetwork (one page each).
+- **Elements** — Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork (one page each).
 - **ADAS** — after Elements: loadable BEV demos (ego, lane/boundary/planning/prediction `GraphPath`s, boxes, VRU, signals, parking, occupancy, junction, …); `adas-sensor-fov` stays reserved (sector / frustum).
 - **Business (soon)** — reserved domain rows (status message only when reserved; no document load).
 
@@ -135,10 +135,11 @@ Fleet / Flow / Teams / Editor are no longer primary toolbar entries. `fixtures/*
 | Control | Behavior |
 |---|---|
 | Observe (default) | Defaults only: `PanZoom` + `SelectActivate` |
-| Edit | Move / resize / bend / path vertex / marquee / delete edge or path; Alt+drag link; `PatchHistory` Undo/Redo |
+| Edit | Move / resize / bend / path·shape vertex / marquee / delete edge, path, or shapeNode; Alt+drag link; `PatchHistory` Undo/Redo |
 | Create Node | Click empty canvas → `addNode` at world point |
 | Create Link | Exclusive `CreateEdgeInteraction` (`requireAlt: false`) |
 | Create Path | Exclusive `CreatePathInteraction` (click points; Enter/dblclick commit; Esc cancel); Delete removes selected paths |
+| Create ShapeNode | Exclusive `CreateShapeNodeInteraction` (click points; Enter/dblclick commit; Esc cancel); Delete removes selected shapeNodes |
 | Debug | Toggles `setDebugPaintRects` |
 | Enter team-a / Exit subnet | Toolbar SubNetwork navigation (sample must define `team-a`); clears selection and `PatchHistory` |
 

@@ -58,7 +58,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | `HTMLLabelAttachment.js` | HTML label | `wont` | |
 | `HTMLLabel2Attachment.js` | HTML secondary label | `wont` | |
 | `HTMLAlarmAttachment.js` | HTML alarm | `wont` | |
-| `ShapeNodeUI.js` | Shape / polyline node | `later` | |
+| `ShapeNodeUI.js` | Shape / polyline node | `done` | Freestanding `GraphShapeNode` (`shapeNodes[]`) + `ShapeNodeView`; densify via Path helpers; not a box `GraphNode` |
 | `ShapeLinkUI.js` | Shape link | `done` | `route: "shape"` + `shapePoints` + `shapeKind` (`lineto`/`quadto`/`cubicto`/`orthogonalto`) |
 | `RotatableNodeUI.js` | Rotatable node | `later` | |
 | `GridUI.js` | Grid element UI | `wont` | |
@@ -75,7 +75,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | same | Reparent while **P** held | `done` (behavior change) | Drop hit-test group on pointer-up; drop-target highlight during drag; no chord key |
 | `interaction/CreateLinkInteraction.js` | From/to rubber-band | `done` | `CreateEdgeInteraction` |
 | `interaction/CreateElementInteraction.js` | Click-to-create element | `later` | Host adds via `externalDrop` + `addNode` |
-| `interaction/CreateShapeNodeInteraction.js` | Draw shape node | `wont` unless product asks | |
+| `interaction/CreateShapeNodeInteraction.js` | Draw shape node | `done` | `CreateShapeNodeInteraction` + demo Create ShapeNode; freestanding `GraphShapeNode` (not a box node) |
 | `interaction/CreateShapeLinkInteraction.js` | Draw shape link | `wont` unless product asks | Edge `route: "shape"` stays host-authored; freestanding Path create is `CreatePathInteraction` (demo Create Path) |
 | `interaction/EditInteraction.js` | Resize / rotate / link points | `done` (resize + bends) | `ResizeNodeInteraction` + `MoveEdgeBendInteraction`; rotate still `later` |
 | `interaction/MoveLinkInteraction.js` | Drag link control points | `done` | `MoveEdgeBendInteraction` + `GraphEdge.waypoints` |
@@ -88,6 +88,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | Item | Status | Notes |
 |---|---|---|
 | Freestanding `GraphPath` (`paths[]`) | `done` | Protocol + `PathView` + paint-under-nodes + Create Path / vertex edit; not a `GraphEdge` |
+| Freestanding `GraphShapeNode` (`shapeNodes[]`) | `done` | Protocol + `ShapeNodeView` + paint/hit with nodes + Create ShapeNode / vertex edit; group member; not edge endpoint |
 | Emit `alarmChanged` on `setAlarms` / alarm-bearing patches | `done` | Emitted for `setAlarms` ops after `apply` |
 | Marquee Shift-append selection | `done` | Ctrl/Meta at marquee pointer-up unions with selection |
 | Multi-level SubNetwork stack UI | `later` | Root ↔ one child only |

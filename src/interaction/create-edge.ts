@@ -2,7 +2,7 @@
  * Alt+drag from a node or group to another creates a directed edge (rubber-band preview).
  */
 
-import type { Interaction, InteractionHost } from './types.ts'
+import type { HitKind, Interaction, InteractionHost } from './types.ts'
 import { DEFAULT_H, DEFAULT_W } from '../ui/bounds.ts'
 
 const DRAG_THRESHOLD_PX = 4
@@ -71,7 +71,7 @@ export class CreateEdgeInteraction implements Interaction {
       network.getNode(id) !== undefined || network.getGroup(id) !== undefined
 
     const isEndpointHit = (
-      hit: { id: string; kind: 'node' | 'edge' | 'group' | 'path' } | undefined,
+      hit: { id: string; kind: HitKind } | undefined,
       ): hit is { id: string; kind: 'node' | 'group' } =>
       hit !== undefined && (hit.kind === 'node' || hit.kind === 'group')
 

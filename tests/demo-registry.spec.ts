@@ -27,7 +27,7 @@ describe('demo sample registry', () => {
 
   it('registers element showcases', () => {
     const ids = new Set(listSamples().map(s => s.id))
-    for (const id of ['node', 'edge', 'path', 'group', 'alarm', 'subnetwork']) {
+    for (const id of ['node', 'edge', 'path', 'shape-node', 'group', 'alarm', 'subnetwork']) {
       expect(ids.has(id)).toBe(true)
       const sample = getSample(id)
       expect(sample?.group).toBe('elements')
@@ -37,6 +37,7 @@ describe('demo sample registry', () => {
         + doc.edges.length
         + (doc.groups?.length ?? 0)
         + (doc.paths?.length ?? 0)
+        + (doc.shapeNodes?.length ?? 0)
       // Edge is a full style.route catalog; other element demos stay compact.
       expect(count).toBeLessThanOrEqual(id === 'edge' ? 120 : 15)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
@@ -54,6 +55,23 @@ describe('demo sample registry', () => {
     expect(path.paths?.some(p => p.style?.shapeKind === 'cubicto')).toBe(true)
     expect(path.paths?.some(p => p.closed === true && p.style?.fill !== undefined)).toBe(true)
     expect(path.paths?.some(p => p.locked === true)).toBe(true)
+    const shapeNode = parseDocument(getSample('shape-node')!.document)
+    expect(shapeNode.shapeNodes?.map(s => s.id).sort()).toEqual([
+      'closed-fill',
+      'cubicto-curve',
+      'in-group',
+      'lineto-open',
+      'locked-shape',
+      'quadto-curve',
+    ])
+    expect(shapeNode.shapeNodes?.some(s => s.closed === false)).toBe(true)
+    expect(shapeNode.shapeNodes?.some(s => s.closed === undefined && s.style?.fill !== undefined)).toBe(true)
+    expect(shapeNode.shapeNodes?.some(s => s.style?.shapeKind === 'quadto')).toBe(true)
+    expect(shapeNode.shapeNodes?.some(s => s.style?.shapeKind === 'cubicto')).toBe(true)
+    expect(shapeNode.shapeNodes?.some(s => s.locked === true)).toBe(true)
+    expect(shapeNode.groups?.[0]?.id).toBe('band')
+    expect(shapeNode.groups?.[0]?.memberIds).toContain('in-group')
+    expect(shapeNode.shapeNodes?.find(s => s.id === 'in-group')?.groupId).toBe('band')
     const edge = parseDocument(getSample('edge')!.document)
     expect(edge.groups?.[0]?.id).toBe('band')
     expect(edge.groups?.[0]?.expanded).toBe(true)

@@ -121,6 +121,10 @@ export class MarqueeSelectInteraction implements Interaction {
         const box = network.getPathBounds(path.id)
         if (box !== undefined && matchesBand(band, box, intersect)) ids.push(path.id)
       }
+      for (const shapeNode of network.getShapeNodes()) {
+        const box = network.getShapeNodeBounds(shapeNode.id)
+        if (box !== undefined && matchesBand(band, box, intersect)) ids.push(shapeNode.id)
+      }
       return ids
     }
 

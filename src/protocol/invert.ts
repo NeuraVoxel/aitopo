@@ -8,7 +8,15 @@
  */
 
 import { applyPatch, type GraphPatch, type GraphPatchOp } from './patch.ts'
-import type { Alarm, GraphDocument, GraphEdge, GraphGroup, GraphNode, GraphPath } from './types.ts'
+import type {
+  Alarm,
+  GraphDocument,
+  GraphEdge,
+  GraphGroup,
+  GraphNode,
+  GraphPath,
+  GraphShapeNode,
+} from './types.ts'
 
 /**
  * Inverse of one op against the document state before that op runs.
@@ -74,6 +82,22 @@ export function invertOp(beforeDoc: GraphDocument, op: GraphPatchOp): GraphPatch
       if (path === undefined) throw new Error(`invert updatePath: missing id ${op.id}`)
       return { op: 'updatePath', id: op.id, patch: invertPathPatch(path, op.patch) }
     }
+    case 'addShapeNode':
+      return { op: 'removeShapeNode', id: op.shapeNode.id }
+    case 'removeShapeNode': {
+      const shapeNode = (beforeDoc.shapeNodes ?? []).find(s => s.id === op.id)
+      if (shapeNode === undefined) throw new Error(`invert removeShapeNode: missing id ${op.id}`)
+      return { op: 'addShapeNode', shapeNode: cloneShapeNode(shapeNode) }
+    }
+    case 'updateShapeNode': {
+      const shapeNode = (beforeDoc.shapeNodes ?? []).find(s => s.id === op.id)
+      if (shapeNode === undefined) throw new Error(`invert updateShapeNode: missing id ${op.id}`)
+      return {
+        op: 'updateShapeNode',
+        id: op.id,
+        patch: invertShapeNodePatch(shapeNode, op.patch),
+      }
+    }
     case 'setAlarms': {
       if (op.target === 'node') {
         const node = beforeDoc.nodes.find(n => n.id === op.elementId)
@@ -137,6 +161,7 @@ type UpdateNodePatch = Extract<GraphPatchOp, { op: 'updateNode' }>['patch']
 type UpdateEdgePatch = Extract<GraphPatchOp, { op: 'updateEdge' }>['patch']
 type UpdateGroupPatch = Extract<GraphPatchOp, { op: 'updateGroup' }>['patch']
 type UpdatePathPatch = Extract<GraphPatchOp, { op: 'updatePath' }>['patch']
+type UpdateShapeNodePatch = Extract<GraphPatchOp, { op: 'updateShapeNode' }>['patch']
 
 function invertNodePatch(node: GraphNode, patch: UpdateNodePatch): UpdateNodePatch {
   const inv: UpdateNodePatch = {}
@@ -229,10 +254,39 @@ function invertPathPatch(path: GraphPath, patch: UpdatePathPatch): UpdatePathPat
   return inv
 }
 
+function invertShapeNodePatch(
+  shapeNode: GraphShapeNode,
+  patch: UpdateShapeNodePatch,
+): UpdateShapeNodePatch {
+  const inv: UpdateShapeNodePatch = {}
+  if (patch.points !== undefined) {
+    inv.points = shapeNode.points.map(p => ({ x: p.x, y: p.y }))
+  }
+  // closed: omitted ≡ closed (true) for ShapeNode — opposite of Path.
+  if (patch.closed !== undefined) inv.closed = shapeNode.closed !== false
+  // locked: omitted ≡ false (unlocked). Mirror group/path locked invert.
+  if (patch.locked !== undefined) inv.locked = shapeNode.locked === true
+  if (patch.label !== undefined && shapeNode.label !== undefined) inv.label = shapeNode.label
+  if (patch.label2 !== undefined && shapeNode.label2 !== undefined) inv.label2 = shapeNode.label2
+  if (patch.tooltip !== undefined && shapeNode.tooltip !== undefined) {
+    inv.tooltip = shapeNode.tooltip
+  }
+  if (patch.groupId !== undefined && shapeNode.groupId !== undefined) {
+    inv.groupId = shapeNode.groupId
+  }
+  if (patch.alarms !== undefined) inv.alarms = cloneAlarms(shapeNode.alarms)
+  if (patch.style !== undefined && shapeNode.style !== undefined) {
+    inv.style = cloneShapeNodeStyle(shapeNode.style)
+  }
+  if (patch.data !== undefined && shapeNode.data !== undefined) inv.data = { ...shapeNode.data }
+  return inv
+}
+
 type PatchNode = Extract<GraphPatchOp, { op: 'addNode' }>['node']
 type PatchEdge = Extract<GraphPatchOp, { op: 'addEdge' }>['edge']
 type PatchGroup = Extract<GraphPatchOp, { op: 'addGroup' }>['group']
 type PatchPath = Extract<GraphPatchOp, { op: 'addPath' }>['path']
+type PatchShapeNode = Extract<GraphPatchOp, { op: 'addShapeNode' }>['shapeNode']
 
 function cloneAlarms(alarms: readonly Alarm[] | undefined): NonNullable<PatchNode['alarms']> {
   if (alarms === undefined) return []
@@ -352,6 +406,35 @@ function clonePath(path: GraphPath): PatchPath {
 }
 
 function clonePathStyle(style: NonNullable<GraphPath['style']>): NonNullable<PatchPath['style']> {
+  const { strokeDash, label, select, hover, ...rest } = style
+  return {
+    ...rest,
+    ...(strokeDash !== undefined ? { strokeDash: [...strokeDash] } : {}),
+    ...(label !== undefined ? { label: { ...label } } : {}),
+    ...(select !== undefined ? { select: { ...select } } : {}),
+    ...(hover !== undefined ? { hover: { ...hover } } : {}),
+  }
+}
+
+function cloneShapeNode(shapeNode: GraphShapeNode): PatchShapeNode {
+  return {
+    id: shapeNode.id,
+    points: shapeNode.points.map(p => ({ x: p.x, y: p.y })),
+    ...(shapeNode.closed !== undefined ? { closed: shapeNode.closed } : {}),
+    ...(shapeNode.label !== undefined ? { label: shapeNode.label } : {}),
+    ...(shapeNode.label2 !== undefined ? { label2: shapeNode.label2 } : {}),
+    ...(shapeNode.tooltip !== undefined ? { tooltip: shapeNode.tooltip } : {}),
+    ...(shapeNode.locked !== undefined ? { locked: shapeNode.locked } : {}),
+    ...(shapeNode.groupId !== undefined ? { groupId: shapeNode.groupId } : {}),
+    ...(shapeNode.alarms !== undefined ? { alarms: cloneAlarms(shapeNode.alarms) } : {}),
+    ...(shapeNode.style !== undefined ? { style: cloneShapeNodeStyle(shapeNode.style) } : {}),
+    ...(shapeNode.data !== undefined ? { data: { ...shapeNode.data } } : {}),
+  }
+}
+
+function cloneShapeNodeStyle(
+  style: NonNullable<GraphShapeNode['style']>,
+): NonNullable<PatchShapeNode['style']> {
   const { strokeDash, label, select, hover, ...rest } = style
   return {
     ...rest,

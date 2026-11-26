@@ -27,6 +27,8 @@ export type {
   GraphPath,
   GraphPathStyle,
   GraphShadowStyle,
+  GraphShapeNode,
+  GraphShapeNodeStyle,
   GraphTextStyle,
   GraphViewport,
   PathShapeKind,
@@ -50,6 +52,9 @@ export type {
   PathRemovedEvent,
   PathUpdatedEvent,
   SelectionChangedEvent,
+  ShapeNodeCreatedEvent,
+  ShapeNodeRemovedEvent,
+  ShapeNodeUpdatedEvent,
   SubNetworkChangedEvent,
   ViewportChangedEvent,
 } from './events.ts'

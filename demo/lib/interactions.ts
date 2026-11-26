@@ -1,22 +1,30 @@
 import {
   CreateEdgeInteraction,
   CreatePathInteraction,
+  CreateShapeNodeInteraction,
   DeleteEdgeInteraction,
   ExternalDropInteraction,
   MoveEdgeBendInteraction,
   MovePathVertexInteraction,
+  MoveShapeNodeVertexInteraction,
   ResizeNodeInteraction,
   type Interaction,
 } from '../../src/index.ts'
 
-export type DemoMode = 'observe' | 'edit' | 'create-node' | 'create-link' | 'create-path'
+export type DemoMode =
+  | 'observe'
+  | 'edit'
+  | 'create-node'
+  | 'create-link'
+  | 'create-path'
+  | 'create-shape-node'
 
 /**
  * Extra interactions appended to Network defaults
  * (`PanZoom` + `SelectActivate` + `MoveNode` + `MarqueeSelect`).
  * Move and marquee are defaults now, so modes no longer list them.
- * `MovePathVertexInteraction` uses pointer capture-phase so handle hits win
- * over default `MoveNode` body drag even though extras attach after defaults.
+ * Path / ShapeNode vertex interactions use pointer capture-phase so handle hits
+ * win over default `MoveNode` body drag even though extras attach after defaults.
  * @param mode - mutually exclusive demo interaction mode.
  */
 export function buildInteractions(mode: DemoMode): readonly Interaction[] {
@@ -26,6 +34,7 @@ export function buildInteractions(mode: DemoMode): readonly Interaction[] {
     case 'edit':
       return [
         new MovePathVertexInteraction(),
+        new MoveShapeNodeVertexInteraction(),
         new MoveEdgeBendInteraction(),
         new ResizeNodeInteraction(),
         new DeleteEdgeInteraction(),
@@ -41,6 +50,11 @@ export function buildInteractions(mode: DemoMode): readonly Interaction[] {
       return [
         new DeleteEdgeInteraction(),
         new CreatePathInteraction(),
+      ]
+    case 'create-shape-node':
+      return [
+        new DeleteEdgeInteraction(),
+        new CreateShapeNodeInteraction(),
       ]
     case 'create-node':
       return [new ExternalDropInteraction()]

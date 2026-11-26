@@ -114,6 +114,7 @@ export class MovePathVertexInteraction implements Interaction {
       const next = drag.points.map(p => ({ x: p.x, y: p.y }))
       next[drag.index] = { x: world.x, y: world.y }
       drag.points = next
+      network.previewPathPoints(drag.pathId, next)
       network.markGestureDragged()
       ensureChrome()
     }

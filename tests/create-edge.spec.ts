@@ -74,7 +74,10 @@ function createHost(options: {
   canvas: FakeHitCanvas
   nodes: GraphNode[]
   groups?: GraphGroup[]
-  hitAt: (x: number, y: number) => { id: string; kind: 'node' | 'edge' | 'group' | 'path' } | undefined
+  hitAt: (x: number, y: number) => {
+    id: string
+    kind: 'node' | 'shapeNode' | 'edge' | 'group' | 'path'
+  } | undefined
 }): InteractionHost & {
   commitEdgeCreate: ReturnType<typeof vi.fn>
   addOverlayChrome: ReturnType<typeof vi.fn>
@@ -94,6 +97,7 @@ function createHost(options: {
       drawGroup: vi.fn(),
       drawEdge: vi.fn(),
     drawPath: vi.fn(),
+    drawShapeNode: vi.fn(),
       drawNode: vi.fn(),
       endFrame: vi.fn(),
       drawSelectionOverlay: vi.fn(),
@@ -137,10 +141,12 @@ function createHost(options: {
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
     getPaths: () => [],
+    getShapeNodes: () => [],
     getGroups: () => [...groups.values()],
     getGroupBandBounds: id => (groups.has(id) ? { x: 0, y: 0, width: 100, height: 80 } : undefined),
     getEdgePathBounds: () => undefined,
     getPathBounds: () => undefined,
+    getShapeNodeBounds: () => undefined,
     getSelectedIds: () => [],
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
@@ -154,10 +160,15 @@ function createHost(options: {
     commitEdgeCreate,
     commitEdgeRemove: vi.fn(),
     previewEdgeWaypoints: vi.fn(),
+    previewPathPoints: vi.fn(),
+    previewShapeNodePoints: vi.fn(),
     commitEdgeWaypoints: vi.fn(),
     commitPathCreate: vi.fn(),
     commitPathUpdate: vi.fn(),
     commitPathRemove: vi.fn(),
+    commitShapeNodeCreate: vi.fn(),
+    commitShapeNodeUpdate: vi.fn(),
+    commitShapeNodeRemove: vi.fn(),
     markGestureDragged: () => {
       gestureDragged = true
     },
@@ -251,6 +262,30 @@ describe('CreateEdgeInteraction', () => {
     canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 10, altKey: true })
     canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 10, altKey: true })
     expect(host.commitEdgeCreate).toHaveBeenCalledWith({ from: 'g1', to: 'g2', kind: 'data' })
+    dispose()
+  })
+
+  it('does not treat shapeNode hits as valid endpoints', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'a', x: 0, y: 0 })],
+      hitAt: (x) =>
+        (x < 50
+          ? { id: 'a', kind: 'node' }
+          : { id: 'sn1', kind: 'shapeNode' }),
+    })
+    const dispose = new CreateEdgeInteraction({ kind: 'data' }).attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10, altKey: true })
+    canvas.dispatch('pointermove', { button: 0, clientX: 80, clientY: 10, altKey: true })
+    canvas.dispatch('pointerup', { button: 0, clientX: 80, clientY: 10, altKey: true })
+    expect(host.commitEdgeCreate).not.toHaveBeenCalled()
+
+    // Starting on a shapeNode must not begin an edge gesture.
+    canvas.dispatch('pointerdown', { button: 0, clientX: 80, clientY: 10, altKey: true })
+    canvas.dispatch('pointermove', { button: 0, clientX: 10, clientY: 10, altKey: true })
+    canvas.dispatch('pointerup', { button: 0, clientX: 10, clientY: 10, altKey: true })
+    expect(host.commitEdgeCreate).not.toHaveBeenCalled()
     dispose()
   })
 })

@@ -12,6 +12,7 @@ function stubRenderer(): Renderer {
     drawGroup: vi.fn(),
     drawEdge: vi.fn(),
     drawPath: vi.fn(),
+    drawShapeNode: vi.fn(),
     drawNode: vi.fn(),
     endFrame: vi.fn(),
     drawSelectionOverlay: vi.fn(),

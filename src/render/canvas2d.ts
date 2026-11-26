@@ -3,7 +3,13 @@
  */
 
 import type { Point, Rect } from '../geom.ts'
-import type { GraphEdge, GraphGroup, GraphNode, GraphPath } from '../protocol/types.ts'
+import type {
+  GraphEdge,
+  GraphGroup,
+  GraphNode,
+  GraphPath,
+  GraphShapeNode,
+} from '../protocol/types.ts'
 import { getIcon } from '../ui/attachment/icon-registry.ts'
 import type { AttachmentPaintOp } from '../ui/attachment/types.ts'
 
@@ -175,6 +181,11 @@ export interface Renderer {
   drawEdge(edge: GraphEdge, view: EdgePaintView): void
   /** Freestanding path stroke (+ optional closed fill). */
   drawPath(path: GraphPath, view: PathPaintView): void
+  /**
+   * Shape-node stroke (+ optional closed fill).
+   * Reuses {@link PathPaintView} DTO (same densify/paint fields as Path).
+   */
+  drawShapeNode(shapeNode: GraphShapeNode, view: PathPaintView): void
   drawNode(node: GraphNode, view: NodePaintView): void
   endFrame(): void
   /** Overlay: solid selection ring (no-op OK for headless fakes). Body glow paints under fill on root. */
@@ -374,6 +385,16 @@ export class Canvas2DRenderer implements Renderer {
 
   drawPath(path: GraphPath, view: PathPaintView): void {
     void path
+    this.paintPolylineElement(view)
+  }
+
+  drawShapeNode(shapeNode: GraphShapeNode, view: PathPaintView): void {
+    void shapeNode
+    this.paintPolylineElement(view)
+  }
+
+  /** Shared Path / ShapeNode stroke (+ optional closed fill + label). */
+  private paintPolylineElement(view: PathPaintView): void {
     if (view.points.length < 2) return
     const highlight = view.selected || view.hovered
     const ctx = highlight ? this.overlayCtx : this.rootCtx

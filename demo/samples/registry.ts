@@ -7,6 +7,7 @@ import { edgeSample } from './elements/edge.ts'
 import { groupSample } from './elements/group.ts'
 import { nodeSample } from './elements/node.ts'
 import { pathSample } from './elements/path.ts'
+import { shapeNodeSample } from './elements/shape-node.ts'
 import { subnetworkSample } from './elements/subnetwork.ts'
 import { adasSamples } from './adas/index.ts'
 import { businessPlaceholders } from './business/placeholders.ts'
@@ -33,6 +34,7 @@ const SAMPLES: readonly DemoSample[] = [
   nodeSample,
   edgeSample,
   pathSample,
+  shapeNodeSample,
   groupSample,
   alarmSample,
   subnetworkSample,

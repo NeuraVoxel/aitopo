@@ -8,11 +8,20 @@
 import type { Point, Rect } from '../geom.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
-import type { GraphEdge, GraphGroup, GraphNode, GraphPath } from '../protocol/types.ts'
+import type {
+  GraphEdge,
+  GraphGroup,
+  GraphNode,
+  GraphPath,
+  GraphShapeNode,
+} from '../protocol/types.ts'
 import type { Renderer } from '../render/canvas2d.ts'
 
-/** Hit-test element kind (paint top → bottom pick order ends at path). */
-export type HitKind = 'node' | 'edge' | 'group' | 'path'
+/**
+ * Hit-test element kind.
+ * Pick order (top → bottom): node → shapeNode → edge → group → path.
+ */
+export type HitKind = 'node' | 'shapeNode' | 'edge' | 'group' | 'path'
 
 /** Live rubber-band while creating an edge. */
 export interface EdgeRubberBand {
@@ -81,6 +90,8 @@ export interface InteractionQueryHost {
   getGroups(): readonly GraphGroup[]
   /** @returns freestanding paths in the active network. */
   getPaths(): readonly GraphPath[]
+  /** @returns shape nodes in the active network. */
+  getShapeNodes(): readonly GraphShapeNode[]
   /**
    * Validated band / collapsed-body bounds of a group (auto-fit aware).
    * @param id - group id.
@@ -99,6 +110,12 @@ export interface InteractionQueryHost {
    * @returns world rect, or undefined when missing.
    */
   getPathBounds(id: string): Rect | undefined
+  /**
+   * Validated shape-node AABB for marquee / dirty-rect.
+   * @param id - shape-node id.
+   * @returns world rect, or undefined when missing.
+   */
+  getShapeNodeBounds(id: string): Rect | undefined
 }
 
 /** Overlay chrome schedule (Wave E / H registry). */
@@ -231,6 +248,24 @@ export interface InteractionEditHost {
     waypoints: readonly { readonly x: number; readonly y: number }[],
   ): void
   /**
+   * Live preview of path control points (does not emit pathUpdated).
+   * @param pathId - path id.
+   * @param points - control points.
+   */
+  previewPathPoints(
+    pathId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void
+  /**
+   * Live preview of shape-node control points (does not emit shapeNodeUpdated).
+   * @param shapeNodeId - shape-node id.
+   * @param points - control points.
+   */
+  previewShapeNodePoints(
+    shapeNodeId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void
+  /**
    * Commit edge bend waypoints via updateEdge; emit edgeWaypointsChanged.
    * @param args - edge id and from/to waypoint lists.
    */
@@ -270,6 +305,37 @@ export interface InteractionEditHost {
    * @param pathIds - path ids to remove.
    */
   commitPathRemove(pathIds: readonly string[]): void
+  /**
+   * Commit a new shape node: apply `addShapeNode`, emit `shapeNodeCreated`.
+   * @param args - control points and optional style / id / closed.
+   * @returns created shape-node id, or undefined when skipped.
+   */
+  commitShapeNodeCreate(args: {
+    points: readonly { readonly x: number; readonly y: number }[]
+    closed?: boolean
+    style?: GraphShapeNode['style']
+    label?: string
+    id?: string
+  }): string | undefined
+  /**
+   * Commit a shape-node update: apply `updateShapeNode`, emit `shapeNodeUpdated`.
+   * @param args - shape-node id and patch fragment.
+   */
+  commitShapeNodeUpdate(args: {
+    shapeNodeId: string
+    patch: {
+      points?: readonly { readonly x: number; readonly y: number }[]
+      closed?: boolean
+      label?: string
+      locked?: boolean
+      style?: GraphShapeNode['style']
+    }
+  }): void
+  /**
+   * Remove shape nodes by id: apply `removeShapeNode` ops, emit `shapeNodeRemoved` per id.
+   * @param shapeNodeIds - shape-node ids to remove.
+   */
+  commitShapeNodeRemove(shapeNodeIds: readonly string[]): void
 }
 
 /** Event bus + patch apply. */

@@ -58,10 +58,12 @@ function wrapApplyWithHistory(
 
 const MODE_STATUS: Record<DemoMode, string> = {
   observe: 'Observe',
-  edit: 'Edit — move / resize / bend / path vertex; Alt+drag link; Delete removes',
+  edit: 'Edit — move / resize / bend / path·shape vertex; Alt+drag link; Delete removes',
   'create-node': 'Create Node — click empty canvas',
   'create-link': 'Create Link — drag node to node',
   'create-path': 'Create Path — click points; Enter or double-click to commit; Esc cancels',
+  'create-shape-node':
+    'Create ShapeNode — click points; Enter or double-click to commit; Esc cancels',
 }
 
 /**

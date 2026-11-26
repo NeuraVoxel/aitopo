@@ -30,6 +30,10 @@ export {
   CreatePathInteraction,
   type CreatePathInteractionOptions,
 } from './create-path.ts'
+export {
+  CreateShapeNodeInteraction,
+  type CreateShapeNodeInteractionOptions,
+} from './create-shape-node.ts'
 export { DeleteEdgeInteraction } from './delete-edge.ts'
 export { MarqueeSelectInteraction } from './marquee-select.ts'
 export {
@@ -41,6 +45,7 @@ export {
   moveOrthogonalCorner,
 } from './move-edge-bend.ts'
 export { MovePathVertexInteraction } from './move-path-vertex.ts'
+export { MoveShapeNodeVertexInteraction } from './move-shape-node-vertex.ts'
 export { ResizeNodeInteraction } from './resize-node.ts'
 export { PanZoomInteraction } from './pan-zoom.ts'
 export { SelectActivateInteraction } from './select-activate.ts'

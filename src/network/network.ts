@@ -20,6 +20,7 @@ import type {
   GraphGroup,
   GraphNode,
   GraphPath,
+  GraphShapeNode,
   GraphViewport,
 } from '../protocol/types.ts'
 import { Canvas2DRenderer } from '../render/canvas2d.ts'
@@ -566,12 +567,16 @@ export class Network {
 
   /**
    * Union bounds of everything painted in the active network (bodies, bands,
-   * paths, and scene attachments like labels), or undefined when empty.
+   * paths, shape nodes, and scene attachments like labels), or undefined when empty.
    */
   contentBounds(): Rect | undefined {
     this.views.validateDirty(this.scene)
     let bounds: Rect | undefined
     for (const view of this.views.pathViews()) {
+      if (view.points.length < 2) continue
+      bounds = unionRect(bounds, view.bounds)
+    }
+    for (const view of this.views.shapeNodeViews()) {
       if (view.points.length < 2) continue
       bounds = unionRect(bounds, view.bounds)
     }
@@ -605,7 +610,8 @@ export class Network {
   /**
    * Hit-test at a screen point relative to the hit canvas.
    * Order matches reverse paint (twaver `getElementAt` top-down):
-   * nodes → edges → groups → paths (paths paint lowest / lanes under cars).
+   * nodes → shapeNodes → edges → groups → paths
+   * (paths paint lowest; boxed nodes stay above polygons).
    * Edges paint above group bands, so polyline hits must win over band fill.
    * Edge labels / alarms (union attachments) are hittable like twaver link attachments.
    */
@@ -621,6 +627,15 @@ export class Network {
       if (hitRect(world, view.bounds, 2 / zoom)) return { id: node.id, kind: 'node' }
     }
     const pad = 4 / zoom
+    const shapeNodes = [...this.scene.shapeNodes.values()]
+    for (let i = shapeNodes.length - 1; i >= 0; i -= 1) {
+      const shapeNode = shapeNodes[i]!
+      const view = this.views.getShapeNode(shapeNode.id)
+      if (view === undefined || view.points.length < 2) continue
+      if (view.hit(world.x, world.y, pad)) {
+        return { id: shapeNode.id, kind: 'shapeNode' }
+      }
+    }
     let bestId: string | undefined
     let bestDist = pad
     for (const edge of this.scene.edges.values()) {
@@ -697,6 +712,11 @@ export class Network {
   /** @returns freestanding paths in the active network. */
   getPaths(): readonly GraphPath[] {
     return [...this.scene.paths.values()]
+  }
+
+  /** @returns shape nodes in the active network. */
+  getShapeNodes(): readonly GraphShapeNode[] {
+    return [...this.scene.shapeNodes.values()]
   }
 
   /**
@@ -795,6 +815,18 @@ export class Network {
   getPathBounds(id: string): { x: number; y: number; width: number; height: number } | undefined {
     this.views.validateDirty(this.scene)
     const view = this.views.getPath(id)
+    if (view === undefined || view.points.length < 2) return undefined
+    return view.bounds
+  }
+
+  /**
+   * Validated shape-node AABB for marquee / dirty-rect.
+   * @param id - shape-node id.
+   * @returns world rect, or undefined when missing / empty.
+   */
+  getShapeNodeBounds(id: string): { x: number; y: number; width: number; height: number } | undefined {
+    this.views.validateDirty(this.scene)
+    const view = this.views.getShapeNode(id)
     if (view === undefined || view.points.length < 2) return undefined
     return view.bounds
   }
@@ -944,6 +976,30 @@ export class Network {
   }
 
   /**
+   * Live preview of path control points (no pathUpdated).
+   * @param pathId - path id.
+   * @param points - control points.
+   */
+  previewPathPoints(
+    pathId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    this.gestures.previewPathPoints(pathId, points)
+  }
+
+  /**
+   * Live preview of shape-node control points (no shapeNodeUpdated).
+   * @param shapeNodeId - shape-node id.
+   * @param points - control points.
+   */
+  previewShapeNodePoints(
+    shapeNodeId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    this.gestures.previewShapeNodePoints(shapeNodeId, points)
+  }
+
+  /**
    * Commit edge bend waypoints; emits `edgeWaypointsChanged`.
    * @param args - edge id and from/to waypoint lists.
    */
@@ -993,6 +1049,46 @@ export class Network {
    */
   commitPathRemove(pathIds: readonly string[]): void {
     this.gestures.commitPathRemove(pathIds)
+  }
+
+  /**
+   * Commit a new shape node. Skips when fewer than two points or id collision.
+   * @param args - control points and optional style / id / closed.
+   * @returns created shape-node id, or undefined when skipped.
+   */
+  commitShapeNodeCreate(args: {
+    points: readonly { readonly x: number; readonly y: number }[]
+    closed?: boolean
+    style?: GraphShapeNode['style']
+    label?: string
+    id?: string
+  }): string | undefined {
+    return this.gestures.commitShapeNodeCreate(args)
+  }
+
+  /**
+   * Commit a shape-node update; emits `shapeNodeUpdated`.
+   * @param args - shape-node id and patch fragment.
+   */
+  commitShapeNodeUpdate(args: {
+    shapeNodeId: string
+    patch: {
+      points?: readonly { readonly x: number; readonly y: number }[]
+      closed?: boolean
+      label?: string
+      locked?: boolean
+      style?: GraphShapeNode['style']
+    }
+  }): void {
+    this.gestures.commitShapeNodeUpdate(args)
+  }
+
+  /**
+   * Remove shape nodes by id; emits `shapeNodeRemoved` for each existing id.
+   * @param shapeNodeIds - shape-node ids to remove.
+   */
+  commitShapeNodeRemove(shapeNodeIds: readonly string[]): void {
+    this.gestures.commitShapeNodeRemove(shapeNodeIds)
   }
 
   /** Mark that a drag consumed this pointer gesture. */
@@ -1059,6 +1155,7 @@ export class Network {
       for (const view of this.views.edgeViews()) view.markDirty()
       for (const view of this.views.groupViews()) view.markDirty()
       for (const view of this.views.pathViews()) view.markDirty()
+      for (const view of this.views.shapeNodeViews()) view.markDirty()
       this.dirty.markAll()
       return
     }
@@ -1080,6 +1177,10 @@ export class Network {
       const pathView = this.views.getPath(id)
       if (pathView !== undefined && pathView.points.length >= 2) {
         oldRects.push(growRect(pathView.bounds, 8))
+      }
+      const shapeNodeView = this.views.getShapeNode(id)
+      if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
+        oldRects.push(growRect(shapeNodeView.bounds, 8))
       }
       if (this.scene.groups.has(id)) {
         for (const rect of this.captureGroupTopologyRects(id)) oldRects.push(rect)
@@ -1116,6 +1217,11 @@ export class Network {
       const pathView = this.views.getPath(id)
       if (pathView !== undefined && pathView.points.length >= 2) {
         this.dirty.add(growRect(pathView.bounds, 8))
+        continue
+      }
+      const shapeNodeView = this.views.getShapeNode(id)
+      if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
+        this.dirty.add(growRect(shapeNodeView.bounds, 8))
         continue
       }
       if (this.scene.groups.has(id)) {
@@ -1273,6 +1379,20 @@ export class Network {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
       }
     }
+    for (const shapeNode of this.scene.shapeNodes.values()) {
+      const view = this.views.getShapeNode(shapeNode.id)
+      if (view === undefined || view.points.length < 2) continue
+      const selected = this.scene.selectedIds.has(shapeNode.id)
+      const hovered = hoverId === shapeNode.id
+      if (selected || hovered) {
+        renderer.drawShapeNode(shapeNode, view.toPaintView(selected, hovered))
+      }
+      if (selected) {
+        for (const point of shapeNode.points) {
+          renderer.drawResizeHandle(point, handleSize)
+        }
+      }
+    }
     for (const node of this.scene.nodes.values()) {
       const view = this.views.getNode(node.id)
       if (view === undefined || !view.isVisible) continue
@@ -1321,7 +1441,10 @@ export class Network {
           return false
         }
         renderer.beginFrame(cam, dirtyRects)
-        // Paths paint under groups/edges/nodes (lanes under cars).
+        // Paint bottom → top (reverse of hit): paths → groups → edges →
+        // shapeNodes → nodes. Edges stay above group bands; shapeNodes sit with
+        // nodes (under boxed nodes). Plan pin text said edges before groups;
+        // kept existing edges-above-groups so hit/paint stay inverse.
         if (filter === undefined) {
           for (const path of this.scene.paths.values()) {
             const view = this.views.getPath(path.id)
@@ -1347,6 +1470,14 @@ export class Network {
           // stacked on top by the overlay pass. Skipping highlighted edges here
           // would leave root holes that unhover (overlay-only) never refills.
           renderer.drawEdge(edge, view.toPaintView(false, false))
+        }
+        if (filter === undefined) {
+          for (const shapeNode of this.scene.shapeNodes.values()) {
+            const view = this.views.getShapeNode(shapeNode.id)
+            if (view === undefined || view.points.length < 2) continue
+            if (!inDirty(view.bounds)) continue
+            renderer.drawShapeNode(shapeNode, view.toPaintView(false, false))
+          }
         }
         for (const node of this.scene.nodes.values()) {
           if (filter !== undefined && !filter.has(node.id)) continue

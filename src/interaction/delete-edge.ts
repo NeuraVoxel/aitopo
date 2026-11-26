@@ -1,12 +1,12 @@
 /**
- * Delete/Backspace removes selected edges and freestanding paths.
+ * Delete/Backspace removes selected edges, freestanding paths, and shape nodes.
  */
 
 import type { Interaction, InteractionHost } from './types.ts'
 
 /**
- * Keyboard delete for selected edges and paths. Nodes/groups are left to the host.
- * Class name kept for call-site compatibility; behavior covers both element kinds.
+ * Keyboard delete for selected edges, paths, and shape nodes.
+ * Nodes/groups are left to the host. Class name kept for call-site compatibility.
  * Ignores events when the target is an editable field.
  */
 export class DeleteEdgeInteraction implements Interaction {
@@ -33,12 +33,23 @@ export class DeleteEdgeInteraction implements Interaction {
       if (selected.length === 0) return
       const edgeIds = new Set(network.getEdges().map(e => e.id))
       const pathIds = new Set(network.getPaths().map(p => p.id))
+      const shapeNodeIds = new Set(network.getShapeNodes().map(s => s.id))
       const edgesToRemove = selected.filter(id => edgeIds.has(id))
       const pathsToRemove = selected.filter(id => pathIds.has(id))
-      if (edgesToRemove.length === 0 && pathsToRemove.length === 0) return
+      const shapeNodesToRemove = selected.filter(id => shapeNodeIds.has(id))
+      if (
+        edgesToRemove.length === 0
+        && pathsToRemove.length === 0
+        && shapeNodesToRemove.length === 0
+      ) {
+        return
+      }
       keyEvent.preventDefault()
       if (edgesToRemove.length > 0) network.commitEdgeRemove(edgesToRemove)
       if (pathsToRemove.length > 0) network.commitPathRemove(pathsToRemove)
+      if (shapeNodesToRemove.length > 0) {
+        network.commitShapeNodeRemove(shapeNodesToRemove)
+      }
       network.setSelection([])
     }
 

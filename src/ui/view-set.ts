@@ -1,5 +1,5 @@
 /**
- * Owns Node/Edge/Group/Path Views synced to GraphScene membership.
+ * Owns Node/Edge/Group/Path/ShapeNode Views synced to GraphScene membership.
  */
 
 import type { Rect } from '../geom.ts'
@@ -19,6 +19,7 @@ import {
 import { GroupView } from './group-view.ts'
 import { NodeView } from './node-view.ts'
 import { PathView } from './path-view.ts'
+import { ShapeNodeView } from './shape-node-view.ts'
 
 /**
  * Create/dispose Views to match the scene and track geometry dirty flags.
@@ -28,6 +29,7 @@ export class ViewSet {
   private readonly edges = new Map<string, EdgeView>()
   private readonly groups = new Map<string, GroupView>()
   private readonly paths = new Map<string, PathView>()
+  private readonly shapeNodes = new Map<string, ShapeNodeView>()
   /** Host default when `style.showIcon` is omitted (default true). */
   private showNodeIconsDefault = true
 
@@ -47,10 +49,14 @@ export class ViewSet {
     this.edges.clear()
     this.groups.clear()
     this.paths.clear()
+    this.shapeNodes.clear()
     for (const id of scene.nodes.keys()) this.nodes.set(id, new NodeView(id))
     for (const id of scene.edges.keys()) this.edges.set(id, new EdgeView(id))
     for (const id of scene.groups.keys()) this.groups.set(id, new GroupView(id))
     for (const id of scene.paths.keys()) this.paths.set(id, new PathView(id))
+    for (const id of scene.shapeNodes.keys()) {
+      this.shapeNodes.set(id, new ShapeNodeView(id))
+    }
   }
 
   /**
@@ -62,10 +68,11 @@ export class ViewSet {
     syncMap(this.edges, scene.edges.keys(), id => new EdgeView(id))
     syncMap(this.groups, scene.groups.keys(), id => new GroupView(id))
     syncMap(this.paths, scene.paths.keys(), id => new PathView(id))
+    syncMap(this.shapeNodes, scene.shapeNodes.keys(), id => new ShapeNodeView(id))
   }
 
   /**
-   * Mark a View dirty by element id (node, edge, group, or path).
+   * Mark a View dirty by element id (node, edge, group, path, or shapeNode).
    * @param id - element id.
    */
   markDirty(id: string): void {
@@ -73,6 +80,7 @@ export class ViewSet {
     this.edges.get(id)?.markDirty()
     this.groups.get(id)?.markDirty()
     this.paths.get(id)?.markDirty()
+    this.shapeNodes.get(id)?.markDirty()
   }
 
   /**
@@ -102,7 +110,7 @@ export class ViewSet {
   /**
    * Validate every dirty View against the live scene. Groups auto-fit from
    * member paint extents (body ∪ attachments), so nodes validate first.
-   * Paths validate independently (no endpoint remapping).
+   * Paths and shape nodes validate independently (no endpoint remapping).
    * @param scene - active graph scene.
    * @param paintOpts - optional flow phase for animated dashes.
    */
@@ -111,9 +119,13 @@ export class ViewSet {
     paintOpts?: { readonly flowPhase?: number },
   ): void {
     const opts = { showNodeIconsDefault: this.showNodeIconsDefault }
-    // Paths first (under everything), then nodes (member unions), groups, edges.
+    // Paths / shape nodes first (under boxed nodes), then nodes (member unions),
+    // groups, edges.
     for (const view of this.paths.values()) {
       view.validate(scene.paths.get(view.id))
+    }
+    for (const view of this.shapeNodes.values()) {
+      view.validate(scene.shapeNodes.get(view.id))
     }
     for (const view of this.nodes.values()) view.validate(scene, opts)
     for (const view of this.groups.values()) view.validate(scene, n => this.nodeUnionBounds(n))
@@ -194,6 +206,10 @@ export class ViewSet {
     return this.paths.get(id)
   }
 
+  getShapeNode(id: string): ShapeNodeView | undefined {
+    return this.shapeNodes.get(id)
+  }
+
   /** Node Views in insertion order. */
   nodeViews(): IterableIterator<NodeView> {
     return this.nodes.values()
@@ -212,6 +228,11 @@ export class ViewSet {
   /** Path Views in insertion order. */
   pathViews(): IterableIterator<PathView> {
     return this.paths.values()
+  }
+
+  /** ShapeNode Views in insertion order. */
+  shapeNodeViews(): IterableIterator<ShapeNodeView> {
+    return this.shapeNodes.values()
   }
 }
 

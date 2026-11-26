@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { MarqueeSelectInteraction } from '../src/interaction/marquee-select.ts'
 import type { InteractionHost } from '../src/interaction/types.ts'
-import type { GraphEdge, GraphGroup, GraphNode } from '../src/protocol/types.ts'
+import type { GraphEdge, GraphGroup, GraphNode, GraphShapeNode } from '../src/protocol/types.ts'
 import type { Rect } from '../src/geom.ts'
 
 /** Minimal EventTarget-like canvas for node-env MarqueeSelect tests. */
@@ -82,8 +82,10 @@ function createHost(options: {
   nodes?: GraphNode[]
   groups?: GraphGroup[]
   edges?: GraphEdge[]
+  shapeNodes?: GraphShapeNode[]
   groupBounds?: Record<string, Rect>
   edgeBounds?: Record<string, Rect>
+  shapeNodeBounds?: Record<string, Rect>
   hitId?: string
 }): InteractionHost & {
   setSelection: ReturnType<typeof vi.fn>
@@ -94,6 +96,7 @@ function createHost(options: {
   const nodes = [...(options.nodes ?? [])]
   const groups = [...(options.groups ?? [])]
   const edges = [...(options.edges ?? [])]
+  const shapeNodes = [...(options.shapeNodes ?? [])]
   const hitId = options.hitId
   let gestureDragged = false
   let selectedIds: string[] = []
@@ -116,6 +119,7 @@ function createHost(options: {
       drawGroup: vi.fn(),
       drawEdge: vi.fn(),
     drawPath: vi.fn(),
+    drawShapeNode: vi.fn(),
       drawNode: vi.fn(),
       endFrame: vi.fn(),
       drawSelectionOverlay: vi.fn(),
@@ -159,10 +163,12 @@ function createHost(options: {
     getNodes: () => nodes,
     getEdges: () => edges,
     getPaths: () => [],
+    getShapeNodes: () => shapeNodes,
     getGroups: () => groups,
     getGroupBandBounds: id => options.groupBounds?.[id],
     getEdgePathBounds: id => options.edgeBounds?.[id],
     getPathBounds: () => undefined,
+    getShapeNodeBounds: id => options.shapeNodeBounds?.[id],
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => undefined,
     screenToWorld: (x, y) => ({ x, y }),
@@ -176,10 +182,15 @@ function createHost(options: {
     commitEdgeCreate: vi.fn(),
     commitEdgeRemove: vi.fn(),
     previewEdgeWaypoints: vi.fn(),
+    previewPathPoints: vi.fn(),
+    previewShapeNodePoints: vi.fn(),
     commitEdgeWaypoints: vi.fn(),
     commitPathCreate: vi.fn(),
     commitPathUpdate: vi.fn(),
     commitPathRemove: vi.fn(),
+    commitShapeNodeCreate: vi.fn(),
+    commitShapeNodeUpdate: vi.fn(),
+    commitShapeNodeRemove: vi.fn(),
     markGestureDragged,
     wasGestureDragged: () => gestureDragged,
     clearGestureDragged: () => {
@@ -274,6 +285,29 @@ describe('MarqueeSelectInteraction', () => {
     dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { shiftKey: true })
 
     expect(host.setSelection).toHaveBeenCalledWith(['g', 'e'])
+    dispose()
+  })
+
+  it('selects intersecting shapeNodes', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'n', x: 200, y: 200 })],
+      shapeNodes: [{
+        id: 'sn',
+        points: [
+          { x: 10, y: 10 },
+          { x: 40, y: 10 },
+          { x: 25, y: 40 },
+        ],
+      }],
+      shapeNodeBounds: { sn: { x: 10, y: 10, width: 30, height: 30 } },
+    })
+    const dispose = new MarqueeSelectInteraction().attach(host)
+
+    dragMarquee(canvas, { x: 0, y: 0 }, { x: 80, y: 80 }, { shiftKey: true })
+
+    expect(host.setSelection).toHaveBeenCalledWith(['sn'])
     dispose()
   })
 

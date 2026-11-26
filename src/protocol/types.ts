@@ -497,6 +497,50 @@ export interface GraphPath {
   readonly data?: Readonly<Record<string, unknown>>
 }
 
+/** Optional per-shape-node visual overrides. */
+export interface GraphShapeNodeStyle {
+  readonly stroke?: string
+  readonly lineWidth?: number
+  readonly strokeDash?: readonly number[]
+  readonly fill?: string
+  readonly alpha?: number
+  /** Segment interpolation. Omitted → `lineto`. */
+  readonly shapeKind?: PathShapeKind
+  readonly label?: GraphTextStyle
+  readonly select?: GraphChromeStyle
+  readonly hover?: GraphChromeStyle
+}
+
+/**
+ * Polygon / polyline node body (not a box `GraphNode`, not a freestanding `GraphPath`).
+ * Point arity vs {@link GraphShapeNodeStyle.shapeKind} matches {@link GraphPath}:
+ * - `lineto` (default): ≥2
+ * - `quadto`: odd count ≥3
+ * - `cubicto`: count ≡ 1 (mod 3), ≥4
+ *
+ * `closed` semantics differ from Path: **omitted ≡ closed (`true`)** for ShapeNode
+ * (Path omitted ≡ open). Explicit `closed: false` is an open polyline body.
+ * Runtime paint/hit treat `closed !== false` as closed.
+ */
+export interface GraphShapeNode {
+  readonly id: string
+  readonly points: readonly { readonly x: number; readonly y: number }[]
+  /**
+   * Whether the body closes to the first point.
+   * Omitted ≡ closed (`true`) — opposite of {@link GraphPath.closed}.
+   */
+  readonly closed?: boolean
+  readonly label?: string
+  readonly label2?: string
+  readonly tooltip?: string
+  readonly locked?: boolean
+  /** Group membership (dual bookkeeping with `GraphGroup.memberIds`). */
+  readonly groupId?: string
+  readonly alarms?: readonly Alarm[]
+  readonly style?: GraphShapeNodeStyle
+  readonly data?: Readonly<Record<string, unknown>>
+}
+
 /** Visual grouping band for member nodes. */
 export interface GraphGroup {
   readonly id: string
@@ -506,8 +550,8 @@ export interface GraphGroup {
   /** TooltipAttachment text when set. */
   readonly tooltip?: string
   /**
-   * Direct members: node ids and/or child group ids.
-   * Child groups also set `parentId` (dual bookkeeping, same as node `groupId`).
+   * Direct members: node ids, shapeNode ids, and/or child group ids.
+   * Child groups also set `parentId` (dual bookkeeping, same as node/shapeNode `groupId`).
    */
   readonly memberIds: readonly string[]
   /**
@@ -559,6 +603,8 @@ export interface GraphDocument {
   readonly groups?: readonly GraphGroup[]
   /** Freestanding paths. Omitted ≡ `[]`. */
   readonly paths?: readonly GraphPath[]
+  /** Shape nodes (polygon / polyline bodies). Omitted ≡ `[]`. */
+  readonly shapeNodes?: readonly GraphShapeNode[]
   readonly networks?: Readonly<Record<string, GraphDocument>>
   readonly viewport?: GraphViewport
 }

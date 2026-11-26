@@ -55,6 +55,7 @@ function recordingRenderer(): Renderer & {
       ) state.edgeBasePaints += 1
     }),
     drawPath: vi.fn(countSceneDraw),
+    drawShapeNode: vi.fn(countSceneDraw),
     drawNode: vi.fn(countSceneDraw),
     endFrame: vi.fn(),
     drawSelectionOverlay: vi.fn(),

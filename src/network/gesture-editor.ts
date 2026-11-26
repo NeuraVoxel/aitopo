@@ -6,7 +6,7 @@ import { growRect, type Rect } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
-import type { GraphPath } from '../protocol/types.ts'
+import type { GraphPath, GraphShapeNode } from '../protocol/types.ts'
 import {
   expandCollapseCenterPatches,
   listOwningGroupChain,
@@ -427,6 +427,51 @@ export class GestureEditor {
   }
 
   /**
+   * Live preview of path control points (body / vertex drag; no pathUpdated).
+   * @param pathId - path id.
+   * @param points - control points.
+   */
+  previewPathPoints(
+    pathId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    if (this.deps.scene.paths.get(pathId) === undefined) return
+    const oldRects = this.capturePathGeometryRects(pathId)
+    this.deps.scene.writePathPoints(pathId, points)
+    this.deps.views.markDirty(pathId)
+    this.deps.views.validateDirty(this.deps.scene)
+    for (const rect of oldRects) this.deps.dirty.add(rect)
+    for (const rect of this.capturePathGeometryRects(pathId)) this.deps.dirty.add(rect)
+    this.deps.scene.takeDirty()
+    this.deps.scheduleScenePaint()
+  }
+
+  /**
+   * Live preview of shape-node control points (body / vertex drag; no shapeNodeUpdated).
+   * Dirties owning group bands when the shape node is a member.
+   * @param shapeNodeId - shape-node id.
+   * @param points - control points.
+   */
+  previewShapeNodePoints(
+    shapeNodeId: string,
+    points: readonly { readonly x: number; readonly y: number }[],
+  ): void {
+    if (this.deps.scene.shapeNodes.get(shapeNodeId) === undefined) return
+    const oldRects = this.captureShapeNodeGeometryRects(shapeNodeId)
+    this.deps.scene.writeShapeNodePoints(shapeNodeId, points)
+    this.deps.views.markDirty(shapeNodeId)
+    const groupId = this.deps.scene.shapeNodes.get(shapeNodeId)?.groupId
+    if (groupId !== undefined) this.deps.views.markDirty(groupId)
+    this.deps.views.validateDirty(this.deps.scene)
+    for (const rect of oldRects) this.deps.dirty.add(rect)
+    for (const rect of this.captureShapeNodeGeometryRects(shapeNodeId)) {
+      this.deps.dirty.add(rect)
+    }
+    this.deps.scene.takeDirty()
+    this.deps.scheduleScenePaint()
+  }
+
+  /**
    * Commit edge bend waypoints; emits `edgeWaypointsChanged`.
    * @param args - edge id and from/to waypoint lists.
    */
@@ -472,6 +517,7 @@ export class GestureEditor {
       || this.deps.scene.nodes.has(pathId)
       || this.deps.scene.edges.has(pathId)
       || this.deps.scene.groups.has(pathId)
+      || this.deps.scene.shapeNodes.has(pathId)
     ) {
       return undefined
     }
@@ -541,6 +587,99 @@ export class GestureEditor {
     this.deps.apply({ ops })
     for (const pathId of removed) {
       this.deps.emit({ type: 'pathRemoved', pathId })
+    }
+  }
+
+  /**
+   * Commit a new shape node. Skips when fewer than two points or id collision.
+   * Omitted `closed` ≡ closed (ShapeNode default); pass `closed: false` for open.
+   * @param args - control points and optional style / id / closed.
+   * @returns created shape-node id, or undefined when skipped.
+   */
+  commitShapeNodeCreate(args: {
+    points: readonly { readonly x: number; readonly y: number }[]
+    closed?: boolean
+    style?: GraphShapeNode['style']
+    label?: string
+    id?: string
+  }): string | undefined {
+    if (args.points.length < 2) return undefined
+    const shapeNodeId = args.id ?? `sn-${Date.now()}`
+    if (
+      this.deps.scene.shapeNodes.has(shapeNodeId)
+      || this.deps.scene.nodes.has(shapeNodeId)
+      || this.deps.scene.edges.has(shapeNodeId)
+      || this.deps.scene.groups.has(shapeNodeId)
+      || this.deps.scene.paths.has(shapeNodeId)
+    ) {
+      return undefined
+    }
+    this.deps.apply({
+      ops: [{
+        op: 'addShapeNode',
+        shapeNode: {
+          id: shapeNodeId,
+          points: args.points.map(p => ({ x: p.x, y: p.y })),
+          ...(args.closed !== undefined ? { closed: args.closed } : {}),
+          ...(args.label !== undefined ? { label: args.label } : {}),
+          ...(args.style !== undefined ? { style: cloneShapeNodeStyle(args.style) } : {}),
+        },
+      }],
+    })
+    this.deps.emit({ type: 'shapeNodeCreated', shapeNodeId })
+    return shapeNodeId
+  }
+
+  /**
+   * Commit a shape-node update; emits `shapeNodeUpdated`.
+   * @param args - shape-node id and patch fragment.
+   */
+  commitShapeNodeUpdate(args: {
+    shapeNodeId: string
+    patch: {
+      points?: readonly { readonly x: number; readonly y: number }[]
+      closed?: boolean
+      label?: string
+      locked?: boolean
+      style?: GraphShapeNode['style']
+    }
+  }): void {
+    if (this.deps.scene.shapeNodes.get(args.shapeNodeId) === undefined) {
+      throw new Error(`commitShapeNodeUpdate: missing shapeNode ${args.shapeNodeId}`)
+    }
+    const { points, style, ...rest } = args.patch
+    this.deps.apply({
+      ops: [{
+        op: 'updateShapeNode',
+        id: args.shapeNodeId,
+        patch: {
+          ...rest,
+          ...(points !== undefined
+            ? { points: points.map(p => ({ x: p.x, y: p.y })) }
+            : {}),
+          ...(style !== undefined ? { style: cloneShapeNodeStyle(style) } : {}),
+        },
+      }],
+    })
+    this.deps.emit({ type: 'shapeNodeUpdated', shapeNodeId: args.shapeNodeId })
+  }
+
+  /**
+   * Remove shape nodes by id; emits `shapeNodeRemoved` for each existing id.
+   * @param shapeNodeIds - shape-node ids to remove.
+   */
+  commitShapeNodeRemove(shapeNodeIds: readonly string[]): void {
+    const ops: GraphPatch['ops'] = []
+    const removed: string[] = []
+    for (const id of shapeNodeIds) {
+      if (!this.deps.scene.shapeNodes.has(id)) continue
+      ops.push({ op: 'removeShapeNode', id })
+      removed.push(id)
+    }
+    if (ops.length === 0) return
+    this.deps.apply({ ops })
+    for (const shapeNodeId of removed) {
+      this.deps.emit({ type: 'shapeNodeRemoved', shapeNodeId })
     }
   }
 
@@ -638,12 +777,47 @@ export class GestureEditor {
     if (edgeView?.isActive !== true) return []
     return [growRect(edgeView.bounds, 8)]
   }
+
+  private capturePathGeometryRects(pathId: string): Rect[] {
+    const pathView = this.deps.views.getPath(pathId)
+    if (pathView?.isActive !== true) return []
+    return [growRect(pathView.bounds, 8)]
+  }
+
+  private captureShapeNodeGeometryRects(shapeNodeId: string): Rect[] {
+    const rects: Rect[] = []
+    const shapeView = this.deps.views.getShapeNode(shapeNodeId)
+    if (shapeView?.isActive === true) rects.push(growRect(shapeView.bounds, 8))
+    const groupId = this.deps.scene.shapeNodes.get(shapeNodeId)?.groupId
+    if (groupId !== undefined) {
+      const groupView = this.deps.views.getGroup(groupId)
+      if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
+    }
+    return rects
+  }
 }
 
 /** Clone path style into a patch-friendly (mutable dash) object. */
 function clonePathStyle(
   style: NonNullable<GraphPath['style']>,
 ): Extract<GraphPatch['ops'][number], { op: 'addPath' }>['path']['style'] {
+  return {
+    ...(style.stroke !== undefined ? { stroke: style.stroke } : {}),
+    ...(style.lineWidth !== undefined ? { lineWidth: style.lineWidth } : {}),
+    ...(style.strokeDash !== undefined ? { strokeDash: [...style.strokeDash] } : {}),
+    ...(style.alpha !== undefined ? { alpha: style.alpha } : {}),
+    ...(style.shapeKind !== undefined ? { shapeKind: style.shapeKind } : {}),
+    ...(style.fill !== undefined ? { fill: style.fill } : {}),
+    ...(style.label !== undefined ? { label: { ...style.label } } : {}),
+    ...(style.select !== undefined ? { select: { ...style.select } } : {}),
+    ...(style.hover !== undefined ? { hover: { ...style.hover } } : {}),
+  }
+}
+
+/** Clone shape-node style into a patch-friendly object. */
+function cloneShapeNodeStyle(
+  style: NonNullable<GraphShapeNode['style']>,
+): Extract<GraphPatch['ops'][number], { op: 'addShapeNode' }>['shapeNode']['style'] {
   return {
     ...(style.stroke !== undefined ? { stroke: style.stroke } : {}),
     ...(style.lineWidth !== undefined ? { lineWidth: style.lineWidth } : {}),

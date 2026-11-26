@@ -74,14 +74,16 @@ function createHost(options: {
   nodes: GraphNode[]
   selectedIds?: string[]
   hitId?: string
-  hitKind?: 'node' | 'group' | 'path'
+  hitKind?: 'node' | 'group' | 'path' | 'shapeNode'
   groupOnUp?: string | undefined
   zoom?: number
   groups?: import('../src/protocol/types.ts').GraphGroup[]
   paths?: import('../src/protocol/types.ts').GraphPath[]
+  shapeNodes?: import('../src/protocol/types.ts').GraphShapeNode[]
 }): InteractionHost & {
   commitNodeMove: ReturnType<typeof vi.fn>
   commitPathUpdate: ReturnType<typeof vi.fn>
+  commitShapeNodeUpdate: ReturnType<typeof vi.fn>
   previewNodePosition: ReturnType<typeof vi.fn>
   markGestureDragged: ReturnType<typeof vi.fn>
   setSelection: ReturnType<typeof vi.fn>
@@ -93,9 +95,13 @@ function createHost(options: {
   const nodes = new Map(options.nodes.map(n => [n.id, n]))
   const groups = [...(options.groups ?? [])]
   const paths = [...(options.paths ?? [])]
+  const shapeNodes = [...(options.shapeNodes ?? [])]
   let selectedIds = [...(options.selectedIds ?? [])]
   let gestureDragged = false
-  const hitId = options.hitId ?? options.nodes[0]?.id ?? options.paths?.[0]?.id
+  const hitId = options.hitId
+    ?? options.nodes[0]?.id
+    ?? options.paths?.[0]?.id
+    ?? options.shapeNodes?.[0]?.id
   const hitKind = options.hitKind ?? 'node'
   const zoom = options.zoom ?? 1
   let groupOnUp = options.groupOnUp
@@ -105,7 +111,10 @@ function createHost(options: {
 
   const commitNodeMove = vi.fn()
   const commitPathUpdate = vi.fn()
+  const commitShapeNodeUpdate = vi.fn()
   const previewNodePosition = vi.fn()
+  const previewPathPoints = vi.fn()
+  const previewShapeNodePoints = vi.fn()
   const markGestureDragged = vi.fn(() => {
     gestureDragged = true
   })
@@ -120,6 +129,7 @@ function createHost(options: {
       drawGroup: vi.fn(),
       drawEdge: vi.fn(),
     drawPath: vi.fn(),
+    drawShapeNode: vi.fn(),
       drawNode: vi.fn(),
       endFrame: vi.fn(),
       drawSelectionOverlay: vi.fn(),
@@ -169,16 +179,20 @@ function createHost(options: {
     getNodes: () => [...nodes.values()],
     getEdges: () => [],
     getPaths: () => paths,
+    getShapeNodes: () => shapeNodes,
     getGroups: () => groups,
     getGroupBandBounds: () => ({ x: 0, y: 0, width: 100, height: 80 }),
     getEdgePathBounds: () => undefined,
     getPathBounds: () => undefined,
+    getShapeNodeBounds: () => undefined,
     getSelectedIds: () => selectedIds,
     hitTestGroupScreen: () => groupOnUp,
     screenToWorld: (x, y) => ({ x, y }),
     previewNodePosition,
     previewNodeBounds: vi.fn(),
     previewGroupMove: vi.fn(),
+    previewPathPoints,
+    previewShapeNodePoints,
     commitNodeMove,
     commitGroupMove: vi.fn(),
     toggleGroupExpanded: vi.fn(),
@@ -190,6 +204,9 @@ function createHost(options: {
     commitPathCreate: vi.fn(),
     commitPathUpdate,
     commitPathRemove: vi.fn(),
+    commitShapeNodeCreate: vi.fn(),
+    commitShapeNodeUpdate,
+    commitShapeNodeRemove: vi.fn(),
     markGestureDragged,
     wasGestureDragged: () => gestureDragged,
     clearGestureDragged: () => {
@@ -586,6 +603,7 @@ describe('MoveNodeInteraction', () => {
 
     dragPastThreshold(canvas, { x: 20, y: 20 }, { x: 40, y: 30 })
 
+    expect(host.previewPathPoints).toHaveBeenCalled()
     expect(host.commitPathUpdate).toHaveBeenCalledWith({
       pathId: 'p1',
       patch: {
@@ -620,6 +638,66 @@ describe('MoveNodeInteraction', () => {
     const dispose = new MoveNodeInteraction().attach(host)
     dragPastThreshold(canvas, { x: 20, y: 20 }, { x: 40, y: 30 })
     expect(host.commitPathUpdate).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('translates all shapeNode control points on body drag', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [],
+      shapeNodes: [{
+        id: 'sn1',
+        points: [
+          { x: 10, y: 20 },
+          { x: 40, y: 20 },
+          { x: 40, y: 50 },
+        ],
+      }],
+      selectedIds: ['sn1'],
+      hitId: 'sn1',
+      hitKind: 'shapeNode',
+    })
+    const dispose = new MoveNodeInteraction().attach(host)
+
+    dragPastThreshold(canvas, { x: 20, y: 20 }, { x: 40, y: 30 })
+
+    expect(host.previewShapeNodePoints).toHaveBeenCalled()
+    expect(host.commitShapeNodeUpdate).toHaveBeenCalledWith({
+      shapeNodeId: 'sn1',
+      patch: {
+        points: [
+          { x: 30, y: 30 },
+          { x: 60, y: 30 },
+          { x: 60, y: 60 },
+        ],
+      },
+    })
+    expect(host.commitNodeMove).not.toHaveBeenCalled()
+    expect(host.commitPathUpdate).not.toHaveBeenCalled()
+    dispose()
+  })
+
+  it('skips locked shapeNode body drag', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [],
+      shapeNodes: [{
+        id: 'sn1',
+        locked: true,
+        points: [
+          { x: 10, y: 20 },
+          { x: 40, y: 20 },
+        ],
+      }],
+      selectedIds: ['sn1'],
+      hitId: 'sn1',
+      hitKind: 'shapeNode',
+    })
+    const dispose = new MoveNodeInteraction().attach(host)
+    dragPastThreshold(canvas, { x: 20, y: 20 }, { x: 40, y: 30 })
+    expect(host.commitShapeNodeUpdate).not.toHaveBeenCalled()
     dispose()
   })
 })

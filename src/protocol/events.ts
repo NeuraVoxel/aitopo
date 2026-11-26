@@ -137,6 +137,24 @@ export interface PathRemovedEvent {
   readonly pathId: string
 }
 
+/** Shape node created by an editor gesture. */
+export interface ShapeNodeCreatedEvent {
+  readonly type: 'shapeNodeCreated'
+  readonly shapeNodeId: string
+}
+
+/** Shape node updated by an editor gesture. */
+export interface ShapeNodeUpdatedEvent {
+  readonly type: 'shapeNodeUpdated'
+  readonly shapeNodeId: string
+}
+
+/** Shape node removed by an editor gesture. */
+export interface ShapeNodeRemovedEvent {
+  readonly type: 'shapeNodeRemoved'
+  readonly shapeNodeId: string
+}
+
 /** Discriminated event union for `Network.on`. */
 export type GraphEvent =
   | SelectionChangedEvent
@@ -157,3 +175,6 @@ export type GraphEvent =
   | PathCreatedEvent
   | PathUpdatedEvent
   | PathRemovedEvent
+  | ShapeNodeCreatedEvent
+  | ShapeNodeUpdatedEvent
+  | ShapeNodeRemovedEvent

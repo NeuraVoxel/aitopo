@@ -323,7 +323,7 @@ function refinePathPointsArity(
     if (n < 2) {
       ctx.addIssue({
         code: z.ZodIssueCode.custom,
-        message: 'paths require points.length ≥ 2',
+        message: 'lineto requires points.length ≥ 2',
         path: ['points'],
       })
     }
@@ -352,6 +352,37 @@ const graphPathSchema = graphPathObjectSchema.superRefine((path, ctx) => {
   refinePathPointsArity(path.points, path.style?.shapeKind, ctx)
 })
 
+const graphShapeNodeStyleSchema = z.object({
+  stroke: z.string().optional(),
+  lineWidth: z.number().positive().optional(),
+  strokeDash: z.array(z.number()).optional(),
+  fill: z.string().optional(),
+  alpha: z.number().min(0).max(1).optional(),
+  shapeKind: pathShapeKindSchema.optional(),
+  label: graphTextStyleSchema.optional(),
+  select: graphChromeStyleSchema.optional(),
+  hover: graphChromeStyleSchema.optional(),
+})
+
+/** Base shape-node object (no refinements) so `updateShapeNode` can `.partial()`. */
+const graphShapeNodeObjectSchema = z.object({
+  id: z.string().min(1),
+  points: z.array(z.object({ x: z.number(), y: z.number() })),
+  closed: z.boolean().optional(),
+  label: z.string().optional(),
+  label2: z.string().optional(),
+  tooltip: z.string().optional(),
+  locked: z.boolean().optional(),
+  groupId: z.string().optional(),
+  alarms: z.array(alarmSchema).optional(),
+  style: graphShapeNodeStyleSchema.optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
+})
+
+const graphShapeNodeSchema = graphShapeNodeObjectSchema.superRefine((shapeNode, ctx) => {
+  refinePathPointsArity(shapeNode.points, shapeNode.style?.shapeKind, ctx)
+})
+
 const graphViewportSchema = z.object({
   x: z.number(),
   y: z.number(),
@@ -372,6 +403,7 @@ export const graphDocumentSchema: z.ZodType<import('./types.ts').GraphDocument> 
     edges: z.array(graphEdgeSchema),
     groups: z.array(graphGroupSchema).optional(),
     paths: z.array(graphPathSchema).optional(),
+    shapeNodes: z.array(graphShapeNodeSchema).optional(),
     networks: z.record(z.string(), graphDocumentSchema).optional(),
     viewport: graphViewportSchema.optional(),
   }),
@@ -408,6 +440,16 @@ const patchOpSchema = z.discriminatedUnion('op', [
     }),
   }),
   z.object({ op: z.literal('removePath'), id: z.string().min(1) }),
+  z.object({ op: z.literal('addShapeNode'), shapeNode: graphShapeNodeSchema }),
+  z.object({
+    op: z.literal('updateShapeNode'),
+    id: z.string().min(1),
+    patch: graphShapeNodeObjectSchema.partial().omit({ id: true }).superRefine((patch, ctx) => {
+      if (patch.points === undefined) return
+      refinePathPointsArity(patch.points, patch.style?.shapeKind, ctx)
+    }),
+  }),
+  z.object({ op: z.literal('removeShapeNode'), id: z.string().min(1) }),
   z.object({
     op: z.literal('setAlarms'),
     elementId: z.string().min(1),

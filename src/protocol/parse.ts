@@ -44,8 +44,8 @@ export function assertEndpointIds(doc: GraphDocument): void {
 }
 
 /**
- * Fail loud when element ids collide across kinds (node / edge / group / path)
- * or when the same kind repeats an id.
+ * Fail loud when element ids collide across kinds
+ * (node / edge / group / path / shapeNode) or when the same kind repeats an id.
  * @param doc - parsed document.
  */
 export function assertNoCrossKindIdClash(doc: GraphDocument): void {
@@ -71,6 +71,26 @@ export function assertNoCrossKindIdClash(doc: GraphDocument): void {
     }
     if (groupIds.has(path.id)) {
       throw new Error(`id "${path.id}" is used by both a path and a group`)
+    }
+  }
+
+  const shapeNodeIds = new Set<string>()
+  for (const shapeNode of doc.shapeNodes ?? []) {
+    if (shapeNodeIds.has(shapeNode.id)) {
+      throw new Error(`duplicate shapeNode id "${shapeNode.id}"`)
+    }
+    shapeNodeIds.add(shapeNode.id)
+    if (nodeIds.has(shapeNode.id)) {
+      throw new Error(`id "${shapeNode.id}" is used by both a shapeNode and a node`)
+    }
+    if (edgeIds.has(shapeNode.id)) {
+      throw new Error(`id "${shapeNode.id}" is used by both a shapeNode and an edge`)
+    }
+    if (groupIds.has(shapeNode.id)) {
+      throw new Error(`id "${shapeNode.id}" is used by both a shapeNode and a group`)
+    }
+    if (pathIds.has(shapeNode.id)) {
+      throw new Error(`id "${shapeNode.id}" is used by both a shapeNode and a path`)
     }
   }
 }
