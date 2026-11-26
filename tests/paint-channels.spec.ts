@@ -233,6 +233,39 @@ describe('paint channels', () => {
     expect(renderer.sceneDraws).toBeGreaterThan(0)
   })
 
+  it('partial dirty expand skips non-finite neighbor bounds without hanging', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [
+        { id: 'a', type: 'unit', label: 'A', x: 0, y: 0, w: 40, h: 24 },
+        { id: 'bad', type: 'unit', label: 'Bad', x: 80, y: 0, w: 40, h: 24 },
+      ],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    // Bypass schema: corrupt live geometry so padded AABB is NaN.
+    network.previewNodePosition('bad', Number.NaN, 0)
+    renderer.reset()
+
+    const started = Date.now()
+    network.apply({
+      ops: [{ op: 'updateNode', id: 'a', patch: { label: 'A2' } }],
+    })
+    await flushFrames(2)
+    expect(Date.now() - started).toBeLessThan(2000)
+    expect(renderer.beginDirties.length).toBeGreaterThan(0)
+  })
+
   it('partial dirty expands to full bounds of intersecting neighbors', async () => {
     const renderer = recordingRenderer()
     network = new Network({

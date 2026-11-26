@@ -8,11 +8,13 @@ ADAS (autonomous-driving) visualization needs a dedicated demo catalog home. Con
 
 ## Decision
 
-The demo catalog adds group id `adas` (nav label **ADAS**), ordered after `elements` and before `agents`. Samples use shipped protocol primitives (`GraphNode` / `GraphEdge` / `GraphGroup` / `GraphPath` / alarms). Sector FOV stays reserved until a frustum overlay exists.
+The demo catalog adds group id `adas` (nav label **ADAS**), ordered after `elements` and before `agents`. Samples use shipped protocol primitives (`GraphNode` / `GraphEdge` / `GraphGroup` / `GraphPath` / alarms).
+
+**Theme chrome:** samples paint through the ADAS theme facade — ownership and Foxglove opt-in live in [2026-11-26-adas-foxglove-theme.md](2026-11-26-adas-foxglove-theme.md) (default remains nuBoard). Shared helpers live in `demo/samples/adas/shared.ts`. Sector FOV stays reserved until a frustum overlay exists.
 
 | Sample id | Load | Role |
 |---|---|---|
-| `adas-ego` | yes | Six ego styles: heading base / +30° / longer arrow / phase pulse / vector car+border / bitmap car+border |
+| `adas-ego` | yes | Seven ego styles (nuPlan/nuBoard palette): heading / angle / length / pulse / vector+bitmap car / axle frame |
 | `adas-lane-lines` | yes | Open GraphPath lane markings (solid / dashed) |
 | `adas-lane-centerline` | yes | Centerline GraphPaths + optional successor edges |
 | `adas-road-boundary` | yes | Left / right curb GraphPaths |
@@ -36,9 +38,11 @@ Files live under `demo/samples/adas/` (`index.ts` owns catalog order). Reserved 
 - **Fake lanes with invisible endpoint Nodes + `route: "shape"`:** rejected — misrepresents `GraphEdge.from`/`to` and teaches the wrong model for freestanding paths.
 - **Ship freestanding path / FOV primitives in the same change:** rejected at catalog birth — path later landed as `GraphPath`; FOV remains reserved.
 - **Drop AABB stand-ins for stop / drivable / occupancy:** rejected — they are honest approximations of what Node/Group can show today, labeled as such in sample descriptions.
+- **Keep per-sample Tailwind/ad-hoc hex chrome:** rejected — ADAS demos must read as one themed catalog; palette ownership moved to [2026-11-26-adas-foxglove-theme.md](2026-11-26-adas-foxglove-theme.md).
 
 ## Consequences
 
 - Fourteen ADAS samples load; `adas-sensor-fov` remains reserved for missing sector / frustum overlay.
 - Parking slots are axis-aligned only (rotate handles are still deferred on the engine).
 - Lane / boundary / planning / prediction demos use top-level `paths: GraphPath[]`.
+- Theme tokens, Foxglove opt-in, and the hex gate are owned by [2026-11-26-adas-foxglove-theme.md](2026-11-26-adas-foxglove-theme.md).

@@ -1,9 +1,15 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import {
+  ADAS_AGENT,
+  ADAS_MAP,
+  ADAS_SIGNAL,
+} from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
-/** Traffic lights and roadside signs with status / alarm chrome. */
-export const adasTrafficSignalsDocument: GraphDocument = {
+/** Traffic lights and roadside signs with status / alarm chrome (nuBoard). */
+export function buildAdasTrafficSignalsDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS traffic signals', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -15,8 +21,8 @@ export const adasTrafficSignalsDocument: GraphDocument = {
       y: 280,
       w: 72,
       h: 48,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
     adasBox({
@@ -28,8 +34,8 @@ export const adasTrafficSignalsDocument: GraphDocument = {
       y: 60,
       w: 56,
       h: 72,
-      fill: '#bbf7d0',
-      stroke: '#15803d',
+      fill: ADAS_SIGNAL.green.fill,
+      stroke: ADAS_SIGNAL.green.stroke,
       status: 'active',
       tooltip: 'Signal phase: green',
       data: { phase: 'green' },
@@ -43,8 +49,8 @@ export const adasTrafficSignalsDocument: GraphDocument = {
       y: 120,
       w: 56,
       h: 72,
-      fill: '#fde68a',
-      stroke: '#b45309',
+      fill: ADAS_SIGNAL.amber.fill,
+      stroke: ADAS_SIGNAL.amber.stroke,
       status: 'running',
       alarms: [{ id: 'a-amber', level: 'warn', message: 'Phase ending' }],
       data: { phase: 'amber' },
@@ -58,8 +64,8 @@ export const adasTrafficSignalsDocument: GraphDocument = {
       y: 120,
       w: 56,
       h: 72,
-      fill: '#fecaca',
-      stroke: '#b91c1c',
+      fill: ADAS_SIGNAL.red.fill,
+      stroke: ADAS_SIGNAL.red.stroke,
       status: 'idle',
       alarms: [{ id: 'a-red', level: 'error', message: 'Stop required' }],
       data: { phase: 'red' },
@@ -72,8 +78,8 @@ export const adasTrafficSignalsDocument: GraphDocument = {
       y: 280,
       w: 64,
       h: 64,
-      fill: '#fee2e2',
-      stroke: '#991b1b',
+      fill: ADAS_MAP.stopLine.fill,
+      stroke: ADAS_MAP.stopLine.stroke,
       tooltip: 'Regulatory stop sign',
     }),
     adasBox({
@@ -85,8 +91,8 @@ export const adasTrafficSignalsDocument: GraphDocument = {
       y: 280,
       w: 64,
       h: 64,
-      fill: '#ffffff',
-      stroke: '#1e293b',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       tooltip: 'Speed limit 60',
     }),
   ],
@@ -101,12 +107,15 @@ export const adasTrafficSignalsDocument: GraphDocument = {
     },
   ],
   groups: [],
+  }
 }
 
 export const adasTrafficSignalsSample: DemoSample = {
   id: 'adas-traffic-signals',
   title: 'Traffic signals',
   group: 'adas',
-  description: 'Traffic lights and signs as GraphNode chrome with status and alarms.',
-  document: adasTrafficSignalsDocument,
+  description: 'Traffic lights and signs as GraphNode chrome with status and alarms (nuBoard).',
+  get document() {
+    return buildAdasTrafficSignalsDocument()
+  },
 }

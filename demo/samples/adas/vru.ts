@@ -1,9 +1,11 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import { ADAS_AGENT } from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
-/** Vulnerable road users beside ego — GraphNode agents on BEV. */
-export const adasVruDocument: GraphDocument = {
+/** Vulnerable road users beside ego — GraphNode agents on BEV (nuPlan colors). */
+export function buildAdasVruDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS VRU', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -15,8 +17,8 @@ export const adasVruDocument: GraphDocument = {
       y: 200,
       w: 72,
       h: 48,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
     adasBox({
@@ -28,8 +30,8 @@ export const adasVruDocument: GraphDocument = {
       y: 80,
       w: 36,
       h: 36,
-      fill: '#fce7f3',
-      stroke: '#be185d',
+      fill: ADAS_AGENT.pedestrian.fill,
+      stroke: ADAS_AGENT.pedestrian.stroke,
       tooltip: 'Pedestrian intent: cross',
     }),
     adasBox({
@@ -41,8 +43,8 @@ export const adasVruDocument: GraphDocument = {
       y: 100,
       w: 36,
       h: 36,
-      fill: '#fce7f3',
-      stroke: '#be185d',
+      fill: ADAS_AGENT.pedestrian.fill,
+      stroke: ADAS_AGENT.pedestrian.stroke,
     }),
     adasBox({
       id: 'cyclist-1',
@@ -53,8 +55,8 @@ export const adasVruDocument: GraphDocument = {
       y: 260,
       w: 44,
       h: 64,
-      fill: '#dcfce7',
-      stroke: '#15803d',
+      fill: ADAS_AGENT.bicycle.fill,
+      stroke: ADAS_AGENT.bicycle.stroke,
     }),
     adasBox({
       id: 'scooter-1',
@@ -64,8 +66,8 @@ export const adasVruDocument: GraphDocument = {
       y: 280,
       w: 40,
       h: 56,
-      fill: '#ccfbf1',
-      stroke: '#0f766e',
+      fill: ADAS_AGENT.bicycle.fill,
+      stroke: ADAS_AGENT.bicycle.stroke,
     }),
   ],
   edges: [
@@ -97,6 +99,7 @@ export const adasVruDocument: GraphDocument = {
     },
   ],
   groups: [],
+  }
 }
 
 export const adasVruSample: DemoSample = {
@@ -104,5 +107,7 @@ export const adasVruSample: DemoSample = {
   title: 'VRU / pedestrian',
   group: 'adas',
   description: 'Pedestrians and cyclists as GraphNode agents with ego attention edges.',
-  document: adasVruDocument,
+  get document() {
+    return buildAdasVruDocument()
+  },
 }

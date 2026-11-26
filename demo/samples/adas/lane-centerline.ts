@@ -1,11 +1,13 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import { ADAS_MAP } from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
 /**
  * Lane centerlines as GraphPath + optional successor edges between lane nodes.
  */
-export const adasLaneCenterlineDocument: GraphDocument = {
+export function buildAdasLaneCenterlineDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS lane centerline', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -18,8 +20,8 @@ export const adasLaneCenterlineDocument: GraphDocument = {
       y: 360,
       w: 56,
       h: 36,
-      fill: '#e0f2fe',
-      stroke: '#0369a1',
+      fill: ADAS_MAP.lane.fill,
+      stroke: ADAS_MAP.lane.stroke,
     }),
     adasBox({
       id: 'lane-b',
@@ -30,8 +32,8 @@ export const adasLaneCenterlineDocument: GraphDocument = {
       y: 200,
       w: 56,
       h: 36,
-      fill: '#e0f2fe',
-      stroke: '#0369a1',
+      fill: ADAS_MAP.lane.fill,
+      stroke: ADAS_MAP.lane.stroke,
     }),
     adasBox({
       id: 'lane-c',
@@ -42,8 +44,8 @@ export const adasLaneCenterlineDocument: GraphDocument = {
       y: 40,
       w: 56,
       h: 36,
-      fill: '#e0f2fe',
-      stroke: '#0369a1',
+      fill: ADAS_MAP.lane.fill,
+      stroke: ADAS_MAP.lane.stroke,
     }),
   ],
   edges: [
@@ -76,7 +78,7 @@ export const adasLaneCenterlineDocument: GraphDocument = {
         { x: 268, y: 20 },
       ],
       style: {
-        stroke: '#0ea5e9',
+        stroke: ADAS_MAP.baseline,
         lineWidth: 2,
         shapeKind: 'lineto',
       },
@@ -91,13 +93,14 @@ export const adasLaneCenterlineDocument: GraphDocument = {
         { x: 380, y: 20 },
       ],
       style: {
-        stroke: '#64748b',
+        stroke: ADAS_MAP.laneConnector,
         lineWidth: 2,
         strokeDash: [8, 6],
         shapeKind: 'lineto',
       },
     },
   ],
+  }
 }
 
 export const adasLaneCenterlineSample: DemoSample = {
@@ -106,5 +109,7 @@ export const adasLaneCenterlineSample: DemoSample = {
   group: 'adas',
   description:
     'Lane centerline GraphPaths with successor edges between lane nodes.',
-  document: adasLaneCenterlineDocument,
+  get document() {
+    return buildAdasLaneCenterlineDocument()
+  },
 }

@@ -1,12 +1,19 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import {
+  ADAS_AGENT,
+  ADAS_MAP,
+  ADAS_OCCUPANCY,
+} from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
 /**
  * Axis-aligned parking slots (engine has no rotate handles).
  * Occupied slots hold a vehicle member; free slots are empty groups.
+ * Chrome: nuBoard carpark / occupancy / vehicle.
  */
-export const adasParkingSlotsDocument: GraphDocument = {
+export function buildAdasParkingSlotsDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS parking slots', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -18,8 +25,8 @@ export const adasParkingSlotsDocument: GraphDocument = {
       y: 118,
       w: 56,
       h: 36,
-      fill: '#fef3c7',
-      stroke: '#b45309',
+      fill: ADAS_AGENT.vehicle.fill,
+      stroke: ADAS_AGENT.vehicle.stroke,
       groupId: 'slot-1',
     }),
     adasBox({
@@ -30,8 +37,8 @@ export const adasParkingSlotsDocument: GraphDocument = {
       y: 118,
       w: 56,
       h: 36,
-      fill: '#fef3c7',
-      stroke: '#b45309',
+      fill: ADAS_AGENT.vehicle.fill,
+      stroke: ADAS_AGENT.vehicle.stroke,
       groupId: 'slot-3',
     }),
     adasBox({
@@ -42,8 +49,8 @@ export const adasParkingSlotsDocument: GraphDocument = {
       y: 280,
       w: 72,
       h: 48,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
   ],
@@ -59,10 +66,13 @@ export const adasParkingSlotsDocument: GraphDocument = {
       y: 60,
       w: 120,
       h: 160,
-      data: { fill: '#fee2e2', stroke: '#b91c1c' },
+      data: {
+        fill: ADAS_OCCUPANCY.occupied.fill,
+        stroke: ADAS_OCCUPANCY.occupied.stroke,
+      },
       style: {
-        fill: '#fee2e2',
-        stroke: '#b91c1c',
+        fill: ADAS_OCCUPANCY.occupied.fill,
+        stroke: ADAS_OCCUPANCY.occupied.stroke,
         autoFit: false,
         labelPosition: 'insideTop',
         label2Position: 'insideBottom',
@@ -81,8 +91,8 @@ export const adasParkingSlotsDocument: GraphDocument = {
       w: 120,
       h: 160,
       style: {
-        fill: '#dcfce7',
-        stroke: '#15803d',
+        fill: ADAS_MAP.carpark.fill,
+        stroke: ADAS_MAP.carpark.stroke,
         autoFit: false,
         labelPosition: 'insideTop',
         label2Position: 'insideBottom',
@@ -101,8 +111,8 @@ export const adasParkingSlotsDocument: GraphDocument = {
       w: 120,
       h: 160,
       style: {
-        fill: '#fee2e2',
-        stroke: '#b91c1c',
+        fill: ADAS_OCCUPANCY.occupied.fill,
+        stroke: ADAS_OCCUPANCY.occupied.stroke,
         autoFit: false,
         labelPosition: 'insideTop',
         label2Position: 'insideBottom',
@@ -121,8 +131,8 @@ export const adasParkingSlotsDocument: GraphDocument = {
       w: 120,
       h: 160,
       style: {
-        fill: '#dcfce7',
-        stroke: '#15803d',
+        fill: ADAS_MAP.carpark.fill,
+        stroke: ADAS_MAP.carpark.stroke,
         autoFit: false,
         labelPosition: 'insideTop',
         label2Position: 'insideBottom',
@@ -131,6 +141,7 @@ export const adasParkingSlotsDocument: GraphDocument = {
       },
     },
   ],
+  }
 }
 
 export const adasParkingSlotsSample: DemoSample = {
@@ -138,6 +149,8 @@ export const adasParkingSlotsSample: DemoSample = {
   title: 'Parking slots',
   group: 'adas',
   description:
-    'Axis-aligned parking bays as GraphGroup (no rotate); occupied vs free chrome.',
-  document: adasParkingSlotsDocument,
+    'Axis-aligned parking bays as GraphGroup (no rotate); occupied vs free chrome (nuBoard).',
+  get document() {
+    return buildAdasParkingSlotsDocument()
+  },
 }

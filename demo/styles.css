@@ -65,6 +65,31 @@ body {
   cursor: not-allowed;
 }
 
+.toolbar-theme {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  font-size: 13px;
+  color: #94a3b8;
+}
+
+.toolbar-theme-label {
+  white-space: nowrap;
+}
+
+.toolbar-select {
+  margin: 0;
+  padding: 4px 8px;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  background: #1e293b;
+  color: #e2e8f0;
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 .source-bar {
   display: flex;
   flex-wrap: wrap;

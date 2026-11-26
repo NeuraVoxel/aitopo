@@ -10,8 +10,10 @@ import {
   type Rect,
   type VectorImagePaintCtx,
 } from '../../src/index.ts'
+import { ADAS_AGENT, ADAS_BRAND, ADAS_TRAJECTORY } from './adas-theme.ts'
 
 const HEADING_KEY = 'demo-heading-arrow'
+const AXLE_FRAME_KEY = 'demo-ego-axle-frame'
 const EGO_VECTOR_KEY = 'demo-ego-car-vector'
 const EGO_BITMAP_KEY = 'demo-ego-car-bitmap'
 
@@ -43,6 +45,18 @@ export function registerDemoVectorImages(): void {
   })
 
   registerVectorImage({
+    key: AXLE_FRAME_KEY,
+    draw(ctx, body, paintCtx) {
+      // Axes under heading so the forward chevron stays visible past +x.
+      drawAxleFrame(ctx, body, paintCtx)
+      drawHeadingArrow(ctx, body, paintCtx)
+    },
+    bounds(body, paintCtx) {
+      return axleFrameBounds(body, paintCtx)
+    },
+  })
+
+  registerVectorImage({
     key: EGO_VECTOR_KEY,
     draw(ctx, body) {
       drawEgoVectorCar(ctx, body)
@@ -62,6 +76,7 @@ export function registerDemoVectorImages(): void {
 
 export {
   HEADING_KEY as DEMO_HEADING_VECTOR_IMAGE,
+  AXLE_FRAME_KEY as DEMO_EGO_AXLE_FRAME_IMAGE,
   EGO_VECTOR_KEY as DEMO_EGO_CAR_VECTOR_IMAGE,
   EGO_BITMAP_KEY as DEMO_EGO_CAR_BITMAP_IMAGE,
 }
@@ -109,9 +124,11 @@ function drawHeadingArrow(
   const { axle, tipY, half, label } = headingGeom(body, paintCtx)
   const head = Math.max(6, (axle.y - tipY) * 0.12)
 
+  // nuBoard trajectory: ego cyan; boost uses expert-ego orange.
+  const ink = state === 'boost' ? ADAS_TRAJECTORY.expert : ADAS_TRAJECTORY.ego
   ctx.save()
-  ctx.strokeStyle = state === 'boost' ? '#dc2626' : '#1d4ed8'
-  ctx.fillStyle = ctx.strokeStyle
+  ctx.strokeStyle = ink
+  ctx.fillStyle = ink
   ctx.lineWidth = 2
   ctx.lineCap = 'round'
   ctx.lineJoin = 'round'
@@ -131,7 +148,7 @@ function drawHeadingArrow(
   ctx.font = 'bold 11px sans-serif'
   ctx.textAlign = 'left'
   ctx.textBaseline = 'middle'
-  ctx.fillStyle = '#1e3a8a'
+  ctx.fillStyle = ADAS_BRAND.navy
   ctx.fillText(label, axle.x + 8, (axle.y + tipY) / 2)
   ctx.restore()
 }
@@ -157,6 +174,98 @@ function headingArrowBounds(body: Rect, paintCtx: VectorImagePaintCtx): Rect {
   return unionRect(unionRect(body, arrow), text)!
 }
 
+/** Vehicle frame axis lengths in body pixels (from rear-axle origin). */
+const AXLE_X_LEN = 36
+const AXLE_Y_LEN = 28
+
+/**
+ * Ego vehicle frame at rear axle: +x forward (−Y body), +y left (−X body),
+ * origin marker. Drawn after the heading arrow for style #7.
+ */
+function drawAxleFrame(
+  ctx: CanvasRenderingContext2D,
+  body: Rect,
+  paintCtx: VectorImagePaintCtx,
+): void {
+  const axle = anglePivot(body, paintCtx.node.angleAnchor ?? { u: 0.5, v: 0.82 })
+
+  ctx.save()
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.font = 'bold 11px sans-serif'
+
+  // +x forward (ego trajectory cyan); +y left (expert trajectory orange)
+  drawFrameAxis(ctx, axle.x, axle.y, 0, -1, AXLE_X_LEN, ADAS_TRAJECTORY.ego, 'x')
+  drawFrameAxis(ctx, axle.x, axle.y, -1, 0, AXLE_Y_LEN, ADAS_TRAJECTORY.expert, 'y')
+
+  ctx.beginPath()
+  ctx.arc(axle.x, axle.y, 3.5, 0, Math.PI * 2)
+  ctx.fillStyle = ADAS_BRAND.navy
+  ctx.fill()
+  ctx.strokeStyle = ADAS_AGENT.ego.fill
+  ctx.lineWidth = 1
+  ctx.stroke()
+
+  ctx.fillStyle = ADAS_BRAND.navy
+  ctx.textAlign = 'left'
+  ctx.textBaseline = 'top'
+  ctx.fillText('O', axle.x + 5, axle.y + 4)
+  ctx.restore()
+}
+
+function drawFrameAxis(
+  ctx: CanvasRenderingContext2D,
+  ox: number,
+  oy: number,
+  dx: number,
+  dy: number,
+  len: number,
+  color: string,
+  label: string,
+): void {
+  const tipX = ox + dx * len
+  const tipY = oy + dy * len
+  const head = 8
+  const half = 4.5
+  // Perpendicular for chevron
+  const px = -dy
+  const py = dx
+
+  ctx.strokeStyle = color
+  ctx.fillStyle = color
+  ctx.lineWidth = 2
+
+  ctx.beginPath()
+  ctx.moveTo(ox, oy)
+  ctx.lineTo(tipX - dx * head, tipY - dy * head)
+  ctx.stroke()
+
+  ctx.beginPath()
+  ctx.moveTo(tipX, tipY)
+  ctx.lineTo(tipX - dx * head + px * half, tipY - dy * head + py * half)
+  ctx.lineTo(tipX - dx * head - px * half, tipY - dy * head - py * half)
+  ctx.closePath()
+  ctx.fill()
+
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillText(label, tipX + dx * 10, tipY + dy * 10)
+}
+
+/** Dirty union of heading overlay plus vehicle-frame axes and origin label. */
+function axleFrameBounds(body: Rect, paintCtx: VectorImagePaintCtx): Rect {
+  const heading = headingArrowBounds(body, paintCtx)
+  const axle = anglePivot(body, paintCtx.node.angleAnchor ?? { u: 0.5, v: 0.82 })
+  const pad = 14
+  const axes: Rect = {
+    x: axle.x - AXLE_Y_LEN - pad,
+    y: axle.y - AXLE_X_LEN - pad,
+    width: AXLE_Y_LEN + pad * 2,
+    height: AXLE_X_LEN + pad * 2,
+  }
+  return unionRect(heading, axes)!
+}
+
 /** Inset bird's-eye car drawn with canvas paths (vector ego chrome). */
 function drawEgoVectorCar(ctx: CanvasRenderingContext2D, body: Rect): void {
   const pad = 3
@@ -167,45 +276,45 @@ function drawEgoVectorCar(ctx: CanvasRenderingContext2D, body: Rect): void {
   if (w <= 0 || h <= 0) return
 
   ctx.save()
-  // Hull
+  // Hull — nuBoard ego white / gray
   roundRectPath(ctx, x, y, w, h, Math.min(8, w / 4, h / 8))
-  ctx.fillStyle = '#2563eb'
+  ctx.fillStyle = ADAS_AGENT.ego.fill
   ctx.fill()
-  ctx.strokeStyle = '#1e3a8a'
+  ctx.strokeStyle = ADAS_AGENT.ego.stroke
   ctx.lineWidth = 1.5
   ctx.stroke()
 
   // Windshield
   roundRectPath(ctx, x + w * 0.12, y + h * 0.12, w * 0.76, h * 0.22, 4)
-  ctx.fillStyle = 'rgba(191, 219, 254, 0.92)'
+  ctx.fillStyle = ADAS_BRAND.lightAsphalt
   ctx.fill()
 
   // Roof
   roundRectPath(ctx, x + w * 0.18, y + h * 0.36, w * 0.64, h * 0.28, 3)
-  ctx.fillStyle = '#1d4ed8'
+  ctx.fillStyle = ADAS_BRAND.mediumAsphalt
   ctx.fill()
 
   // Rear glass
   roundRectPath(ctx, x + w * 0.12, y + h * 0.68, w * 0.76, h * 0.16, 3)
-  ctx.fillStyle = 'rgba(147, 197, 253, 0.85)'
+  ctx.fillStyle = ADAS_BRAND.darkAsphalt
   ctx.fill()
 
   // Headlights
-  ctx.fillStyle = '#fef9c3'
+  ctx.fillStyle = ADAS_AGENT.barrier.fill
   ctx.beginPath()
   ctx.ellipse(x + w * 0.22, y + h * 0.06, w * 0.12, h * 0.035, 0, 0, Math.PI * 2)
   ctx.ellipse(x + w * 0.78, y + h * 0.06, w * 0.12, h * 0.035, 0, 0, Math.PI * 2)
   ctx.fill()
 
   // Taillights
-  ctx.fillStyle = '#dc2626'
+  ctx.fillStyle = ADAS_AGENT.bicycle.fill
   roundRectPath(ctx, x + w * 0.08, y + h * 0.9, w * 0.22, h * 0.06, 2)
   ctx.fill()
   roundRectPath(ctx, x + w * 0.7, y + h * 0.9, w * 0.22, h * 0.06, 2)
   ctx.fill()
 
   // Wheels
-  ctx.fillStyle = '#0f172a'
+  ctx.fillStyle = ADAS_BRAND.navy
   const wh = h * 0.12
   const ww = w * 0.1
   roundRectPath(ctx, x - ww * 0.35, y + h * 0.22, ww, wh, 2)

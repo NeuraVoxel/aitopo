@@ -1293,21 +1293,31 @@ export class Network {
    * contributes its **full** padded bounds. Stops mid-element clip clears that
    * leave AA / rotated-ink residuals on neighbors (e.g. pulsing vectorImage
    * AABB grazing a sibling ego).
+   *
+   * Each element is absorbed at most once. Non-finite AABBs are skipped —
+   * NaN pads make `intersectsRect` true and `containsRect` false forever,
+   * which previously hung the paint loop and froze the page.
    */
   private expandPartialDirty(seed: Rect): Rect {
+    if (!isFiniteRect(seed)) return seed
     let region = seed
+    const absorbed = new Set<string>()
     let grew = true
     while (grew) {
       grew = false
       for (const node of this.scene.nodes.values()) {
+        if (absorbed.has(`n:${node.id}`)) continue
         const view = this.views.getNode(node.id)
         if (view === undefined || !view.isVisible) continue
         const padded = growRect(view.bounds, this.nodePaintPad(node.id))
+        if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
+        absorbed.add(`n:${node.id}`)
         grew = true
       }
       for (const group of this.scene.groups.values()) {
+        if (absorbed.has(`g:${group.id}`)) continue
         const view = this.views.getGroup(group.id)
         if (view === undefined || !view.isVisible) continue
         const paint = view.toPaintView(this.scene.selectedIds.has(group.id), false)
@@ -1318,32 +1328,43 @@ export class Network {
           glow: paint.selectStyle?.glow,
           glowBlur: paint.selectStyle?.glowBlur,
         }))
+        if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
+        absorbed.add(`g:${group.id}`)
         grew = true
       }
       for (const edge of this.scene.edges.values()) {
+        if (absorbed.has(`e:${edge.id}`)) continue
         const view = this.views.getEdge(edge.id)
         if (view === undefined || !view.isActive) continue
         const padded = growRect(view.bounds, 8)
+        if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
+        absorbed.add(`e:${edge.id}`)
         grew = true
       }
       for (const path of this.scene.paths.values()) {
+        if (absorbed.has(`p:${path.id}`)) continue
         const view = this.views.getPath(path.id)
         if (view === undefined || view.points.length < 2) continue
         const padded = growRect(view.bounds, 8)
+        if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
+        absorbed.add(`p:${path.id}`)
         grew = true
       }
       for (const shapeNode of this.scene.shapeNodes.values()) {
+        if (absorbed.has(`s:${shapeNode.id}`)) continue
         const view = this.views.getShapeNode(shapeNode.id)
         if (view === undefined || view.points.length < 2) continue
         const padded = growRect(view.bounds, 8)
+        if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
+        absorbed.add(`s:${shapeNode.id}`)
         grew = true
       }
     }
@@ -1623,6 +1644,16 @@ export class Network {
     }
   }
 
+}
+
+/** Whether a rect has finite x/y/width/height (NaN/±Infinity fail paint expand). */
+function isFiniteRect(rect: Rect): boolean {
+  return (
+    Number.isFinite(rect.x)
+    && Number.isFinite(rect.y)
+    && Number.isFinite(rect.width)
+    && Number.isFinite(rect.height)
+  )
 }
 
 /** Content union bounds for fit. */

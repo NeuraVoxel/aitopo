@@ -1,11 +1,13 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import { ADAS_AGENT, ADAS_MAP, ADAS_TRAJECTORY } from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
 /**
  * Freestanding lane markings as open GraphPath lineto strokes (solid vs dashed).
  */
-export const adasLaneLinesDocument: GraphDocument = {
+export function buildAdasLaneLinesDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS lane lines', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -17,8 +19,8 @@ export const adasLaneLinesDocument: GraphDocument = {
       y: 280,
       w: 72,
       h: 48,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
   ],
@@ -34,7 +36,7 @@ export const adasLaneLinesDocument: GraphDocument = {
         { x: 160, y: 80 },
       ],
       style: {
-        stroke: '#334155',
+        stroke: ADAS_MAP.baseline,
         lineWidth: 3,
         shapeKind: 'lineto',
       },
@@ -48,7 +50,7 @@ export const adasLaneLinesDocument: GraphDocument = {
         { x: 290, y: 80 },
       ],
       style: {
-        stroke: '#f59e0b',
+        stroke: ADAS_TRAJECTORY.expert,
         lineWidth: 2,
         strokeDash: [12, 10],
         shapeKind: 'lineto',
@@ -63,12 +65,13 @@ export const adasLaneLinesDocument: GraphDocument = {
         { x: 420, y: 80 },
       ],
       style: {
-        stroke: '#334155',
+        stroke: ADAS_MAP.baseline,
         lineWidth: 3,
         shapeKind: 'lineto',
       },
     },
   ],
+  }
 }
 
 export const adasLaneLinesSample: DemoSample = {
@@ -77,5 +80,7 @@ export const adasLaneLinesSample: DemoSample = {
   group: 'adas',
   description:
     'Open GraphPath lane markings: solid left/right, dashed center (strokeDash).',
-  document: adasLaneLinesDocument,
+  get document() {
+    return buildAdasLaneLinesDocument()
+  },
 }

@@ -1,11 +1,18 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import {
+  ADAS_MAP,
+  ADAS_BRAND,
+  ADAS_SIGNAL,
+} from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
 /**
  * Intersection as lane-segment topology (nodes + successor edges), not HD polylines.
+ * Approach colors cycle nuBoard map layers for visual distinction.
  */
-export const adasHdmapJunctionDocument: GraphDocument = {
+export function buildAdasHdmapJunctionDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS HD map junction', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -17,8 +24,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 40,
       w: 64,
       h: 40,
-      fill: '#e0f2fe',
-      stroke: '#0369a1',
+      fill: ADAS_MAP.lane.fill,
+      stroke: ADAS_MAP.lane.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -29,8 +36,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 140,
       w: 64,
       h: 40,
-      fill: '#e0f2fe',
-      stroke: '#0369a1',
+      fill: ADAS_MAP.lane.fill,
+      stroke: ADAS_MAP.lane.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -41,8 +48,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 220,
       w: 64,
       h: 40,
-      fill: '#fef3c7',
-      stroke: '#b45309',
+      fill: ADAS_MAP.carpark.fill,
+      stroke: ADAS_MAP.carpark.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -53,8 +60,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 300,
       w: 64,
       h: 40,
-      fill: '#fef3c7',
-      stroke: '#b45309',
+      fill: ADAS_MAP.carpark.fill,
+      stroke: ADAS_MAP.carpark.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -65,8 +72,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 400,
       w: 64,
       h: 40,
-      fill: '#dcfce7',
-      stroke: '#15803d',
+      fill: ADAS_MAP.walkway.fill,
+      stroke: ADAS_MAP.walkway.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -77,8 +84,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 480,
       w: 64,
       h: 40,
-      fill: '#dcfce7',
-      stroke: '#15803d',
+      fill: ADAS_MAP.walkway.fill,
+      stroke: ADAS_MAP.walkway.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -89,8 +96,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 220,
       w: 64,
       h: 40,
-      fill: '#ede9fe',
-      stroke: '#6d28d9',
+      fill: ADAS_MAP.pudo.fill,
+      stroke: ADAS_MAP.pudo.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -101,8 +108,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 300,
       w: 64,
       h: 40,
-      fill: '#ede9fe',
-      stroke: '#6d28d9',
+      fill: ADAS_MAP.pudo.fill,
+      stroke: ADAS_MAP.pudo.stroke,
       groupId: 'junction',
     }),
     adasBox({
@@ -113,8 +120,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       y: 260,
       w: 48,
       h: 48,
-      fill: '#fecaca',
-      stroke: '#b91c1c',
+      fill: ADAS_SIGNAL.red.fill,
+      stroke: ADAS_SIGNAL.red.stroke,
       groupId: 'junction',
       alarms: [{ id: 'tl', level: 'error', message: 'All-red hold' }],
     }),
@@ -195,8 +202,8 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       ],
       expanded: true,
       style: {
-        fill: '#f8fafc',
-        stroke: '#64748b',
+        fill: ADAS_MAP.intersection.fill,
+        stroke: ADAS_BRAND.mediumAsphalt,
         padding: 28,
         paddingTop: 40,
         labelPosition: 'insideTop',
@@ -205,6 +212,7 @@ export const adasHdmapJunctionDocument: GraphDocument = {
       },
     },
   ],
+  }
 }
 
 export const adasHdmapJunctionSample: DemoSample = {
@@ -212,6 +220,8 @@ export const adasHdmapJunctionSample: DemoSample = {
   title: 'HD map junction',
   group: 'adas',
   description:
-    'Intersection as lane-segment GraphNodes + successor edges (not HD polylines).',
-  document: adasHdmapJunctionDocument,
+    'Intersection as lane-segment GraphNodes + successor edges (nuBoard map chrome).',
+  get document() {
+    return buildAdasHdmapJunctionDocument()
+  },
 }

@@ -1,4 +1,5 @@
-import { Fragment } from 'react'
+import { Fragment, type ChangeEvent } from 'react'
+import { ADAS_THEME_OPTIONS, isAdasThemeId } from '../lib/adas-theme.ts'
 import type { DemoMode, NetworkDemoApi } from '../hooks/useNetworkDemo.ts'
 
 export type ToolbarProps = Pick<
@@ -7,8 +8,11 @@ export type ToolbarProps = Pick<
   | 'debug'
   | 'canUndo'
   | 'canRedo'
+  | 'adasTheme'
+  | 'adasThemeControls'
   | 'setMode'
   | 'setDebug'
+  | 'setAdasThemeId'
   | 'undo'
   | 'redo'
   | 'fitContent'
@@ -29,8 +33,11 @@ export function Toolbar({
   debug,
   canUndo,
   canRedo,
+  adasTheme,
+  adasThemeControls,
   setMode,
   setDebug,
+  setAdasThemeId,
   undo,
   redo,
   fitContent,
@@ -79,6 +86,30 @@ export function Toolbar({
       >
         {debug ? 'Debug ✓' : 'Debug'}
       </button>
+      {adasThemeControls && (
+        <>
+          <span className="toolbar-sep" aria-hidden="true" />
+          <label className="toolbar-theme">
+            <span className="toolbar-theme-label">Theme</span>
+            <select
+              className="toolbar-select"
+              aria-label="ADAS theme"
+              title="ADAS visualization theme"
+              value={adasTheme}
+              onChange={(event: ChangeEvent<HTMLSelectElement>) => {
+                const next = event.target.value
+                if (isAdasThemeId(next)) setAdasThemeId(next)
+              }}
+            >
+              {ADAS_THEME_OPTIONS.map(item => (
+                <option key={item.id} value={item.id}>
+                  {item.label}
+                </option>
+              ))}
+            </select>
+          </label>
+        </>
+      )}
     </div>
   )
 }

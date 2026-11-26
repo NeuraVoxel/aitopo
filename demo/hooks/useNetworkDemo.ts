@@ -12,9 +12,10 @@ import {
   resetDemoOnSubNetworkChanged,
   runDemoHistoryStep,
 } from '../lib/subnetwork-session.ts'
+import { ADAS_AGENT, getAdasTheme, setAdasTheme, type AdasThemeId } from '../lib/adas-theme.ts'
 import { whenDemoEgoBitmapReady } from '../lib/vector-images.ts'
 
-export type { DemoMode }
+export type { DemoMode, AdasThemeId }
 
 export interface NetworkDemoApi {
   stageRef: RefObject<HTMLDivElement | null>
@@ -25,9 +26,14 @@ export interface NetworkDemoApi {
   selectedIds: readonly string[]
   canUndo: boolean
   canRedo: boolean
+  /** Active ADAS chrome theme (nuBoard default). */
+  adasTheme: AdasThemeId
+  /** True when the loaded sample is in the ADAS group (theme toggle visible). */
+  adasThemeControls: boolean
   setSampleId: (id: string) => void
   setMode: (mode: DemoMode) => void
   setDebug: (value: boolean) => void
+  setAdasThemeId: (id: AdasThemeId) => void
   undo: () => void
   redo: () => void
   applyPatch: (patch: GraphPatch) => void
@@ -84,6 +90,7 @@ export function useNetworkDemo(): NetworkDemoApi {
   const [sampleId, setSampleIdState] = useState(DEFAULT_SAMPLE_ID)
   const [mode, setMode] = useState<DemoMode>('observe')
   const [debug, setDebugState] = useState(false)
+  const [adasTheme, setAdasThemeState] = useState<AdasThemeId>(() => getAdasTheme())
   const [status, setStatus] = useState('')
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([])
   const [canUndo, setCanUndo] = useState(false)
@@ -210,8 +217,8 @@ export function useNetworkDemo(): NetworkDemoApi {
             id: 'ego-animate',
             patch: {
               data: {
-                fill: '#bfdbfe',
-                stroke: '#1d4ed8',
+                fill: ADAS_AGENT.ego.fill,
+                stroke: ADAS_AGENT.ego.stroke,
                 role: 'ego',
                 axle: 'rear',
                 speedMs: 12.5,
@@ -230,7 +237,7 @@ export function useNetworkDemo(): NetworkDemoApi {
             patch: {
               data: {
                 fill: 'rgba(0,0,0,0)',
-                stroke: '#0f172a',
+                stroke: ADAS_AGENT.ego.stroke,
                 role: 'ego',
               },
             },
@@ -250,7 +257,7 @@ export function useNetworkDemo(): NetworkDemoApi {
       networkRef.current = null
       historyRef.current = null
     }
-  }, [sampleId, mode, syncHistoryFlags, clearHistoryFlags])
+  }, [sampleId, mode, adasTheme, syncHistoryFlags, clearHistoryFlags])
 
   useEffect(() => {
     networkRef.current?.setDebugPaintRects(debug)
@@ -332,6 +339,11 @@ export function useNetworkDemo(): NetworkDemoApi {
     setDebugState(value)
   }, [])
 
+  const setAdasThemeId = useCallback((id: AdasThemeId) => {
+    setAdasTheme(id)
+    setAdasThemeState(id)
+  }, [])
+
   const undo = useCallback(() => {
     const history = historyRef.current
     if (history === null) return
@@ -380,6 +392,8 @@ export function useNetworkDemo(): NetworkDemoApi {
 
   const getNetwork = useCallback(() => networkRef.current, [])
 
+  const adasThemeControls = getSample(sampleId)?.group === 'adas'
+
   return {
     stageRef,
     sampleId,
@@ -389,9 +403,12 @@ export function useNetworkDemo(): NetworkDemoApi {
     selectedIds,
     canUndo,
     canRedo,
+    adasTheme,
+    adasThemeControls,
     setSampleId,
     setMode,
     setDebug,
+    setAdasThemeId,
     undo,
     redo,
     applyPatch,

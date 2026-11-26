@@ -278,6 +278,7 @@ describe('demo sample registry', () => {
       'ego-animate',
       'ego-vector-car',
       'ego-bitmap',
+      'ego-axle-frame',
     ])
     expect(ego.edges).toHaveLength(0)
     expect(ego.paths ?? []).toHaveLength(0)
@@ -295,6 +296,10 @@ describe('demo sample registry', () => {
     expect(ego.nodes.find(n => n.id === 'ego-animate')?.data?.vectorImagePhase).toBe(0)
     expect(ego.nodes.find(n => n.id === 'ego-vector-car')?.vectorImage).toBe('demo-ego-car-vector')
     expect(ego.nodes.find(n => n.id === 'ego-bitmap')?.vectorImage).toBe('demo-ego-car-bitmap')
+    const axleFrame = ego.nodes.find(n => n.id === 'ego-axle-frame')
+    expect(axleFrame?.vectorImage).toBe('demo-ego-axle-frame')
+    expect(axleFrame?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
+    expect(axleFrame?.angle).toBeUndefined()
 
     const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
     expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)

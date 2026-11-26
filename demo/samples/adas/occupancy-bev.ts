@@ -1,4 +1,5 @@
 import type { GraphDocument, GraphNode } from '../../../src/protocol/types.ts'
+import { ADAS_AGENT, ADAS_OCCUPANCY } from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
@@ -19,10 +20,10 @@ const GRID: readonly (readonly number[])[] = [
   [1, 1, 0, 0, 0, 0, 0, 0],
 ]
 
-const CELL_STYLE: Record<number, { fill: string; stroke: string; label: string }> = {
-  0: { fill: '#ecfdf5', stroke: '#6ee7b7', label: '' },
-  1: { fill: '#fee2e2', stroke: '#f87171', label: 'occ' },
-  2: { fill: '#f1f5f9', stroke: '#94a3b8', label: '?' },
+function cellStyle(kind: number): { fill: string; stroke: string; label: string } {
+  if (kind === 1) return { ...ADAS_OCCUPANCY.occupied, label: 'occ' }
+  if (kind === 2) return { ...ADAS_OCCUPANCY.unknown, label: '?' }
+  return { ...ADAS_OCCUPANCY.free, label: '' }
 }
 
 function cellNodes(): GraphNode[] {
@@ -30,7 +31,7 @@ function cellNodes(): GraphNode[] {
   for (let row = 0; row < ROWS; row += 1) {
     for (let col = 0; col < COLS; col += 1) {
       const kind = GRID[row]![col]!
-      const style = CELL_STYLE[kind]!
+      const style = cellStyle(kind)
       nodes.push(
         adasBox({
           id: `c-${row}-${col}`,
@@ -51,7 +52,8 @@ function cellNodes(): GraphNode[] {
 }
 
 /** Coarse BEV occupancy grid — each cell is a GraphNode (no raster overlay). */
-export const adasOccupancyBevDocument: GraphDocument = {
+export function buildAdasOccupancyBevDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS occupancy BEV', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -64,13 +66,14 @@ export const adasOccupancyBevDocument: GraphDocument = {
       y: ORIGIN_Y + 3 * (CELL + GAP) + 4,
       w: CELL * 2 - 8,
       h: CELL - 8,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
   ],
   edges: [],
   groups: [],
+  }
 }
 
 export const adasOccupancyBevSample: DemoSample = {
@@ -78,6 +81,8 @@ export const adasOccupancyBevSample: DemoSample = {
   title: 'Occupancy BEV',
   group: 'adas',
   description:
-    'Coarse BEV occupancy as a GraphNode cell grid (free / occupied / unknown).',
-  document: adasOccupancyBevDocument,
+    'Coarse BEV occupancy as a GraphNode cell grid (free / occupied / unknown; nuBoard).',
+  get document() {
+    return buildAdasOccupancyBevDocument()
+  },
 }

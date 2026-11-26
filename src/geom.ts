@@ -61,6 +61,19 @@ export function containsRect(outer: Rect, inner: Rect): boolean {
 }
 
 /**
+ * Whether every rect field is a finite number (rejects NaN / ±Infinity).
+ * @param rect - candidate.
+ */
+export function isFiniteRect(rect: Rect): boolean {
+  return (
+    Number.isFinite(rect.x)
+    && Number.isFinite(rect.y)
+    && Number.isFinite(rect.width)
+    && Number.isFinite(rect.height)
+  )
+}
+
+/**
  * Point-in-rect test with optional padding.
  * @param point - world point.
  * @param rect - target.

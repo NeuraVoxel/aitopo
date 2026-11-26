@@ -17,8 +17,11 @@ export function App() {
         debug={demo.debug}
         canUndo={demo.canUndo}
         canRedo={demo.canRedo}
+        adasTheme={demo.adasTheme}
+        adasThemeControls={demo.adasThemeControls}
         setMode={demo.setMode}
         setDebug={demo.setDebug}
+        setAdasThemeId={demo.setAdasThemeId}
         undo={demo.undo}
         redo={demo.redo}
         fitContent={demo.fitContent}

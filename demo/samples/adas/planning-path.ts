@@ -1,12 +1,14 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import { ADAS_AGENT, ADAS_TRAJECTORY } from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
 /**
  * Ego planned trajectory ahead as one freestanding cubicto GraphPath.
- * Point count 7 ≡ 1 (mod 3), ≥ 4.
+ * Point count 7 ≡ 1 (mod 3), ≥ 4. Stroke uses nuBoard ego trajectory cyan.
  */
-export const adasPlanningPathDocument: GraphDocument = {
+export function buildAdasPlanningPathDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS planning path', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -18,8 +20,8 @@ export const adasPlanningPathDocument: GraphDocument = {
       y: 340,
       w: 72,
       h: 48,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
   ],
@@ -41,13 +43,14 @@ export const adasPlanningPathDocument: GraphDocument = {
         { x: 410, y: 40 },
       ],
       style: {
-        stroke: '#2563eb',
+        stroke: ADAS_TRAJECTORY.ego,
         lineWidth: 3,
         shapeKind: 'cubicto',
       },
       data: { role: 'planning' },
     },
   ],
+  }
 }
 
 export const adasPlanningPathSample: DemoSample = {
@@ -55,5 +58,7 @@ export const adasPlanningPathSample: DemoSample = {
   title: 'Planning path',
   group: 'adas',
   description: 'Ego vehicle with one cubicto GraphPath planned trajectory ahead.',
-  document: adasPlanningPathDocument,
+  get document() {
+    return buildAdasPlanningPathDocument()
+  },
 }

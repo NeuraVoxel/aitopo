@@ -1,11 +1,13 @@
 import type { GraphDocument } from '../../../src/protocol/types.ts'
+import { ADAS_AGENT, ADAS_TRAJECTORY } from '../../lib/adas-theme.ts'
 import type { DemoSample } from '../types.ts'
 import { adasBox } from './shared.ts'
 
 /**
  * Multi-modal predicted trajectories from a surround agent (alpha / dash variants).
  */
-export const adasPredictionDocument: GraphDocument = {
+export function buildAdasPredictionDocument(): GraphDocument {
+  return {
   version: 1,
   meta: { title: 'ADAS prediction', kind: 'custom', domain: 'adas' },
   nodes: [
@@ -17,8 +19,8 @@ export const adasPredictionDocument: GraphDocument = {
       y: 260,
       w: 72,
       h: 48,
-      fill: '#bfdbfe',
-      stroke: '#1d4ed8',
+      fill: ADAS_AGENT.ego.fill,
+      stroke: ADAS_AGENT.ego.stroke,
       status: 'active',
     }),
     adasBox({
@@ -30,8 +32,8 @@ export const adasPredictionDocument: GraphDocument = {
       y: 320,
       w: 72,
       h: 48,
-      fill: '#fecaca',
-      stroke: '#b91c1c',
+      fill: ADAS_AGENT.vehicle.fill,
+      stroke: ADAS_AGENT.vehicle.stroke,
     }),
   ],
   edges: [],
@@ -47,7 +49,7 @@ export const adasPredictionDocument: GraphDocument = {
         { x: 365, y: 60 },
       ],
       style: {
-        stroke: '#dc2626',
+        stroke: ADAS_TRAJECTORY.expert,
         lineWidth: 2,
         alpha: 0.9,
         shapeKind: 'lineto',
@@ -64,7 +66,7 @@ export const adasPredictionDocument: GraphDocument = {
         { x: 220, y: 160 },
       ],
       style: {
-        stroke: '#ea580c',
+        stroke: ADAS_AGENT.trafficCone.stroke,
         lineWidth: 2,
         alpha: 0.55,
         strokeDash: [10, 8],
@@ -84,7 +86,7 @@ export const adasPredictionDocument: GraphDocument = {
         { x: 450, y: 60 },
       ],
       style: {
-        stroke: '#9333ea',
+        stroke: ADAS_AGENT.generic.stroke,
         lineWidth: 2,
         alpha: 0.35,
         strokeDash: [4, 6],
@@ -93,6 +95,7 @@ export const adasPredictionDocument: GraphDocument = {
       data: { mode: 'cut-in', confidence: 0.15 },
     },
   ],
+  }
 }
 
 export const adasPredictionSample: DemoSample = {
@@ -101,5 +104,7 @@ export const adasPredictionSample: DemoSample = {
   group: 'adas',
   description:
     'Multi-modal prediction GraphPaths from a surround agent (alpha / dash).',
-  document: adasPredictionDocument,
+  get document() {
+    return buildAdasPredictionDocument()
+  },
 }

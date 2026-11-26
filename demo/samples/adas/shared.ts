@@ -1,6 +1,9 @@
 import type { GraphNode } from '../../../src/protocol/types.ts'
+import { ADAS_BRAND } from '../../lib/adas-theme.ts'
 
-/** Shared ADAS node chrome — engine body paint reads `data.fill` / `data.stroke`. */
+/** Shared ADAS node chrome — engine body paint reads `data.fill` / `data.stroke`.
+ * Callers must pass tokens from `demo/lib/adas-theme.ts` (nuBoard default / Foxglove).
+ */
 export function adasBox(opts: {
   readonly id: string
   readonly type: string
@@ -38,11 +41,11 @@ export function adasBox(opts: {
     },
     style: {
       labelPosition: 'center',
-      label: { color: '#0f172a', fontWeight: 'bold', fontSize: 11 },
+      label: { color: ADAS_BRAND.navy, fontWeight: 'bold', fontSize: 11 },
       ...(opts.label2 !== undefined
         ? {
             label2Position: 'bottom' as const,
-            label2: { color: '#64748b', fontSize: 10 },
+            label2: { color: ADAS_BRAND.mediumAsphalt, fontSize: 10 },
           }
         : {}),
       showIcon: false,
