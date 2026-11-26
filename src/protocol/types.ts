@@ -115,6 +115,11 @@ export interface GraphNodeStyle {
    * (Network may supply a host default via `showNodeIcons`).
    */
   readonly showIcon?: boolean
+  /**
+   * Discrete state key for {@link GraphNode.vectorImage} drawers
+   * (binding stand-in; declarative animate DSL deferred).
+   */
+  readonly vectorImageState?: string
   readonly label?: GraphTextStyle
   readonly label2?: GraphTextStyle
   readonly tooltip?: GraphTextStyle
@@ -145,6 +150,12 @@ export interface GraphNode {
   readonly label2?: string
   /** IconRegistry key for IconsAttachment; omitted → default `node`, or `subnetwork` when `networkId` is set. Unknown keys fall back to `node`. */
   readonly icon?: string
+  /**
+   * Registered vector body image key (`registerVectorImage`).
+   * Painted in body space after fill/stroke; unknown keys skip the overlay.
+   * Distinct from {@link icon} (IconsAttachment badge).
+   */
+  readonly vectorImage?: string
   /** TooltipAttachment text when set. */
   readonly tooltip?: string
   readonly status?: string

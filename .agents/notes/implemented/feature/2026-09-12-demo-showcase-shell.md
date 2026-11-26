@@ -40,7 +40,7 @@ Independent: **Debug** toggles `setDebugPaintRects`. Undo/Redo is enabled when h
 
 Registry-driven entries (`id`, title, group, description, document or factory, optional `defaultLayout`).
 
-1. **Elements** — `hello-world` (default: two nodes, one edge), then one page each: Node, Edge, Path, ShapeNode, Group, Alarm, SubNetwork. There is no separate Started group.
+1. **Elements** — `hello-world` (default: two nodes, one edge), then one page each: Node (incl. `vectorImage` heading overlay), Edge, Path, ShapeNode, Group, Alarm, SubNetwork. There is no separate Started group.
 2. **Business (soon)** — placeholders such as `dsh-event-topo` (disabled; click shows reserved message only).
 
 Fleet / Flow / Teams / Editor are not primary toolbar entries. `fixtures/*.json` remain for engine tests.

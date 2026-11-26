@@ -24,6 +24,7 @@ import {
 } from './attachment/index.ts'
 import { nodeBounds } from './bounds.ts'
 import { isNodeVisibleInScene } from './group-state.ts'
+import { getVectorImage, vectorImagePaintCtx } from './vector-image-registry.ts'
 
 const DEFAULT_SHADOW: GraphShadowStyle = {
   color: 'rgba(0, 0, 0, 0.35)',
@@ -160,6 +161,10 @@ export class NodeView {
       if (attachment.contributesToUnion()) {
         union = unionRect(union, attachment.bounds)
       }
+    }
+    const vectorImage = getVectorImage(node.vectorImage)
+    if (vectorImage?.bounds !== undefined) {
+      union = unionRect(union, vectorImage.bounds(this.body, vectorImagePaintCtx(node)))
     }
     this.originalUnion = union ?? this.body
     this.union = rotatedAabbOfRectAbout(

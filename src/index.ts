@@ -54,6 +54,15 @@ export type { Renderer, ViewportState } from './render/index.ts'
 export { getIcon, registerIcon } from './ui/attachment/icon-registry.ts'
 export type { IconDefinition } from './ui/attachment/icon-registry.ts'
 export {
+  getVectorImage,
+  registerVectorImage,
+  vectorImagePaintCtx,
+} from './ui/vector-image-registry.ts'
+export type {
+  VectorImageDefinition,
+  VectorImagePaintCtx,
+} from './ui/vector-image-registry.ts'
+export {
   EXTERNAL_DROP_MIME_AITOPO,
   EXTERNAL_DROP_MIME_PLAIN,
   CreateEdgeInteraction,

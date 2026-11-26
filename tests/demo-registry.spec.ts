@@ -273,6 +273,12 @@ describe('demo sample registry', () => {
     const ego = parseDocument(getSample('adas-ego-surround')!.document)
     expect(ego.nodes.map(n => n.id).sort()).toEqual(['ego', 'lead', 'left', 'rear', 'right'])
     expect(ego.edges).toHaveLength(4)
+    const egoNode = ego.nodes.find(n => n.id === 'ego')
+    expect(egoNode?.angle).toBe(30)
+    expect(egoNode?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
+    expect(egoNode?.w).toBe(40)
+    expect(egoNode?.h).toBe(80)
+    expect(ego.paths?.some(p => p.id === 'ego-heading')).toBe(true)
 
     const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
     expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)

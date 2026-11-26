@@ -169,6 +169,9 @@ function invertNodePatch(node: GraphNode, patch: UpdateNodePatch): UpdateNodePat
   if (patch.label !== undefined) inv.label = node.label
   if (patch.label2 !== undefined && node.label2 !== undefined) inv.label2 = node.label2
   if (patch.icon !== undefined && node.icon !== undefined) inv.icon = node.icon
+  if (patch.vectorImage !== undefined && node.vectorImage !== undefined) {
+    inv.vectorImage = node.vectorImage
+  }
   if (patch.tooltip !== undefined && node.tooltip !== undefined) inv.tooltip = node.tooltip
   if (patch.status !== undefined && node.status !== undefined) inv.status = node.status
   if (patch.x !== undefined && node.x !== undefined) inv.x = node.x
@@ -332,6 +335,7 @@ function cloneNode(node: GraphNode): PatchNode {
     label: node.label,
     ...(node.label2 !== undefined ? { label2: node.label2 } : {}),
     ...(node.icon !== undefined ? { icon: node.icon } : {}),
+    ...(node.vectorImage !== undefined ? { vectorImage: node.vectorImage } : {}),
     ...(node.tooltip !== undefined ? { tooltip: node.tooltip } : {}),
     ...(node.status !== undefined ? { status: node.status } : {}),
     ...(node.x !== undefined ? { x: node.x } : {}),

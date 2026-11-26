@@ -13,6 +13,7 @@ import type {
 } from '../protocol/types.ts'
 import { getIcon } from '../ui/attachment/icon-registry.ts'
 import type { AttachmentPaintOp } from '../ui/attachment/types.ts'
+import { getVectorImage, vectorImagePaintCtx } from '../ui/vector-image-registry.ts'
 
 /** Camera state passed into a frame. */
 export interface ViewportState {
@@ -499,6 +500,10 @@ export class Canvas2DRenderer implements Renderer {
       if (dash !== undefined && dash.length > 0) ctx.setLineDash([...dash])
       ctx.stroke()
       ctx.setLineDash([])
+    }
+    const vectorImage = getVectorImage(node.vectorImage)
+    if (vectorImage !== undefined) {
+      vectorImage.draw(ctx, bounds, vectorImagePaintCtx(node))
     }
     paintAttachmentOps(ctx, withContrastingIcons(view.attachments, fill))
     ctx.restore()

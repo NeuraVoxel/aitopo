@@ -122,8 +122,8 @@ export function useNetworkDemo(): NetworkDemoApi {
     })
     network.mount(host)
 
+    const rawApply = network.apply.bind(network)
     if (mode !== 'observe') {
-      const rawApply = network.apply.bind(network)
       const history = new PatchHistory(rawApply, () => network.toJSON())
       historyRef.current = history
       wrapApplyWithHistory(network, history, () => {
@@ -137,7 +137,16 @@ export function useNetworkDemo(): NetworkDemoApi {
 
     const unsub = network.on(event => {
       if (event.type === 'selectionChanged' || event.type === 'documentChanged') {
-        setSelectedIds([...network.getSelectedIds()])
+        setSelectedIds(previous => {
+          const next = [...network.getSelectedIds()]
+          if (
+            previous.length === next.length
+            && previous.every((id, index) => id === next[index])
+          ) {
+            return previous
+          }
+          return next
+        })
       }
       if (event.type === 'nodeActivated' && event.detail === 'dblclick') {
         // Generic drill-in: any node carrying a networkId enters its child
@@ -186,7 +195,31 @@ export function useNetworkDemo(): NetworkDemoApi {
       fitNetwork(network)
     })
 
+    // Elements Node: pulse vectorImagePhase on the heading demo node (silent apply).
+    let pulseTimer: ReturnType<typeof setInterval> | undefined
+    if (sample.id === 'node') {
+      const started = performance.now()
+      pulseTimer = setInterval(() => {
+        const phase = ((performance.now() - started) / 2000) % 1
+        rawApply({
+          ops: [{
+            op: 'updateNode',
+            id: 'heading',
+            patch: {
+              data: {
+                fill: '#bfdbfe',
+                stroke: '#1d4ed8',
+                speedMs: 12.5,
+                vectorImagePhase: phase,
+              },
+            },
+          }],
+        })
+      }, 50)
+    }
+
     return () => {
+      if (pulseTimer !== undefined) clearInterval(pulseTimer)
       cancelAnimationFrame(frame)
       resize.disconnect()
       window.removeEventListener('keydown', onKeyDown)

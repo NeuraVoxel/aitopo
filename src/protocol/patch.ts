@@ -308,6 +308,7 @@ function asNode(raw: {
   label: string
   label2?: string | undefined
   icon?: string | undefined
+  vectorImage?: string | undefined
   tooltip?: string | undefined
   status?: string | undefined
   x?: number | undefined
@@ -333,6 +334,7 @@ function asNode(raw: {
   return applyOptionalNode(node, {
     label2: raw.label2,
     icon: raw.icon,
+    vectorImage: raw.vectorImage,
     tooltip: raw.tooltip,
     status: raw.status,
     x: raw.x,
@@ -358,6 +360,7 @@ function mergeNode(
     label?: string | undefined
     label2?: string | undefined
     icon?: string | undefined
+    vectorImage?: string | undefined
     tooltip?: string | undefined
     status?: string | undefined
     x?: number | undefined
@@ -391,6 +394,7 @@ function mergeNode(
   return applyOptionalNode(base, {
     label2: patch.label2 ?? current.label2,
     icon: patch.icon ?? current.icon,
+    vectorImage: patch.vectorImage ?? current.vectorImage,
     tooltip: patch.tooltip ?? current.tooltip,
     status: patch.status ?? current.status,
     x: patch.x ?? current.x,
@@ -431,6 +435,7 @@ function applyOptionalNode(
   raw: {
     label2?: string | undefined
     icon?: string | undefined
+    vectorImage?: string | undefined
     tooltip?: string | undefined
     status?: string | undefined
     x?: number | undefined
@@ -457,6 +462,7 @@ function applyOptionalNode(
     ...node,
     ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
     ...(raw.icon !== undefined ? { icon: raw.icon } : {}),
+    ...(raw.vectorImage !== undefined ? { vectorImage: raw.vectorImage } : {}),
     ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
     ...(raw.status !== undefined ? { status: raw.status } : {}),
     ...(raw.x !== undefined ? { x: raw.x } : {}),
