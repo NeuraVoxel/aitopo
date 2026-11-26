@@ -16,7 +16,7 @@ Clean-room first slice (no twaver API names):
 - `data.vectorImagePhase?: number` — `[0,1)` phase binding for host-driven pulse; hosts animate by `updateNode` data patches (declarative animate DSL deferred).
 - Distinct from `icon` / IconsAttachment.
 
-Demo: `registerDemoVectorImages()` registers `demo-heading-arrow`; ADAS `Ego` (`adas-ego`) shows `heading` + `heading-boost`; Observe/Edit pulse `heading` phase via silent apply.
+Demo: `registerDemoVectorImages()` registers `demo-heading-arrow`, `demo-ego-car-vector` (canvas paths), and `demo-ego-car-bitmap` (`drawImage` of `/assets/ego-car.png`). ADAS `Ego` (`adas-ego`) shows six styles left→right: base heading, +30°, longer arrow (`speedMs`), phase pulse (`ego-animate` only), vector car + body stroke border, bitmap car + border.
 
 ## Alternatives considered
 

@@ -12,6 +12,7 @@ import {
   resetDemoOnSubNetworkChanged,
   runDemoHistoryStep,
 } from '../lib/subnetwork-session.ts'
+import { whenDemoEgoBitmapReady } from '../lib/vector-images.ts'
 
 export type { DemoMode }
 
@@ -195,8 +196,10 @@ export function useNetworkDemo(): NetworkDemoApi {
       fitNetwork(network)
     })
 
-    // ADAS Ego: pulse vectorImagePhase on the heading ego (silent apply).
+    // ADAS Ego: pulse vectorImagePhase only on style #4 (ego-animate);
+    // redraw bitmap ego once the PNG is decoded.
     let pulseTimer: ReturnType<typeof setInterval> | undefined
+    let cancelled = false
     if (sample.id === 'adas-ego') {
       const started = performance.now()
       pulseTimer = setInterval(() => {
@@ -204,7 +207,7 @@ export function useNetworkDemo(): NetworkDemoApi {
         rawApply({
           ops: [{
             op: 'updateNode',
-            id: 'heading',
+            id: 'ego-animate',
             patch: {
               data: {
                 fill: '#bfdbfe',
@@ -218,9 +221,26 @@ export function useNetworkDemo(): NetworkDemoApi {
           }],
         })
       }, 50)
+      void whenDemoEgoBitmapReady().then(() => {
+        if (cancelled) return
+        rawApply({
+          ops: [{
+            op: 'updateNode',
+            id: 'ego-bitmap',
+            patch: {
+              data: {
+                fill: 'rgba(0,0,0,0)',
+                stroke: '#0f172a',
+                role: 'ego',
+              },
+            },
+          }],
+        })
+      })
     }
 
     return () => {
+      cancelled = true
       if (pulseTimer !== undefined) clearInterval(pulseTimer)
       cancelAnimationFrame(frame)
       resize.disconnect()

@@ -271,10 +271,17 @@ describe('demo sample registry', () => {
     }
 
     const ego = parseDocument(getSample('adas-ego')!.document)
-    expect(ego.nodes.map(n => n.id).sort()).toEqual(['heading', 'heading-boost'])
+    expect(ego.nodes.map(n => n.id)).toEqual([
+      'ego-base',
+      'ego-angle',
+      'ego-length',
+      'ego-animate',
+      'ego-vector-car',
+      'ego-bitmap',
+    ])
     expect(ego.edges).toHaveLength(0)
     expect(ego.paths ?? []).toHaveLength(0)
-    for (const id of ['heading', 'heading-boost'] as const) {
+    for (const id of ['ego-base', 'ego-angle', 'ego-length', 'ego-animate'] as const) {
       const node = ego.nodes.find(n => n.id === id)
       expect(node?.type).toBe('vehicle')
       expect(node?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
@@ -282,8 +289,12 @@ describe('demo sample registry', () => {
       expect(node?.h).toBe(80)
       expect(node?.vectorImage).toBe('demo-heading-arrow')
     }
-    expect(ego.nodes.find(n => n.id === 'heading')?.angle).toBe(30)
-    expect(ego.nodes.find(n => n.id === 'heading-boost')?.style?.vectorImageState).toBe('boost')
+    expect(ego.nodes.find(n => n.id === 'ego-base')?.angle).toBeUndefined()
+    expect(ego.nodes.find(n => n.id === 'ego-angle')?.angle).toBe(30)
+    expect(ego.nodes.find(n => n.id === 'ego-length')?.data?.speedMs).toBe(22)
+    expect(ego.nodes.find(n => n.id === 'ego-animate')?.data?.vectorImagePhase).toBe(0)
+    expect(ego.nodes.find(n => n.id === 'ego-vector-car')?.vectorImage).toBe('demo-ego-car-vector')
+    expect(ego.nodes.find(n => n.id === 'ego-bitmap')?.vectorImage).toBe('demo-ego-car-bitmap')
 
     const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
     expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)

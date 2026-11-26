@@ -12,7 +12,7 @@ The demo catalog adds group id `adas` (nav label **ADAS**), ordered after `eleme
 
 | Sample id | Load | Role |
 |---|---|---|
-| `adas-ego` | yes | Ego rectangles only: rear-axle `angleAnchor` + `vectorImage` heading (phase) and boost state (no surround) |
+| `adas-ego` | yes | Six ego styles: heading base / +30° / longer arrow / phase pulse / vector car+border / bitmap car+border |
 | `adas-lane-lines` | yes | Open GraphPath lane markings (solid / dashed) |
 | `adas-lane-centerline` | yes | Centerline GraphPaths + optional successor edges |
 | `adas-road-boundary` | yes | Left / right curb GraphPaths |
