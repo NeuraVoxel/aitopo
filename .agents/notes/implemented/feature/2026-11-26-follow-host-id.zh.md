@@ -17,6 +17,7 @@ ADAS Agent 历史轨迹（以及类似附着几何）必须在宿主 agent 移�
 - 本波不做角度 / 旋转跟随。
 - Elements **Node** demo：`follow-host` + 跟随节点 + 虚线 `follow-trail` 路径（Edit 下拖拽 host）。
 - Agent demo：每个动态 agent 都有一条独立历史 `GraphPath`，`followHostId` 指向该 agent id（同一 `DYNAMIC_SPECS` 列表同时生成节点与轨迹）。轨迹沿 −heading 采样，终点在 box 中心（长度随 `speedMs` 缩放）。
+- ADAS FOV / Sensor demo：传感器挂载点跟随 ego；FOV `GraphShapeNode` 楔形跟随对应挂载点（拖 ego 时传递级联）。
 
 运行时展开在 `expandFollowMotion`（`src/model/follow.ts`）；实时预览经 scene write 助手调用 `translateFollowersLive`。手势预览会 dirty 跟随者 View（Path 缓存受 dirty 门控），拖拽时轨迹随宿主移动。`PatchHistory` 在 invert 前展开，以便 undo 还原跟随者。
 

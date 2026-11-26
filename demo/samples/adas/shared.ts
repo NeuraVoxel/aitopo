@@ -25,6 +25,7 @@ export function adasBox(opts: {
   readonly angle?: number
   readonly angleAnchor?: GraphNode['angleAnchor']
   readonly vectorImage?: string
+  readonly followHostId?: string
 }): GraphNode {
   return {
     id: opts.id,
@@ -38,6 +39,7 @@ export function adasBox(opts: {
     ...(opts.angle !== undefined ? { angle: opts.angle } : {}),
     ...(opts.angleAnchor !== undefined ? { angleAnchor: opts.angleAnchor } : {}),
     ...(opts.vectorImage !== undefined ? { vectorImage: opts.vectorImage } : {}),
+    ...(opts.followHostId !== undefined ? { followHostId: opts.followHostId } : {}),
     x: opts.x,
     y: opts.y,
     w: opts.w,

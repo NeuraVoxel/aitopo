@@ -33,6 +33,8 @@ const graphTextStyleSchema = z.object({
   fontWeight: z.enum(['normal', 'bold']).optional(),
   /** `0` = never truncate; omitted → host default. */
   maxChars: z.number().int().nonnegative().optional(),
+  /** Extra world-px shift after attachment placement (+Y = down). */
+  offsetY: z.number().optional(),
 })
 
 const graphChromeStyleSchema = z.object({
@@ -41,6 +43,8 @@ const graphChromeStyleSchema = z.object({
   padding: z.number().nonnegative().optional(),
   glow: z.boolean().optional(),
   glowBlur: z.number().nonnegative().optional(),
+  /** Highlight opacity while this chrome is active. */
+  alpha: z.number().min(0).max(1).optional(),
 })
 
 const graphShadowStyleSchema = z.object({

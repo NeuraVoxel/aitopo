@@ -192,6 +192,12 @@ export class NodeView {
       if (op.layer === 'overlay') this.overlayOps.push(op)
       else this.sceneOps.push(op)
     }
+    let paintAlpha = this.alpha
+    if (hovered && !selected && this.hoverStyle?.alpha !== undefined) {
+      paintAlpha = clampAlpha(this.hoverStyle.alpha)
+    } else if (selected && this.selectStyle?.alpha !== undefined) {
+      paintAlpha = clampAlpha(this.selectStyle.alpha)
+    }
     return {
       bounds: this.union,
       bodyBounds: this.body,
@@ -201,7 +207,7 @@ export class NodeView {
       ...(this.angleDeg !== 0 ? { angle: this.angleDeg } : {}),
       ...(this.angleAnchorCache !== undefined ? { angleAnchor: this.angleAnchorCache } : {}),
       circular: this.circular,
-      alpha: this.alpha,
+      alpha: paintAlpha,
       ...(this.shadow !== undefined ? { shadow: this.shadow } : {}),
       ...(this.strokeDash !== undefined ? { strokeDash: this.strokeDash } : {}),
       ...(this.selectStyle !== undefined ? { selectStyle: this.selectStyle } : {}),

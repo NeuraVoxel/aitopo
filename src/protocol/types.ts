@@ -74,6 +74,8 @@ export interface GraphTextStyle {
    * Omitted → host default (nodes/groups `0`, i.e. unlimited; edges `18`).
    */
   readonly maxChars?: number
+  /** Extra world-px shift after attachment placement (+Y = down). Omitted → `0`. */
+  readonly offsetY?: number
 }
 
 /** Selection or hover chrome around the node body. */
@@ -90,6 +92,11 @@ export interface GraphChromeStyle {
   readonly glow?: boolean
   /** Glow blur radius in world px. Omitted → `16`. */
   readonly glowBlur?: number
+  /**
+   * Whole-element opacity while this chrome is active (Path / ShapeNode / Node).
+   * Omitted → keep the element's base `style.alpha` (nodes default opaque).
+   */
+  readonly alpha?: number
 }
 
 /** Canvas shadow used once on the node body. */

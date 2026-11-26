@@ -17,6 +17,7 @@ Add optional `followHostId?: string` on **Node / Group / Path / ShapeNode** (not
 - Angle / rotation follow is out of scope for this wave.
 - Elements **Node** demo: `follow-host` + follower node + dashed `follow-trail` path (drag host in Edit).
 - Agent demo: every dynamic agent owns a freestanding history `GraphPath` with `followHostId` set to that agent id (same `DYNAMIC_SPECS` list builds both). Trails sample along −heading and end at the box center (length scales with `speedMs`).
+- ADAS FOV / Sensor demos: sensor mount nodes follow ego; FOV `GraphShapeNode` wedges follow their mount (transitive cascade when ego moves).
 
 Runtime expansion lives in `expandFollowMotion` (`src/model/follow.ts`); live preview uses `translateFollowersLive` from scene write helpers. Gesture preview dirties follower views (path caches are dirty-gated) so trails move with the host during drag. `PatchHistory` expands before invert so undo restores followers.
 

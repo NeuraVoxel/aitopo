@@ -64,7 +64,7 @@ export class LabelAttachment extends Attachment {
     ) {
       box = nudgeTitleForSubtitle(box, ctx.body.height)
     }
-    this.cachedBounds = box
+    this.cachedBounds = applyTextOffsetY(box, style?.label?.offsetY)
   }
 
   toPaintOp(_hovered: boolean): AttachmentPaintOp | undefined {
@@ -112,11 +112,17 @@ export class Label2Attachment extends Attachment {
       && typeof label === 'string'
       && label.length > 0
     ) {
-      this.cachedBounds = placeSubtitleUnderTitle(ctx, label, titlePosition, style, size, isGroup)
+      this.cachedBounds = applyTextOffsetY(
+        placeSubtitleUnderTitle(ctx, label, titlePosition, style, size, isGroup),
+        style?.label2?.offsetY,
+      )
       return
     }
 
-    this.cachedBounds = placeAttachment(ctx.body, this.position, size.width, size.height)
+    this.cachedBounds = applyTextOffsetY(
+      placeAttachment(ctx.body, this.position, size.width, size.height),
+      style?.label2?.offsetY,
+    )
   }
 
   toPaintOp(_hovered: boolean): AttachmentPaintOp | undefined {
@@ -191,6 +197,12 @@ function nudgeTitleForSubtitle(box: Rect, bodyHeight: number): Rect {
     ...box,
     y: box.y - Math.min(4, bodyHeight * 0.04),
   }
+}
+
+/** Apply optional `GraphTextStyle.offsetY` (+Y = down). */
+function applyTextOffsetY(box: Rect, offsetY: number | undefined): Rect {
+  if (offsetY === undefined || offsetY === 0 || Number.isNaN(offsetY)) return box
+  return { ...box, y: box.y + offsetY }
 }
 
 function placeSubtitleUnderTitle(

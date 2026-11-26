@@ -85,12 +85,12 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 | `adas-ego` | Plan slot: cubicto Path with `followHostId: ego-plan` |
 | `adas-agent` | History trails + Vehicle Go/Yield/Cut-in prediction Paths (`followHostId`) |
 
-`adas-sensor-fov` stays reserved (sector / frustum — not Path). Stop/crosswalk keeps a Group AABB stand-in (optional closed+fill Path later).
+FOV wedges are ShapeNode sectors on `adas-fov` (not Path) — see [2026-11-26-adas-fov-shapenode.md](2026-11-26-adas-fov-shapenode.md).
 
 ### Non-goals (still out of scope)
 
 - Replacing `GraphEdge.route: "shape"` with Path.
-- FOV wedges, occupancy raster, rotate handles.
+- FOV as Path (use ShapeNode), occupancy raster, rotate handles.
 - Path as group member / SubNetwork remapping (root-document / active-document paths only in v1).
 - topo-diagram skill dialect teaching Path (engine first; skill follow-up).
 - Path arrows, flow animation, edge-style bundles.
@@ -117,4 +117,4 @@ Demo exclusive `'create-path'` mode packs `CreatePathInteraction` + `DeleteEdgeI
 - `tests/graph-path.spec.ts` — protocol parse, patch/invert, densify, PathView, Network paint/hit/selection/commits.
 - `tests/create-path.spec.ts` — CreatePath / vertex edit.
 - `tests/delete-edge.spec.ts`, `tests/move-node.spec.ts` — path delete and body translate.
-- `tests/demo-registry.spec.ts` — Elements `path` showcase; five ADAS Path samples loadable; only `adas-sensor-fov` reserved.
+- `tests/demo-registry.spec.ts` — Elements `path` showcase; ADAS Path samples (`adas-lane` / `adas-ego` / `adas-agent`) loadable.

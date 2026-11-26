@@ -70,4 +70,36 @@ describe('opt-in title / subtitle stack', () => {
   it('does not stretch the gap when the body grows taller', () => {
     expect(gapBetween(nodeCtx(120))).toBeCloseTo(gapBetween(nodeCtx(64)), 5)
   })
+
+  it('applies label offsetY after bottom placement', () => {
+    const base = {
+      body: { x: 0, y: 0, width: 80, height: 80 },
+      node: {
+        id: 'brand',
+        type: 'vehicle',
+        label: 'Tesla',
+        style: { labelPosition: 'bottom' as const, label: { fontSize: 11 } },
+      },
+    }
+    const nudged = {
+      ...base,
+      node: {
+        ...base.node,
+        style: {
+          labelPosition: 'bottom' as const,
+          label: { fontSize: 11, offsetY: 8 },
+        },
+      },
+    }
+    const a = new LabelAttachment()
+    const b = new LabelAttachment()
+    a.validate(base)
+    b.validate(nudged)
+    const pa = a.toPaintOp(false)
+    const pb = b.toPaintOp(false)
+    expect(pa?.kind).toBe('label')
+    expect(pb?.kind).toBe('label')
+    if (pa?.kind !== 'label' || pb?.kind !== 'label') return
+    expect(pb.bounds.y - pa.bounds.y).toBe(8)
+  })
 })

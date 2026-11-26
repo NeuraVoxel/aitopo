@@ -553,8 +553,8 @@ describe('ShapeNodeView', () => {
         alpha: 0.5,
         strokeDash: [4, 2],
         label: { color: '#112233', fontSize: 14, fontWeight: 'bold' },
-        select: { color: '#22c55e', width: 4, padding: 1 },
-        hover: { color: '#f59e0b', width: 3, padding: 2 },
+        select: { color: '#22c55e', width: 4, padding: 1, alpha: 0.9 },
+        hover: { color: '#f59e0b', width: 3, padding: 2, alpha: 0.7 },
       },
     }
     const view = new ShapeNodeView('styled')
@@ -574,12 +574,15 @@ describe('ShapeNodeView', () => {
     const selected = view.toPaintView(true, false)
     expect(selected.stroke).toBe('#22c55e')
     expect(selected.lineWidth).toBe(6)
+    expect(selected.alpha).toBe(0.9)
     const hovered = view.toPaintView(false, true)
     expect(hovered.stroke).toBe('#f59e0b')
     expect(hovered.lineWidth).toBe(7)
+    expect(hovered.alpha).toBe(0.7)
     const idle = view.toPaintView(false, false)
     expect(idle.stroke).toBe('#abc')
     expect(idle.lineWidth).toBe(2)
+    expect(idle.alpha).toBe(0.5)
   })
 })
 

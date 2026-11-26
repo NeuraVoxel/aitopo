@@ -8,7 +8,7 @@ Hover chrome was only a dashed overlay ring, and selection was a solid ring with
 
 ## Decision
 
-`GraphChromeStyle` gains optional `glow` / `glowBlur`. Defaults:
+`GraphChromeStyle` gains optional `glow` / `glowBlur`. Optional `alpha` (highlight opacity) is owned by [chrome alpha FOV highlight](../bug-fix/2026-11-26-chrome-alpha-fov-highlight.md). Defaults:
 
 | Chrome | Glow when omitted | Where it paints | Ring |
 |---|---|---|---|

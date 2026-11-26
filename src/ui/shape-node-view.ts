@@ -233,17 +233,24 @@ export class ShapeNodeView {
   toPaintView(selected: boolean, hovered: boolean): PathPaintView {
     let resolvedStroke = this.strokeCache
     let paintWidth = this.lineWidthCache
+    let paintAlpha = this.alphaCache
     if (hovered && !selected) {
       resolvedStroke = this.hoverStyle?.color ?? DEFAULT_STROKE_HOVER
       paintWidth = Math.max(this.lineWidthCache, this.hoverStyle?.width ?? 2.5)
       if (this.hoverStyle?.padding !== undefined) {
         paintWidth += this.hoverStyle.padding * 2
       }
+      if (this.hoverStyle?.alpha !== undefined) {
+        paintAlpha = clampAlpha(this.hoverStyle.alpha)
+      }
     } else if (selected) {
       resolvedStroke = this.selectStyle?.color ?? DEFAULT_STROKE_HOVER
       paintWidth = Math.max(this.lineWidthCache, this.selectStyle?.width ?? 2.5)
       if (this.selectStyle?.padding !== undefined) {
         paintWidth += this.selectStyle.padding * 2
+      }
+      if (this.selectStyle?.alpha !== undefined) {
+        paintAlpha = clampAlpha(this.selectStyle.alpha)
       }
     }
     return {
@@ -259,7 +266,7 @@ export class ShapeNodeView {
         }
         : {}),
       closed: this.closed,
-      alpha: this.alphaCache,
+      alpha: paintAlpha,
       stroke: resolvedStroke,
       ...(this.fillCache !== undefined ? { fill: this.fillCache } : {}),
       lineWidth: paintWidth,

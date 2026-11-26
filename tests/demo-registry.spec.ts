@@ -228,7 +228,7 @@ describe('demo sample registry', () => {
     expect(feedback.edges.find(e => e.kind === 'dep')?.style?.strokeDash).toEqual([5, 4])
   })
 
-  it('registers the ADAS group with loadable samples and unsupported reserved rows', () => {
+  it('registers the ADAS group with loadable samples', () => {
     const adasGroup = listSamples().filter(s => s.group === 'adas')
     expect(adasGroup.map(s => s.id)).toEqual([
       'adas-ego',
@@ -236,22 +236,13 @@ describe('demo sample registry', () => {
       'adas-static',
       'adas-lane',
       'adas-occupancy-bev',
-      'adas-stop-crosswalk',
-      'adas-traffic-signals',
-      'adas-parking-slots',
-      'adas-sensor-fov',
-      'adas-hdmap-junction',
+      'adas-fov',
+      'adas-sensor',
     ])
 
-    const reservedIds = new Set(['adas-sensor-fov'])
     const pathSampleIds = ['adas-lane', 'adas-ego', 'adas-agent'] as const
 
     for (const sample of adasGroup) {
-      if (reservedIds.has(sample.id)) {
-        expect(sample.reserved).toBe(true)
-        parseDocument(sample.document)
-        continue
-      }
       expect(sample.reserved).toBeUndefined()
       const doc = parseDocument(sample.document)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
@@ -453,14 +444,6 @@ describe('demo sample registry', () => {
     expect(agentDoc.nodes.find(n => n.id === 'truck-1')?.data?.score).toBe(0.76)
     expect(agentDoc.nodes.find(n => n.id === 'unclassified-1')?.alarms?.[0]?.level).toBe('error')
 
-    const parking = parseDocument(getSample('adas-parking-slots')!.document)
-    expect(parking.groups?.map(g => g.id).sort()).toEqual([
-      'slot-1',
-      'slot-2',
-      'slot-3',
-      'slot-4',
-    ])
-
     expect(getSample('adas-occupancy-bev')!.title).toBe('OCC')
     const occ = parseDocument(getSample('adas-occupancy-bev')!.document)
     expect(occ.nodes.filter(n => n.type === 'occupancy')).toHaveLength(OCC_CELL_COUNT)
@@ -472,8 +455,46 @@ describe('demo sample registry', () => {
     expect(occEgo?.data?.axle).toBe('rear')
     expect(occEgo?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
 
-    const junction = parseDocument(getSample('adas-hdmap-junction')!.document)
-    expect(junction.edges.filter(e => e.kind === 'successor').length).toBeGreaterThanOrEqual(4)
+    expect(getSample('adas-fov')!.title).toBe('FOV')
+    const fov = parseDocument(getSample('adas-fov')!.document)
+    expect(fov.nodes.map(n => n.id)).toEqual(['ego', 'mount-lidar', 'mount-radar', 'mount-camera'])
+    expect(fov.nodes.filter(n => n.data?.role === 'sensor_mount').every(n => n.followHostId === 'ego')).toBe(
+      true,
+    )
+    expect(fov.shapeNodes?.map(s => s.id)).toEqual(['fov-lidar', 'fov-radar', 'fov-camera'])
+    expect(fov.shapeNodes!.map(s => s.followHostId)).toEqual([
+      'mount-lidar',
+      'mount-radar',
+      'mount-camera',
+    ])
+    expect(fov.shapeNodes!.every(s => (s.points?.length ?? 0) >= 3)).toBe(true)
+    expect(fov.shapeNodes!.every(s => s.style?.fill !== undefined)).toBe(true)
+    expect(
+      fov.shapeNodes!.every(
+        s =>
+          (s.style?.select?.alpha ?? 0) > (s.style?.alpha ?? 0) &&
+          (s.style?.hover?.alpha ?? 0) > (s.style?.alpha ?? 0),
+      ),
+    ).toBe(true)
+
+    expect(getSample('adas-sensor')!.title).toBe('Sensor')
+    const sensor = parseDocument(getSample('adas-sensor')!.document)
+    const schemeIds = ['tesla', 'xpeng', 'im', 'huawei', 'xiaomi', 'waymo'] as const
+    expect(sensor.nodes.filter(n => n.data?.role === 'ego').map(n => n.id)).toEqual(
+      schemeIds.map(id => `${id}-ego`),
+    )
+    for (const id of schemeIds) {
+      const egoId = `${id}-ego`
+      const mounts = sensor.nodes.filter(n => n.data?.role === 'sensor_mount' && n.data?.scheme === id)
+      expect(mounts.length).toBeGreaterThan(0)
+      expect(mounts.every(n => n.followHostId === egoId)).toBe(true)
+      const wedges = sensor.shapeNodes!.filter(s => s.data?.scheme === id)
+      expect(wedges.length).toBeGreaterThan(0)
+      expect(wedges.every(s => typeof s.followHostId === 'string' && s.followHostId.startsWith(`${id}-`))).toBe(
+        true,
+      )
+    }
+    expect(sensor.shapeNodes!.every(s => (s.points?.length ?? 0) >= 3)).toBe(true)
   })
 })
 
