@@ -190,6 +190,7 @@ function invertNodePatch(node: GraphNode, patch: UpdateNodePatch): UpdateNodePat
   if (patch.networkId !== undefined && node.networkId !== undefined) inv.networkId = node.networkId
   if (patch.locked !== undefined && node.locked !== undefined) inv.locked = node.locked
   if (patch.followHostId !== undefined) inv.followHostId = node.followHostId ?? null
+  if (patch.layerId !== undefined) inv.layerId = node.layerId ?? null
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(node.alarms)
   if (patch.style !== undefined && node.style !== undefined) {
     inv.style = cloneNodeStyle(node.style)
@@ -220,6 +221,7 @@ function invertEdgePatch(edge: GraphEdge, patch: UpdateEdgePatch): UpdateEdgePat
   if (patch.label !== undefined && edge.label !== undefined) inv.label = edge.label
   if (patch.label2 !== undefined && edge.label2 !== undefined) inv.label2 = edge.label2
   if (patch.tooltip !== undefined && edge.tooltip !== undefined) inv.tooltip = edge.tooltip
+  if (patch.layerId !== undefined) inv.layerId = edge.layerId ?? null
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(edge.alarms)
   if (patch.style !== undefined && edge.style !== undefined) {
     inv.style = cloneEdgeStyle(edge.style)
@@ -249,6 +251,7 @@ function invertGroupPatch(group: GraphGroup, patch: UpdateGroupPatch): UpdateGro
       : { u: 0.5, v: 0.5 }
   }
   if (patch.followHostId !== undefined) inv.followHostId = group.followHostId ?? null
+  if (patch.layerId !== undefined) inv.layerId = group.layerId ?? null
   if (patch.icon !== undefined && group.icon !== undefined) inv.icon = group.icon
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(group.alarms)
   if (patch.style !== undefined && group.style !== undefined) {
@@ -276,6 +279,7 @@ function invertPathPatch(path: GraphPath, patch: UpdatePathPatch): UpdatePathPat
   if (patch.label !== undefined && path.label !== undefined) inv.label = path.label
   if (patch.tooltip !== undefined && path.tooltip !== undefined) inv.tooltip = path.tooltip
   if (patch.followHostId !== undefined) inv.followHostId = path.followHostId ?? null
+  if (patch.layerId !== undefined) inv.layerId = path.layerId ?? null
   if (patch.style !== undefined && path.style !== undefined) {
     inv.style = clonePathStyle(path.style)
   }
@@ -311,6 +315,7 @@ function invertShapeNodePatch(
     inv.groupId = shapeNode.groupId
   }
   if (patch.followHostId !== undefined) inv.followHostId = shapeNode.followHostId ?? null
+  if (patch.layerId !== undefined) inv.layerId = shapeNode.layerId ?? null
   if (patch.alarms !== undefined) inv.alarms = cloneAlarms(shapeNode.alarms)
   if (patch.style !== undefined && shapeNode.style !== undefined) {
     inv.style = cloneShapeNodeStyle(shapeNode.style)
@@ -355,6 +360,7 @@ function cloneNode(node: GraphNode): PatchNode {
     ...(node.networkId !== undefined ? { networkId: node.networkId } : {}),
     ...(node.locked !== undefined ? { locked: node.locked } : {}),
     ...(node.followHostId !== undefined ? { followHostId: node.followHostId } : {}),
+    ...(node.layerId !== undefined ? { layerId: node.layerId } : {}),
     ...(node.alarms !== undefined ? { alarms: cloneAlarms(node.alarms) } : {}),
     ...(node.style !== undefined ? { style: cloneNodeStyle(node.style) } : {}),
     ...(node.data !== undefined ? { data: { ...node.data } } : {}),
@@ -395,6 +401,7 @@ function cloneEdge(edge: GraphEdge): PatchEdge {
     ...(edge.label !== undefined ? { label: edge.label } : {}),
     ...(edge.label2 !== undefined ? { label2: edge.label2 } : {}),
     ...(edge.tooltip !== undefined ? { tooltip: edge.tooltip } : {}),
+    ...(edge.layerId !== undefined ? { layerId: edge.layerId } : {}),
     ...(edge.alarms !== undefined ? { alarms: cloneAlarms(edge.alarms) } : {}),
     ...(edge.style !== undefined ? { style: cloneEdgeStyle(edge.style) } : {}),
     ...(edge.data !== undefined ? { data: { ...edge.data } } : {}),
@@ -434,6 +441,7 @@ function cloneGroup(group: GraphGroup): PatchGroup {
       : {}),
     ...(group.locked !== undefined ? { locked: group.locked } : {}),
     ...(group.followHostId !== undefined ? { followHostId: group.followHostId } : {}),
+    ...(group.layerId !== undefined ? { layerId: group.layerId } : {}),
     ...(group.icon !== undefined ? { icon: group.icon } : {}),
     ...(group.alarms !== undefined ? { alarms: cloneAlarms(group.alarms) } : {}),
     ...(group.style !== undefined ? { style: cloneGroupStyle(group.style) } : {}),
@@ -468,6 +476,7 @@ function clonePath(path: GraphPath): PatchPath {
       ? { angleAnchor: { u: path.angleAnchor.u, v: path.angleAnchor.v } }
       : {}),
     ...(path.followHostId !== undefined ? { followHostId: path.followHostId } : {}),
+    ...(path.layerId !== undefined ? { layerId: path.layerId } : {}),
     ...(path.style !== undefined ? { style: clonePathStyle(path.style) } : {}),
     ...(path.data !== undefined ? { data: { ...path.data } } : {}),
   }
@@ -499,6 +508,7 @@ function cloneShapeNode(shapeNode: GraphShapeNode): PatchShapeNode {
       : {}),
     ...(shapeNode.groupId !== undefined ? { groupId: shapeNode.groupId } : {}),
     ...(shapeNode.followHostId !== undefined ? { followHostId: shapeNode.followHostId } : {}),
+    ...(shapeNode.layerId !== undefined ? { layerId: shapeNode.layerId } : {}),
     ...(shapeNode.alarms !== undefined ? { alarms: cloneAlarms(shapeNode.alarms) } : {}),
     ...(shapeNode.style !== undefined ? { style: cloneShapeNodeStyle(shapeNode.style) } : {}),
     ...(shapeNode.data !== undefined ? { data: { ...shapeNode.data } } : {}),

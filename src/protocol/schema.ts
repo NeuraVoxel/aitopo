@@ -97,6 +97,7 @@ const graphNodeSchema = z.object({
   networkId: z.string().optional(),
   locked: z.boolean().optional(),
   followHostId: z.string().min(1).optional(),
+  layerId: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphNodeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -226,6 +227,7 @@ const graphEdgeObjectSchema = z.object({
   label: z.string().optional(),
   label2: z.string().optional(),
   tooltip: z.string().optional(),
+  layerId: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphEdgeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -286,6 +288,7 @@ const graphGroupSchema = z.object({
   angleAnchor: graphAngleAnchorSchema.optional(),
   locked: z.boolean().optional(),
   followHostId: z.string().min(1).optional(),
+  layerId: z.string().min(1).optional(),
   icon: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphGroupStyleSchema.optional(),
@@ -317,6 +320,7 @@ const graphPathObjectSchema = z.object({
   angle: z.number().optional(),
   angleAnchor: graphAngleAnchorSchema.optional(),
   followHostId: z.string().min(1).optional(),
+  layerId: z.string().min(1).optional(),
   style: graphPathStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
 })
@@ -393,6 +397,7 @@ const graphShapeNodeObjectSchema = z.object({
   angleAnchor: graphAngleAnchorSchema.optional(),
   groupId: z.string().optional(),
   followHostId: z.string().min(1).optional(),
+  layerId: z.string().min(1).optional(),
   alarms: z.array(alarmSchema).optional(),
   style: graphShapeNodeStyleSchema.optional(),
   data: z.record(z.string(), z.unknown()).optional(),
@@ -413,11 +418,20 @@ const graphMetaSchema = z.object({
   kind: z.enum(['topology', 'flow', 'custom']).optional(),
 }).passthrough()
 
+const graphLayerSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().optional(),
+  visible: z.boolean().optional(),
+  movable: z.boolean().optional(),
+  editable: z.boolean().optional(),
+})
+
 /** Lazy document schema so nested `networks` can recurse. */
 export const graphDocumentSchema: z.ZodType<import('./types.ts').GraphDocument> = z.lazy(() =>
   z.object({
     version: z.literal(1),
     meta: graphMetaSchema.optional(),
+    layers: z.array(graphLayerSchema).optional(),
     nodes: z.array(graphNodeSchema),
     edges: z.array(graphEdgeSchema),
     groups: z.array(graphGroupSchema).optional(),
@@ -438,6 +452,8 @@ const patchOpSchema = z.discriminatedUnion('op', [
       groupId: z.union([z.string().min(1), z.null()]).optional(),
       /** `null` clears follow (`followHostId` omitted). */
       followHostId: z.union([z.string().min(1), z.null()]).optional(),
+      /** `null` clears layer (`layerId` omitted → default). */
+      layerId: z.union([z.string().min(1), z.null()]).optional(),
     }),
   }),
   z.object({ op: z.literal('removeNode'), id: z.string().min(1) }),
@@ -445,7 +461,10 @@ const patchOpSchema = z.discriminatedUnion('op', [
   z.object({
     op: z.literal('updateEdge'),
     id: z.string().min(1),
-    patch: graphEdgeObjectSchema.partial().omit({ id: true }),
+    patch: graphEdgeObjectSchema.partial().omit({ id: true }).extend({
+      /** `null` clears layer (`layerId` omitted → default). */
+      layerId: z.union([z.string().min(1), z.null()]).optional(),
+    }),
   }),
   z.object({ op: z.literal('removeEdge'), id: z.string().min(1) }),
   z.object({ op: z.literal('addGroup'), group: graphGroupSchema }),
@@ -455,6 +474,8 @@ const patchOpSchema = z.discriminatedUnion('op', [
     patch: graphGroupSchema.partial().omit({ id: true }).extend({
       /** `null` clears follow (`followHostId` omitted). */
       followHostId: z.union([z.string().min(1), z.null()]).optional(),
+      /** `null` clears layer (`layerId` omitted → default). */
+      layerId: z.union([z.string().min(1), z.null()]).optional(),
     }),
   }),
   z.object({ op: z.literal('removeGroup'), id: z.string().min(1) }),
@@ -465,6 +486,8 @@ const patchOpSchema = z.discriminatedUnion('op', [
     patch: graphPathObjectSchema.partial().omit({ id: true }).extend({
       /** `null` clears follow (`followHostId` omitted). */
       followHostId: z.union([z.string().min(1), z.null()]).optional(),
+      /** `null` clears layer (`layerId` omitted → default). */
+      layerId: z.union([z.string().min(1), z.null()]).optional(),
     }).superRefine((patch, ctx) => {
       if (patch.points === undefined) return
       refinePathPointsArity(patch.points, patch.style?.shapeKind, ctx)
@@ -478,6 +501,8 @@ const patchOpSchema = z.discriminatedUnion('op', [
     patch: graphShapeNodeObjectSchema.partial().omit({ id: true }).extend({
       /** `null` clears follow (`followHostId` omitted). */
       followHostId: z.union([z.string().min(1), z.null()]).optional(),
+      /** `null` clears layer (`layerId` omitted → default). */
+      layerId: z.union([z.string().min(1), z.null()]).optional(),
     }).superRefine((patch, ctx) => {
       if (patch.points === undefined) return
       refinePathPointsArity(patch.points, patch.style?.shapeKind, ctx)

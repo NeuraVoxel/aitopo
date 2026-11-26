@@ -80,7 +80,11 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
         }
         for (const id of network.getSelectedIds()) {
           const shapeNode = network.getShapeNodes().find(s => s.id === id)
-          if (shapeNode === undefined || shapeNode.locked === true) continue
+          if (
+            shapeNode === undefined
+            || shapeNode.locked === true
+            || !network.isLayerEditable(id)
+          ) continue
           for (const point of worldHandles(
             shapeNode.points,
             shapeNode.angle ?? 0,
@@ -97,7 +101,13 @@ export class MoveShapeNodeVertexInteraction implements Interaction {
       world: Point,
     ): { index: number; points: Point[]; closed: boolean } | undefined => {
       const shapeNode = network.getShapeNodes().find(s => s.id === shapeNodeId)
-      if (shapeNode === undefined || shapeNode.locked === true) return undefined
+      if (
+        shapeNode === undefined
+        || shapeNode.locked === true
+        || !network.isLayerEditable(shapeNodeId)
+      ) {
+        return undefined
+      }
       const pad = HIT_PAD / network.viewport.state.zoom
       const half = handleSize() / 2
       const angle = shapeNode.angle ?? 0

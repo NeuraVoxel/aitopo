@@ -4,6 +4,7 @@
 
 import { normalizeAngleDegrees, resolveAngleAnchor } from '../geom.ts'
 import { assertFollowHostValid, expandFollowMotion } from '../model/follow.ts'
+import { assertLayerIdsValid } from '../model/layer.ts'
 import { assertGroupParentAcyclic } from './parse.ts'
 import { graphPatchSchema, type GraphPatch, type GraphPatchOp } from './schema.ts'
 import type {
@@ -56,6 +57,7 @@ export function applyPatch(doc: GraphDocument, patch: unknown): GraphDocument {
   }
   assertGroupParentAcyclic(next.groups ?? [])
   assertFollowHostValid(next)
+  assertLayerIdsValid(next)
   return next
 }
 
@@ -325,6 +327,7 @@ function asNode(raw: {
   networkId?: string | undefined
   locked?: boolean | undefined
   followHostId?: string | undefined
+  layerId?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -352,6 +355,7 @@ function asNode(raw: {
     networkId: raw.networkId,
     locked: raw.locked,
     followHostId: raw.followHostId,
+    layerId: raw.layerId,
     alarms: raw.alarms,
     style: raw.style !== undefined ? asNodeStyle(raw.style) : undefined,
     data: raw.data,
@@ -379,6 +383,7 @@ function mergeNode(
     networkId?: string | undefined
     locked?: boolean | undefined
     followHostId?: string | null | undefined
+    layerId?: string | null | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -400,6 +405,9 @@ function mergeNode(
   const followHostId = patch.followHostId === null
     ? undefined
     : (patch.followHostId ?? current.followHostId)
+  const layerId = patch.layerId === null
+    ? undefined
+    : (patch.layerId ?? current.layerId)
   return applyOptionalNode(base, {
     label2: patch.label2 ?? current.label2,
     icon: patch.icon ?? current.icon,
@@ -419,6 +427,7 @@ function mergeNode(
     networkId: patch.networkId ?? current.networkId,
     locked: patch.locked ?? current.locked,
     followHostId,
+    layerId,
     alarms: patch.alarms ?? current.alarms?.map(a => ({ ...a })),
     style: patch.style !== undefined
       ? mergeNodeStyle(current.style, asNodeStyle(patch.style))
@@ -459,6 +468,7 @@ function applyOptionalNode(
     networkId?: string | undefined
     locked?: boolean | undefined
     followHostId?: string | undefined
+    layerId?: string | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -487,6 +497,7 @@ function applyOptionalNode(
     ...(raw.networkId !== undefined ? { networkId: raw.networkId } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
     ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
+    ...(raw.layerId !== undefined ? { layerId: raw.layerId } : {}),
     ...(raw.alarms !== undefined ? { alarms: [...raw.alarms].map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: raw.style } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
@@ -507,6 +518,7 @@ function asEdge(raw: {
   label?: string | undefined
   label2?: string | undefined
   tooltip?: string | undefined
+  layerId?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -534,6 +546,7 @@ function asEdge(raw: {
     ...(raw.label !== undefined ? { label: raw.label } : {}),
     ...(raw.label2 !== undefined ? { label2: raw.label2 } : {}),
     ...(raw.tooltip !== undefined ? { tooltip: raw.tooltip } : {}),
+    ...(raw.layerId !== undefined ? { layerId: raw.layerId } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asEdgeStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
@@ -555,6 +568,7 @@ function mergeEdge(
     label?: string | undefined
     label2?: string | undefined
     tooltip?: string | undefined
+    layerId?: string | null | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -575,6 +589,9 @@ function mergeEdge(
     : current.shapePoints !== undefined
       ? current.shapePoints.map(p => ({ x: p.x, y: p.y }))
       : undefined
+  const layerId = patch.layerId === null
+    ? undefined
+    : (patch.layerId ?? current.layerId)
   const edge = asEdge({
     id: current.id,
     from: patch.from ?? current.from,
@@ -589,6 +606,7 @@ function mergeEdge(
     label: patch.label ?? current.label,
     label2: patch.label2 ?? current.label2,
     tooltip: patch.tooltip ?? current.tooltip,
+    layerId,
     alarms: patch.alarms ?? current.alarms?.map(a => ({ ...a })),
     style: patch.style !== undefined
       ? mergeEdgeStyle(current.style, asEdgeStyle(patch.style))
@@ -638,6 +656,7 @@ function asGroup(raw: {
   angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   locked?: boolean | undefined
   followHostId?: string | undefined
+  layerId?: string | undefined
   icon?: string | undefined
   alarms?: Array<{
     id: string
@@ -666,6 +685,7 @@ function asGroup(raw: {
     ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.locked !== undefined ? { locked: raw.locked } : {}),
     ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
+    ...(raw.layerId !== undefined ? { layerId: raw.layerId } : {}),
     ...(raw.icon !== undefined ? { icon: raw.icon } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asGroupStyle(raw.style) } : {}),
@@ -690,6 +710,7 @@ function mergeGroup(
     angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     locked?: boolean | undefined
     followHostId?: string | null | undefined
+    layerId?: string | null | undefined
     icon?: string | undefined
     alarms?: Array<{
       id: string
@@ -704,6 +725,9 @@ function mergeGroup(
   const followHostId = patch.followHostId === null
     ? undefined
     : (patch.followHostId ?? current.followHostId)
+  const layerId = patch.layerId === null
+    ? undefined
+    : (patch.layerId ?? current.layerId)
   return asGroup({
     id: current.id,
     label: patch.label ?? current.label,
@@ -722,6 +746,7 @@ function mergeGroup(
       : current.angleAnchor,
     locked: patch.locked ?? current.locked,
     followHostId,
+    layerId,
     icon: patch.icon ?? current.icon,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
       id: a.id,
@@ -759,6 +784,7 @@ function asPath(raw: {
   angle?: number | undefined
   angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   followHostId?: string | undefined
+  layerId?: string | undefined
   style?: GraphPathStyle | undefined
   data?: Readonly<Record<string, unknown>> | undefined
 }): GraphPath {
@@ -774,6 +800,7 @@ function asPath(raw: {
     ...(angle !== undefined ? { angle } : {}),
     ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
+    ...(raw.layerId !== undefined ? { layerId: raw.layerId } : {}),
     ...(raw.style !== undefined ? { style: asPathStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
   }
@@ -790,6 +817,7 @@ function mergePath(
     angle?: number | undefined
     angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     followHostId?: string | null | undefined
+    layerId?: string | null | undefined
     style?: GraphPathStyle | undefined
     data?: Readonly<Record<string, unknown>> | undefined
   },
@@ -797,6 +825,9 @@ function mergePath(
   const followHostId = patch.followHostId === null
     ? undefined
     : (patch.followHostId ?? current.followHostId)
+  const layerId = patch.layerId === null
+    ? undefined
+    : (patch.layerId ?? current.layerId)
   return asPath({
     id: current.id,
     points: patch.points !== undefined
@@ -811,6 +842,7 @@ function mergePath(
       ? patch.angleAnchor
       : current.angleAnchor,
     followHostId,
+    layerId,
     style: patch.style !== undefined
       ? mergePathStyle(current.style, asPathStyle(patch.style))
       : current.style,
@@ -843,6 +875,7 @@ function asShapeNode(raw: {
   angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
   groupId?: string | undefined
   followHostId?: string | undefined
+  layerId?: string | undefined
   alarms?: Array<{
     id: string
     level: Alarm['level']
@@ -866,6 +899,7 @@ function asShapeNode(raw: {
     ...(angleAnchor !== undefined ? { angleAnchor } : {}),
     ...(raw.groupId !== undefined ? { groupId: raw.groupId } : {}),
     ...(raw.followHostId !== undefined ? { followHostId: raw.followHostId } : {}),
+    ...(raw.layerId !== undefined ? { layerId: raw.layerId } : {}),
     ...(raw.alarms !== undefined ? { alarms: raw.alarms.map(asAlarm) } : {}),
     ...(raw.style !== undefined ? { style: asShapeNodeStyle(raw.style) } : {}),
     ...(raw.data !== undefined ? { data: raw.data } : {}),
@@ -885,6 +919,7 @@ function mergeShapeNode(
     angleAnchor?: { readonly u?: number; readonly v?: number } | undefined
     groupId?: string | undefined
     followHostId?: string | null | undefined
+    layerId?: string | null | undefined
     alarms?: Array<{
       id: string
       level: Alarm['level']
@@ -898,6 +933,9 @@ function mergeShapeNode(
   const followHostId = patch.followHostId === null
     ? undefined
     : (patch.followHostId ?? current.followHostId)
+  const layerId = patch.layerId === null
+    ? undefined
+    : (patch.layerId ?? current.layerId)
   return asShapeNode({
     id: current.id,
     points: patch.points !== undefined
@@ -914,6 +952,7 @@ function mergeShapeNode(
       : current.angleAnchor,
     groupId: patch.groupId ?? current.groupId,
     followHostId,
+    layerId,
     alarms: patch.alarms ?? current.alarms?.map(a => ({
       id: a.id,
       level: a.level,

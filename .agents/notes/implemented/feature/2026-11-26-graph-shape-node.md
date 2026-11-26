@@ -55,7 +55,7 @@ interface GraphShapeNode {
 ### Render / hit / selection
 
 - `ShapeNodeView` densifies via shared `path-route` helpers (`buildPathPolyline`); closed fill when `fill` set; `closedEffective = shapeNode.closed !== false`.
-- Paint order: paths → groups → edges → shapeNodes → nodes. Hit pick: nodes → shapeNodes → edges → groups → paths.
+- Paint order: document `layers` bottom → top; within each layer filled surfaces (filled ShapeNode / closed+fill Path) → stroke paths → groups → edges → stroke shapeNodes → nodes. Hit pick reverses that. See [graph-layer](2026-11-26-graph-layer.md).
 - Select/hover from `style.select` / `style.hover`; control-point handles paint only while `MoveShapeNodeVertexInteraction` is attached (Edit / `setEditing(true)`), not on Observe selection alone.
 - Labels at densified bounds center (v1); `label2` / alarm on attachment anchors subset.
 - Unlocked: body drag translates all points; handle drag updates one control point.

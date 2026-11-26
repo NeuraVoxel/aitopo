@@ -33,6 +33,7 @@ describe('demo sample registry', () => {
       'edge',
       'path',
       'shape-node',
+      'layer',
       'group',
       'alarm',
       'subnetwork',
@@ -232,6 +233,7 @@ describe('demo sample registry', () => {
       'adas-ego',
       'adas-agent',
       'adas-static',
+      'adas-lane',
       'adas-lane-lines',
       'adas-lane-centerline',
       'adas-road-boundary',
@@ -250,6 +252,7 @@ describe('demo sample registry', () => {
 
     const reservedIds = new Set(['adas-sensor-fov'])
     const pathSampleIds = [
+      'adas-lane',
       'adas-lane-lines',
       'adas-lane-centerline',
       'adas-road-boundary',
@@ -414,6 +417,34 @@ describe('demo sample registry', () => {
     expect(axleFrame?.vectorImage).toBe('demo-ego-axle-frame')
     expect(axleFrame?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
     expect(axleFrame?.angle).toBeUndefined()
+
+    const lane = parseDocument(getSample('adas-lane')!.document)
+    expect(lane.nodes.find(n => n.id === 'ego')?.vectorImage).toBe('demo-ego-axle-frame')
+    expect(lane.nodes.find(n => n.id === 'ego')?.angle).toBeTypeOf('number')
+    expect(lane.shapeNodes?.map(s => s.id).sort()).toEqual([
+      'arrow-L1',
+      'surf-L0',
+      'surf-L1',
+      'surf-L2',
+    ])
+    expect(lane.shapeNodes?.find(s => s.id === 'surf-L0')?.data?.laneKind).toBe('virtual')
+    expect(lane.shapeNodes?.find(s => s.id === 'surf-L1')?.data?.laneKind).toBe('ego_occupancy')
+    // S-curve ribbon: more than a 4-corner rectangle.
+    expect((lane.shapeNodes?.find(s => s.id === 'surf-L1')?.points.length ?? 0)).toBeGreaterThan(8)
+    expect(lane.paths?.find(p => p.id === 'cl-L1')?.data?.onRoute).toBe(true)
+    expect(lane.paths?.find(p => p.id === 'cl-L1')?.style?.lineWidth).toBe(4)
+    expect((lane.paths?.find(p => p.id === 'cl-L1')?.points.length ?? 0)).toBeGreaterThan(4)
+    expect(lane.paths?.map(p => p.data?.boundaryKind).filter(Boolean).sort()).toEqual([
+      'curb',
+      'virtual',
+      'white_dashed',
+      'white_solid',
+      'yellow_solid',
+    ])
+    expect(lane.nodes.filter(n => n.data?.kind === 'speed_limit')).toHaveLength(3)
+    expect(lane.edges.filter(e => e.kind === 'successor')).toHaveLength(1)
+    expect(lane.edges.find(e => e.id === 'succ-L1-L1n')?.style?.arrowTo).toBe(true)
+    expect(lane.layers?.map(l => l.id)).toEqual(['ground', 'lanes', 'agents'])
 
     const boxes = parseDocument(getSample('adas-perception-boxes')!.document)
     expect(boxes.nodes.some(n => n.data?.class === 'truck')).toBe(true)

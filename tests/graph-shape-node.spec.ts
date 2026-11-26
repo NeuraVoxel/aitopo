@@ -841,6 +841,44 @@ describe('Network GraphShapeNode', () => {
     expect(net.hitTestScreen(200, 200)).toBeUndefined()
   })
 
+  it('hit prefers stroke path over filled shapeNode surface', async () => {
+    const renderer = stubRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [],
+      edges: [],
+      paths: [{
+        id: 'cl',
+        points: [
+          { x: 50, y: 0 },
+          { x: 50, y: 40 },
+        ],
+        style: { stroke: '#111', lineWidth: 4 },
+      }],
+      shapeNodes: [{
+        id: 'surf',
+        points: [
+          { x: 0, y: 0 },
+          { x: 100, y: 0 },
+          { x: 100, y: 40 },
+          { x: 0, y: 40 },
+        ],
+        style: { fill: '#e2e8f0', stroke: '#334155' },
+      }],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    expect(network.hitTestScreen(50, 20)).toEqual({ id: 'cl', kind: 'path' })
+  })
+
   it('hit prefers node over overlapping shapeNode', async () => {
     const renderer = stubRenderer()
     network = new Network({

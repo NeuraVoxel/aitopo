@@ -92,6 +92,7 @@ export class RotateElementInteraction implements Interaction {
     }
 
     const lockedOf = (kind: RotatableKind, id: string): boolean => {
+      if (!network.isLayerEditable(id)) return true
       if (kind === 'node') return network.getNode(id)?.locked === true
       if (kind === 'group') return network.getGroup(id)?.locked === true
       if (kind === 'path') {

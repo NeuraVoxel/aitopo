@@ -60,7 +60,7 @@ interface GraphPath {
 ### Render / hit / selection
 
 - `buildPathPolyline` / `densifyControlPolyline` in `src/ui/path-route.ts`; `PathView` densifies control `points`, computes bounds, and hits densified segments (filled closed paths also hit interior).
-- Paint order: paths → groups → edges → nodes (lanes under vehicles). Hit pick: nodes → edges → groups → paths.
+- Paint order: document `layers` bottom → top; within each layer filled surfaces → stroke paths → groups → edges → stroke shapeNodes → nodes. Hit pick reverses that. See [graph-layer](2026-11-26-graph-layer.md).
 - Selection / hover chrome: edge-like overlay restroke using `style.select` / `style.hover` **color** / **width** / **padding** (padding widens the chrome stroke); **glow** / **glowBlur** apply as stroke `shadowBlur` (select glow default on, hover default off). Selected paths also show **control-point** handles from `path.points` (not densified samples). Not AABB `drawSelectionOverlay` rings (those stay for nodes/groups).
 - `label` + `style.label` paint at densified-polyline midpoint with a small upward offset (`PathView.labelPosition` / `PathPaintView.label`); `labelSide` later.
 - Unlocked: body drag translates all points; handle drag updates one control point.

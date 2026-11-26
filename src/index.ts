@@ -21,6 +21,7 @@ export type {
   GraphEdgeStyle,
   GraphGroup,
   GraphGroupStyle,
+  GraphLayer,
   GraphMeta,
   GraphNode,
   GraphNodeStyle,

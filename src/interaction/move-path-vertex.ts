@@ -74,7 +74,7 @@ export class MovePathVertexInteraction implements Interaction {
         }
         for (const id of network.getSelectedIds()) {
           const path = network.getPaths().find(p => p.id === id)
-          if (path === undefined || path.locked === true) continue
+          if (path === undefined || path.locked === true || !network.isLayerEditable(id)) continue
           for (const point of worldHandles(path.points, path.angle ?? 0, path.angleAnchor)) {
             renderer.drawResizeHandle(point, size)
           }
@@ -87,7 +87,9 @@ export class MovePathVertexInteraction implements Interaction {
       world: Point,
     ): { index: number; points: Point[] } | undefined => {
       const path = network.getPaths().find(p => p.id === pathId)
-      if (path === undefined || path.locked === true) return undefined
+      if (path === undefined || path.locked === true || !network.isLayerEditable(pathId)) {
+        return undefined
+      }
       const pad = HIT_PAD / network.viewport.state.zoom
       const half = handleSize() / 2
       const angle = path.angle ?? 0

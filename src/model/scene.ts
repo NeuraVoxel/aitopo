@@ -3,6 +3,10 @@
  */
 
 import { expandFollowMotion, translateFollowersLive } from './follow.ts'
+import {
+  listPaintLayers,
+  resolveLayer,
+} from './layer.ts'
 import { applyPatch as applyDocumentPatch, type GraphPatch } from '../protocol/patch.ts'
 import { graphPatchSchema } from '../protocol/schema.ts'
 import { parseDocument } from '../protocol/parse.ts'
@@ -11,6 +15,7 @@ import type {
   GraphDocument,
   GraphEdge,
   GraphGroup,
+  GraphLayer,
   GraphNode,
   GraphPath,
   GraphShapeNode,
@@ -84,6 +89,33 @@ export class GraphScene {
     return this.shapeNodeMap
   }
 
+  /**
+   * Paint layers bottom → top (synthetic default when document omits `layers`).
+   */
+  get paintLayers(): readonly GraphLayer[] {
+    return listPaintLayers(this.active)
+  }
+
+  /**
+   * Resolve the layer policy for an element id.
+   * @param elementId - node / edge / group / path / shapeNode id.
+   */
+  layerOf(elementId: string): GraphLayer {
+    return resolveLayer(this.active, this.layerIdOf(elementId))
+  }
+
+  /**
+   * Raw `layerId` on the element, or undefined when omitted / unknown id.
+   * @param elementId - element id.
+   */
+  layerIdOf(elementId: string): string | undefined {
+    return this.nodeMap.get(elementId)?.layerId
+      ?? this.edgeMap.get(elementId)?.layerId
+      ?? this.groupMap.get(elementId)?.layerId
+      ?? this.pathMap.get(elementId)?.layerId
+      ?? this.shapeNodeMap.get(elementId)?.layerId
+  }
+
   get selectedIds(): ReadonlySet<string> {
     return this.selection
   }
@@ -142,6 +174,7 @@ export class GraphScene {
       nodes,
       edges,
       viewport: this.viewport,
+      ...(this.active.layers !== undefined ? { layers: this.active.layers } : {}),
       ...(groups.length > 0 ? { groups } : {}),
       ...(paths.length > 0 ? { paths } : {}),
       ...(shapeNodes.length > 0 ? { shapeNodes } : {}),
@@ -520,6 +553,7 @@ export class GraphScene {
       nodes: [...this.nodeMap.values()],
       edges: [...this.edgeMap.values()],
       viewport: this.viewport,
+      ...(this.active.layers !== undefined ? { layers: this.active.layers } : {}),
       ...(this.groupMap.size > 0 ? { groups: [...this.groupMap.values()] } : {}),
       ...(this.pathMap.size > 0 ? { paths: [...this.pathMap.values()] } : {}),
       ...(this.shapeNodeMap.size > 0

@@ -13,6 +13,12 @@ import {
   distanceToPolyline,
   type Rect,
 } from '../geom.ts'
+import {
+  DEFAULT_LAYER_ID,
+  isLayerEditable,
+  isLayerMovable,
+  isLayerVisible,
+} from '../model/layer.ts'
 import { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
@@ -21,6 +27,7 @@ import type {
   GraphDocument,
   GraphEdge,
   GraphGroup,
+  GraphLayer,
   GraphNode,
   GraphPath,
   GraphShapeNode,
@@ -533,17 +540,55 @@ export class Network {
       if (pathView !== undefined && pathView.points.length >= 2) {
         this.dirty.add(growRect(pathView.bounds, 8))
       }
+      const shapeNodeView = this.views.getShapeNode(id)
+      if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
+        this.dirty.add(growRect(shapeNodeView.bounds, 8))
+      }
+      const edgeView = this.views.getEdge(id)
+      if (edgeView?.isActive === true) {
+        this.dirty.add(growRect(edgeView.bounds, 8))
+      }
     }
     this.scheduleScenePaint()
     this.emit({ type: 'selectionChanged', selectedIds: ids })
   }
 
   /**
-   * @param id - hovered node or edge id, or undefined to clear.
+   * @param id - hovered element id, or undefined to clear.
    */
   setHover(id: string | undefined): void {
+    const previous = this.scene.hover
     this.scene.setHover(id)
-    this.requestOverlayPaint()
+    // Path / ShapeNode / Edge select·hover stroke lives on root (layer order).
+    // Node hover itself stays overlay-only unless related edges also need a root refresh.
+    let needsScene = false
+    const dirtyEdge = (edgeId: string): void => {
+      const edgeView = this.views.getEdge(edgeId)
+      if (edgeView?.isActive !== true) return
+      this.dirty.add(growRect(edgeView.bounds, 8))
+      needsScene = true
+    }
+    for (const hid of [previous, id]) {
+      if (hid === undefined) continue
+      const pathView = this.views.getPath(hid)
+      if (pathView !== undefined && pathView.points.length >= 2) {
+        this.dirty.add(growRect(pathView.bounds, 8))
+        needsScene = true
+      }
+      const shapeNodeView = this.views.getShapeNode(hid)
+      if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
+        this.dirty.add(growRect(shapeNodeView.bounds, 8))
+        needsScene = true
+      }
+      if (this.scene.edges.has(hid)) dirtyEdge(hid)
+      if (this.scene.nodes.has(hid) || this.scene.groups.has(hid)) {
+        for (const edge of this.scene.edges.values()) {
+          if (edge.from === hid || edge.to === hid) dirtyEdge(edge.id)
+        }
+      }
+    }
+    if (needsScene) this.scheduleScenePaint()
+    else this.requestOverlayPaint()
     this.emit({ type: 'hoverChanged', ...(id === undefined ? {} : { hoverId: id }) })
   }
 
@@ -625,8 +670,9 @@ export class Network {
   /**
    * Hit-test at a screen point relative to the hit canvas.
    * Order matches reverse paint (twaver `getElementAt` top-down):
-   * nodes → shapeNodes → edges → groups → paths
-   * (paths paint lowest; boxed nodes stay above polygons).
+   * nodes → stroke shapeNodes → edges → groups → stroke paths →
+   * filled paths → filled shapeNodes
+   * (filled surfaces paint lowest so linework / boxes stay selectable above).
    * Edges paint above group bands, so polyline hits must win over band fill.
    * Edge labels / alarms (union attachments) are hittable like twaver link attachments.
    */
@@ -634,75 +680,13 @@ export class Network {
     const world = this.viewport.screenToWorld({ x: screenX, y: screenY })
     const zoom = this.viewport.state.zoom
     this.views.validateDirty(this.scene)
-    const nodes = [...this.scene.nodes.values()]
-    for (let i = nodes.length - 1; i >= 0; i -= 1) {
-      const node = nodes[i]!
-      const view = this.views.getNode(node.id)
-      if (view === undefined || !view.isVisible) continue
-      if (!hitRect(world, view.bounds, 2 / zoom)) continue
-      // Cull with the rotated AABB, then test the original union in its own frame.
-      const local = view.angle === 0
-        ? world
-        : inverseRotatePointAround(world, view.pivot, view.angle)
-      if (hitRect(local, view.originalUnionBounds, 2 / zoom)) {
-        return { id: node.id, kind: 'node' }
-      }
-    }
     const pad = 4 / zoom
-    const shapeNodes = [...this.scene.shapeNodes.values()]
-    for (let i = shapeNodes.length - 1; i >= 0; i -= 1) {
-      const shapeNode = shapeNodes[i]!
-      const view = this.views.getShapeNode(shapeNode.id)
-      if (view === undefined || view.points.length < 2) continue
-      if (view.hit(world.x, world.y, pad)) {
-        return { id: shapeNode.id, kind: 'shapeNode' }
-      }
-    }
-    let bestId: string | undefined
-    let bestDist = pad
-    for (const edge of this.scene.edges.values()) {
-      const view = this.views.getEdge(edge.id)
-      if (view === undefined || !view.isActive) continue
-      if (view.hitsAttachment(world)) {
-        bestDist = 0
-        bestId = edge.id
-        continue
-      }
-      const dist = distanceToPolyline(world, view.points)
-      if (dist <= bestDist) {
-        bestDist = dist
-        bestId = edge.id
-      }
-    }
-    if (bestId !== undefined) return { id: bestId, kind: 'edge' }
-    const groups = [...this.scene.groups.values()].sort((a, b) => {
-      // Prefer deeper (nested) groups when bands overlap.
-      const depth = (id: string): number => {
-        let d = 0
-        let g = this.scene.groups.get(id)
-        while (g?.parentId !== undefined) {
-          d += 1
-          g = this.scene.groups.get(g.parentId)
-        }
-        return d
-      }
-      return depth(b.id) - depth(a.id)
-    })
-    for (const group of groups) {
-      const view = this.views.getGroup(group.id)
-      if (view === undefined || !view.isVisible) continue
-      if (!hitRect(world, view.bounds, 2 / zoom)) continue
-      const local = view.angle === 0
-        ? world
-        : inverseRotatePointAround(world, view.pivot, view.angle)
-      if (hitRect(local, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
-    }
-    const paths = [...this.scene.paths.values()]
-    for (let i = paths.length - 1; i >= 0; i -= 1) {
-      const path = paths[i]!
-      const view = this.views.getPath(path.id)
-      if (view === undefined || view.points.length < 2) continue
-      if (view.hit(world.x, world.y, pad)) return { id: path.id, kind: 'path' }
+    const layers = this.scene.paintLayers
+    for (let li = layers.length - 1; li >= 0; li -= 1) {
+      const layer = layers[li]!
+      if (!isLayerVisible(layer)) continue
+      const hit = this.hitTestOnLayer(layer.id, world, zoom, pad)
+      if (hit !== undefined) return hit
     }
     return undefined
   }
@@ -743,6 +727,30 @@ export class Network {
   /** @returns shape nodes in the active network. */
   getShapeNodes(): readonly GraphShapeNode[] {
     return [...this.scene.shapeNodes.values()]
+  }
+
+  /**
+   * Resolved layer policy for an element (omitted `layerId` → default).
+   * @param elementId - element id.
+   */
+  getElementLayer(elementId: string): GraphLayer {
+    return this.scene.layerOf(elementId)
+  }
+
+  /**
+   * Whether the element's layer allows drag-move.
+   * @param elementId - element id.
+   */
+  isLayerMovable(elementId: string): boolean {
+    return isLayerMovable(this.scene.layerOf(elementId))
+  }
+
+  /**
+   * Whether the element's layer allows edit chrome.
+   * @param elementId - element id.
+   */
+  isLayerEditable(elementId: string): boolean {
+    return isLayerEditable(this.scene.layerOf(elementId))
   }
 
   /**
@@ -1467,22 +1475,14 @@ export class Network {
 
   private paintOverlayPass(renderer: Renderer): void {
     const hoverId = this.scene.hover
-    for (const path of this.scene.paths.values()) {
-      const view = this.views.getPath(path.id)
-      if (view === undefined || view.points.length < 2) continue
-      const selected = this.scene.selectedIds.has(path.id)
-      const hovered = hoverId === path.id
-      if (selected || hovered) {
-        renderer.drawPath(path, view.toPaintView(selected, hovered))
-      }
-    }
+    // Path / ShapeNode / Edge bodies highlight on root (layer order). Overlay
+    // keeps node/group rings, tooltips, and edge overlay attachments only.
     for (const edge of this.scene.edges.values()) {
       const flags = this.edgeHighlightFlags(edge)
       if (!flags.selected && !flags.hovered) continue
       const view = this.views.getEdge(edge.id)
       if (view === undefined || !view.isActive) continue
       const paint = view.toPaintView(flags.selected, flags.hovered)
-      renderer.drawEdge(edge, paint)
       if (paint.overlayAttachments.length > 0) {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
       }
@@ -1503,15 +1503,6 @@ export class Network {
       }
       if (paint.overlayAttachments.length > 0) {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
-      }
-    }
-    for (const shapeNode of this.scene.shapeNodes.values()) {
-      const view = this.views.getShapeNode(shapeNode.id)
-      if (view === undefined || view.points.length < 2) continue
-      const selected = this.scene.selectedIds.has(shapeNode.id)
-      const hovered = hoverId === shapeNode.id
-      if (selected || hovered) {
-        renderer.drawShapeNode(shapeNode, view.toPaintView(selected, hovered))
       }
     }
     for (const node of this.scene.nodes.values()) {
@@ -1567,53 +1558,11 @@ export class Network {
           return false
         }
         renderer.beginFrame(cam, dirtyRects)
-        // Paint bottom → top (reverse of hit): paths → groups → edges →
-        // shapeNodes → nodes. Edges stay above group bands; shapeNodes sit with
-        // nodes (under boxed nodes). Plan pin text said edges before groups;
-        // kept existing edges-above-groups so hit/paint stay inverse.
-        if (filter === undefined) {
-          for (const path of this.scene.paths.values()) {
-            const view = this.views.getPath(path.id)
-            if (view === undefined || view.points.length < 2) continue
-            if (!inDirty(view.bounds)) continue
-            renderer.drawPath(path, view.toPaintView(false, false))
-          }
-          for (const group of this.scene.groups.values()) {
-            const view = this.views.getGroup(group.id)
-            if (view === undefined || !view.isVisible) continue
-            if (!inDirty(view.bounds)) continue
-            const selected = this.scene.selectedIds.has(group.id)
-            const hovered = this.scene.hover === group.id
-            renderer.drawGroup(group, view.toPaintView(selected, hovered))
-          }
-        }
-        for (const edge of this.scene.edges.values()) {
-          if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
-          const view = this.views.getEdge(edge.id)
-          if (view === undefined || !view.isActive) continue
-          if (!inDirty(view.bounds)) continue
-          // Base paint always lands on the root layer; select/hover styling is
-          // stacked on top by the overlay pass. Skipping highlighted edges here
-          // would leave root holes that unhover (overlay-only) never refills.
-          renderer.drawEdge(edge, view.toPaintView(false, false))
-        }
-        if (filter === undefined) {
-          for (const shapeNode of this.scene.shapeNodes.values()) {
-            const view = this.views.getShapeNode(shapeNode.id)
-            if (view === undefined || view.points.length < 2) continue
-            if (!inDirty(view.bounds)) continue
-            renderer.drawShapeNode(shapeNode, view.toPaintView(false, false))
-          }
-        }
-        for (const node of this.scene.nodes.values()) {
-          if (filter !== undefined && !filter.has(node.id)) continue
-          const view = this.views.getNode(node.id)
-          if (view === undefined || !view.isVisible) continue
-          if (!inDirty(view.bounds)) continue
-          renderer.drawNode(node, view.toPaintView(
-            this.scene.selectedIds.has(node.id),
-            this.scene.hover === node.id,
-          ))
+        // Paint bottom → top: document layers, then within each layer
+        // filled surfaces → stroke paths → groups → edges → stroke shapeNodes → nodes.
+        for (const layer of this.scene.paintLayers) {
+          if (!isLayerVisible(layer)) continue
+          this.paintLayerElements(layer.id, renderer, inDirty, filter)
         }
       } else if (paintOverlay) {
         // Discard stale scene dirty without painting root (overlay-only frame).
@@ -1631,6 +1580,211 @@ export class Network {
     }
   }
 
+  /**
+   * Hit-test elements on one layer (top → bottom kind order within the layer).
+   * @param layerId - resolved layer id.
+   * @param world - world point.
+   * @param zoom - camera zoom.
+   * @param pad - path/edge hit pad in world px.
+   */
+  private hitTestOnLayer(
+    layerId: string,
+    world: { x: number; y: number },
+    zoom: number,
+    pad: number,
+  ): { id: string; kind: HitKind } | undefined {
+    const onLayer = (layerIdValue: string | undefined): boolean =>
+      (layerIdValue ?? DEFAULT_LAYER_ID) === layerId
+
+    const nodes = [...this.scene.nodes.values()]
+    for (let i = nodes.length - 1; i >= 0; i -= 1) {
+      const node = nodes[i]!
+      if (!onLayer(node.layerId)) continue
+      const view = this.views.getNode(node.id)
+      if (view === undefined || !view.isVisible) continue
+      if (!hitRect(world, view.bounds, 2 / zoom)) continue
+      const local = view.angle === 0
+        ? world
+        : inverseRotatePointAround(world, view.pivot, view.angle)
+      if (hitRect(local, view.originalUnionBounds, 2 / zoom)) {
+        return { id: node.id, kind: 'node' }
+      }
+    }
+
+    const shapeNodes = [...this.scene.shapeNodes.values()]
+    for (let i = shapeNodes.length - 1; i >= 0; i -= 1) {
+      const shapeNode = shapeNodes[i]!
+      if (!onLayer(shapeNode.layerId) || isFilledSurfaceShape(shapeNode)) continue
+      const view = this.views.getShapeNode(shapeNode.id)
+      if (view === undefined || view.points.length < 2) continue
+      if (view.hit(world.x, world.y, pad)) {
+        return { id: shapeNode.id, kind: 'shapeNode' }
+      }
+    }
+
+    let bestId: string | undefined
+    let bestDist = pad
+    for (const edge of this.scene.edges.values()) {
+      if (!onLayer(edge.layerId)) continue
+      const view = this.views.getEdge(edge.id)
+      if (view === undefined || !view.isActive) continue
+      if (view.hitsAttachment(world)) {
+        bestDist = 0
+        bestId = edge.id
+        continue
+      }
+      const dist = distanceToPolyline(world, view.points)
+      if (dist <= bestDist) {
+        bestDist = dist
+        bestId = edge.id
+      }
+    }
+    if (bestId !== undefined) return { id: bestId, kind: 'edge' }
+
+    const groups = [...this.scene.groups.values()]
+      .filter(g => onLayer(g.layerId))
+      .sort((a, b) => {
+        const depth = (id: string): number => {
+          let d = 0
+          let g = this.scene.groups.get(id)
+          while (g?.parentId !== undefined) {
+            d += 1
+            g = this.scene.groups.get(g.parentId)
+          }
+          return d
+        }
+        return depth(b.id) - depth(a.id)
+      })
+    for (const group of groups) {
+      const view = this.views.getGroup(group.id)
+      if (view === undefined || !view.isVisible) continue
+      if (!hitRect(world, view.bounds, 2 / zoom)) continue
+      const local = view.angle === 0
+        ? world
+        : inverseRotatePointAround(world, view.pivot, view.angle)
+      if (hitRect(local, view.bandBounds, 2 / zoom)) return { id: group.id, kind: 'group' }
+    }
+
+    const paths = [...this.scene.paths.values()]
+    for (let i = paths.length - 1; i >= 0; i -= 1) {
+      const path = paths[i]!
+      if (!onLayer(path.layerId) || isFilledSurfacePath(path)) continue
+      const view = this.views.getPath(path.id)
+      if (view === undefined || view.points.length < 2) continue
+      if (view.hit(world.x, world.y, pad)) return { id: path.id, kind: 'path' }
+    }
+    for (let i = paths.length - 1; i >= 0; i -= 1) {
+      const path = paths[i]!
+      if (!onLayer(path.layerId) || !isFilledSurfacePath(path)) continue
+      const view = this.views.getPath(path.id)
+      if (view === undefined || view.points.length < 2) continue
+      if (view.hit(world.x, world.y, pad)) return { id: path.id, kind: 'path' }
+    }
+    for (let i = shapeNodes.length - 1; i >= 0; i -= 1) {
+      const shapeNode = shapeNodes[i]!
+      if (!onLayer(shapeNode.layerId) || !isFilledSurfaceShape(shapeNode)) continue
+      const view = this.views.getShapeNode(shapeNode.id)
+      if (view === undefined || view.points.length < 2) continue
+      if (view.hit(world.x, world.y, pad)) {
+        return { id: shapeNode.id, kind: 'shapeNode' }
+      }
+    }
+    return undefined
+  }
+
+  /**
+   * Paint one layer's elements (within-layer kind order).
+   * @param layerId - resolved layer id.
+   * @param renderer - paint backend.
+   * @param inDirty - dirty-rect cull.
+   * @param filter - optional live-drag filter (nodes/edges only).
+   */
+  private paintLayerElements(
+    layerId: string,
+    renderer: Renderer,
+    inDirty: (bounds: Rect) => boolean,
+    filter: ReadonlySet<string> | undefined,
+  ): void {
+    const onLayer = (layerIdValue: string | undefined): boolean =>
+      (layerIdValue ?? DEFAULT_LAYER_ID) === layerId
+
+    const hoverId = this.scene.hover
+    if (filter === undefined) {
+      for (const shapeNode of this.scene.shapeNodes.values()) {
+        if (!onLayer(shapeNode.layerId) || !isFilledSurfaceShape(shapeNode)) continue
+        const view = this.views.getShapeNode(shapeNode.id)
+        if (view === undefined || view.points.length < 2) continue
+        if (!inDirty(view.bounds)) continue
+        renderer.drawShapeNode(shapeNode, view.toPaintView(
+          this.scene.selectedIds.has(shapeNode.id),
+          hoverId === shapeNode.id,
+        ))
+      }
+      for (const path of this.scene.paths.values()) {
+        if (!onLayer(path.layerId) || !isFilledSurfacePath(path)) continue
+        const view = this.views.getPath(path.id)
+        if (view === undefined || view.points.length < 2) continue
+        if (!inDirty(view.bounds)) continue
+        renderer.drawPath(path, view.toPaintView(
+          this.scene.selectedIds.has(path.id),
+          hoverId === path.id,
+        ))
+      }
+      for (const path of this.scene.paths.values()) {
+        if (!onLayer(path.layerId) || isFilledSurfacePath(path)) continue
+        const view = this.views.getPath(path.id)
+        if (view === undefined || view.points.length < 2) continue
+        if (!inDirty(view.bounds)) continue
+        renderer.drawPath(path, view.toPaintView(
+          this.scene.selectedIds.has(path.id),
+          hoverId === path.id,
+        ))
+      }
+      for (const group of this.scene.groups.values()) {
+        if (!onLayer(group.layerId)) continue
+        const view = this.views.getGroup(group.id)
+        if (view === undefined || !view.isVisible) continue
+        if (!inDirty(view.bounds)) continue
+        const selected = this.scene.selectedIds.has(group.id)
+        const hovered = hoverId === group.id
+        renderer.drawGroup(group, view.toPaintView(selected, hovered))
+      }
+    }
+    for (const edge of this.scene.edges.values()) {
+      if (!onLayer(edge.layerId)) continue
+      if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
+      const view = this.views.getEdge(edge.id)
+      if (view === undefined || !view.isActive) continue
+      if (!inDirty(view.bounds)) continue
+      // Select/hover stroke on root with the layer (not overlay) so upper layers win.
+      const flags = this.edgeHighlightFlags(edge)
+      renderer.drawEdge(edge, view.toPaintView(flags.selected, flags.hovered))
+    }
+    if (filter === undefined) {
+      for (const shapeNode of this.scene.shapeNodes.values()) {
+        if (!onLayer(shapeNode.layerId) || isFilledSurfaceShape(shapeNode)) continue
+        const view = this.views.getShapeNode(shapeNode.id)
+        if (view === undefined || view.points.length < 2) continue
+        if (!inDirty(view.bounds)) continue
+        renderer.drawShapeNode(shapeNode, view.toPaintView(
+          this.scene.selectedIds.has(shapeNode.id),
+          hoverId === shapeNode.id,
+        ))
+      }
+    }
+    for (const node of this.scene.nodes.values()) {
+      if (!onLayer(node.layerId)) continue
+      if (filter !== undefined && !filter.has(node.id)) continue
+      const view = this.views.getNode(node.id)
+      if (view === undefined || !view.isVisible) continue
+      if (!inDirty(view.bounds)) continue
+      renderer.drawNode(node, view.toPaintView(
+        this.scene.selectedIds.has(node.id),
+        this.scene.hover === node.id,
+      ))
+    }
+  }
+
 }
 
 /** Whether a rect has finite x/y/width/height (NaN/±Infinity fail paint expand). */
@@ -1641,6 +1795,22 @@ function isFiniteRect(rect: Rect): boolean {
     && Number.isFinite(rect.width)
     && Number.isFinite(rect.height)
   )
+}
+
+/**
+ * Closed Path with fill — within-layer underlay (under stroke paths on same layer).
+ * Open paths ignore fill in paint; only explicit `closed: true` qualifies.
+ */
+function isFilledSurfacePath(path: GraphPath): boolean {
+  return path.closed === true && path.style?.fill !== undefined
+}
+
+/**
+ * Closed ShapeNode with fill — within-layer underlay.
+ * ShapeNode omitted `closed` ≡ closed (`true`).
+ */
+function isFilledSurfaceShape(shapeNode: GraphShapeNode): boolean {
+  return shapeNode.closed !== false && shapeNode.style?.fill !== undefined
 }
 
 /** Content union bounds for fit. */

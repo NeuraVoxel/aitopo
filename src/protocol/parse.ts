@@ -3,6 +3,7 @@
  */
 
 import { assertFollowHostValid } from '../model/follow.ts'
+import { assertLayerIdsValid } from '../model/layer.ts'
 import { graphDocumentSchema } from './schema.ts'
 import type { GraphDocument, GraphGroup } from './types.ts'
 
@@ -24,6 +25,7 @@ export function parseDocument(input: unknown): GraphDocument {
   assertEndpointIds(result.data)
   assertNoCrossKindIdClash(result.data)
   assertFollowHostValid(result.data)
+  assertLayerIdsValid(result.data)
   return result.data
 }
 

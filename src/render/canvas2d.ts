@@ -358,9 +358,9 @@ export class Canvas2DRenderer implements Renderer {
 
   drawEdge(edge: GraphEdge, view: EdgePaintView): void {
     void edge
-    const highlight = view.selected || view.hovered
-    // Highlighted edges paint on the overlay canvas so node fills cannot cover them.
-    const ctx = highlight ? this.overlayCtx : this.rootCtx
+    // Edge body always on root so document-layer Z order is preserved (a selected
+    // lanes-layer edge must not cover agents-layer nodes via the overlay).
+    const ctx = this.rootCtx
     ctx.save()
     ctx.globalAlpha = view.alpha
     ctx.beginPath()
@@ -430,8 +430,9 @@ export class Canvas2DRenderer implements Renderer {
   /** Shared Path / ShapeNode stroke (+ optional closed fill + label). */
   private paintPolylineElement(view: PathPaintView): void {
     if (view.points.length < 2) return
-    const highlight = view.selected || view.hovered
-    const ctx = highlight ? this.overlayCtx : this.rootCtx
+    // Body + select/hover stroke stay on root (document-layer order). Overlay
+    // redraw would cover higher layers (e.g. selected lanes over agents).
+    const ctx = this.rootCtx
     ctx.save()
     ctx.globalAlpha = view.alpha
     if (view.anglePivot !== undefined) {

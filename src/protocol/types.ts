@@ -20,6 +20,22 @@ export interface GraphMeta {
   readonly [key: string]: unknown
 }
 
+/**
+ * Document paint / interaction layer (twaver Layer ideas; clean-room).
+ * {@link GraphDocument.layers} array order = paint bottom → top.
+ * Omitted flags ≡ `true`. Elements omit `layerId` → `"default"`.
+ */
+export interface GraphLayer {
+  readonly id: string
+  readonly name?: string
+  /** When false, elements on this layer are not painted and not hit. Omitted ≡ `true`. */
+  readonly visible?: boolean
+  /** When false, drag-move skips elements on this layer. Omitted ≡ `true`. */
+  readonly movable?: boolean
+  /** When false, edit chrome (resize / rotate / vertices) skips this layer. Omitted ≡ `true`. */
+  readonly editable?: boolean
+}
+
 /** Viewport camera snapshot when persisted in the document. */
 export interface GraphViewport {
   readonly x: number
@@ -191,6 +207,11 @@ export interface GraphNode {
    * Host delete clears this field on followers.
    */
   readonly followHostId?: string
+  /**
+   * Paint / hit layer id ({@link GraphDocument.layers}).
+   * Omitted → `"default"`. Unknown ids fail loud at parse / apply.
+   */
+  readonly layerId?: string
   readonly alarms?: readonly Alarm[]
   readonly style?: GraphNodeStyle
   readonly data?: Readonly<Record<string, unknown>>
@@ -430,6 +451,11 @@ export interface GraphEdge {
   readonly label2?: string
   /** EdgeTooltipAttachment text when set. */
   readonly tooltip?: string
+  /**
+   * Paint / hit layer id ({@link GraphDocument.layers}).
+   * Omitted → `"default"`. Unknown ids fail loud at parse / apply.
+   */
+  readonly layerId?: string
   readonly alarms?: readonly Alarm[]
   readonly style?: GraphEdgeStyle
   /** Business bag only — renderer does not read visual keys from `data`. */
@@ -535,6 +561,11 @@ export interface GraphPath {
    * Translate with host on host move. See {@link GraphNode.followHostId}.
    */
   readonly followHostId?: string
+  /**
+   * Paint / hit layer id ({@link GraphDocument.layers}).
+   * Omitted → `"default"`. Unknown ids fail loud at parse / apply.
+   */
+  readonly layerId?: string
   readonly style?: GraphPathStyle
   readonly data?: Readonly<Record<string, unknown>>
 }
@@ -586,6 +617,11 @@ export interface GraphShapeNode {
    * Translate with host on host move. See {@link GraphNode.followHostId}.
    */
   readonly followHostId?: string
+  /**
+   * Paint / hit layer id ({@link GraphDocument.layers}).
+   * Omitted → `"default"`. Unknown ids fail loud at parse / apply.
+   */
+  readonly layerId?: string
   readonly alarms?: readonly Alarm[]
   readonly style?: GraphShapeNodeStyle
   readonly data?: Readonly<Record<string, unknown>>
@@ -640,6 +676,11 @@ export interface GraphGroup {
    */
   readonly followHostId?: string
   /**
+   * Paint / hit layer id ({@link GraphDocument.layers}).
+   * Omitted → `"default"`. Unknown ids fail loud at parse / apply.
+   */
+  readonly layerId?: string
+  /**
    * IconRegistry key for collapsed IconsAttachment; omitted → `group`.
    * Unknown keys fall back to `group`.
    */
@@ -657,6 +698,13 @@ export interface GraphGroup {
 export interface GraphDocument {
   readonly version: 1
   readonly meta?: GraphMeta
+  /**
+   * Paint layers bottom → top (twaver LayerBox order).
+   * Omitted / empty → single implicit `"default"` layer.
+   * Elements with omitted `layerId` use `"default"` (injected at bottom when
+   * the declared list does not include it).
+   */
+  readonly layers?: readonly GraphLayer[]
   readonly nodes: readonly GraphNode[]
   readonly edges: readonly GraphEdge[]
   readonly groups?: readonly GraphGroup[]

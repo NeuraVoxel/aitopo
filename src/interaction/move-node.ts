@@ -228,13 +228,13 @@ export class MoveNodeInteraction implements Interaction {
       const members: { id: string; fromX: number; fromY: number }[] = []
       for (const id of listDescendantNodeIds(scene as never, group)) {
         const node = network.getNode(id)
-        if (node === undefined || node.locked === true) continue
+        if (node === undefined || node.locked === true || !network.isLayerMovable(id)) continue
         members.push({ id, fromX: node.x ?? 0, fromY: node.y ?? 0 })
       }
       const childGroups: { id: string; fromX: number; fromY: number }[] = []
       for (const id of listDescendantGroupIds(scene as never, group)) {
         const child = network.getGroup(id)
-        if (child === undefined || child.locked === true) continue
+        if (child === undefined || child.locked === true || !network.isLayerMovable(id)) continue
         childGroups.push({ id, fromX: child.x ?? 0, fromY: child.y ?? 0 })
       }
       return { members, childGroups }
@@ -270,7 +270,7 @@ export class MoveNodeInteraction implements Interaction {
       for (const id of selectedIds) {
         const group = network.getGroup(id)
         if (group !== undefined) {
-          if (group.locked === true) continue
+          if (group.locked === true || !network.isLayerMovable(id)) continue
           const { members, childGroups } = collectGroupMembers(id)
           for (const member of members) coveredMembers.add(member.id)
           for (const child of childGroups) coveredMembers.add(child.id)
@@ -286,7 +286,7 @@ export class MoveNodeInteraction implements Interaction {
         }
         const path = network.getPaths().find(p => p.id === id)
         if (path !== undefined) {
-          if (path.locked === true) continue
+          if (path.locked === true || !network.isLayerMovable(id)) continue
           nextMovers.push({
             kind: 'path',
             id,
@@ -296,7 +296,7 @@ export class MoveNodeInteraction implements Interaction {
         }
         const shapeNode = network.getShapeNodes().find(s => s.id === id)
         if (shapeNode !== undefined) {
-          if (shapeNode.locked === true) continue
+          if (shapeNode.locked === true || !network.isLayerMovable(id)) continue
           nextMovers.push({
             kind: 'shapeNode',
             id,
@@ -307,7 +307,7 @@ export class MoveNodeInteraction implements Interaction {
         }
         if (coveredMembers.has(id)) continue
         const node = network.getNode(id)
-        if (node === undefined || node.locked === true) continue
+        if (node === undefined || node.locked === true || !network.isLayerMovable(id)) continue
         nextMovers.push({
           kind: 'node',
           id,

@@ -11,6 +11,7 @@ import type { GraphPatch } from '../protocol/patch.ts'
 import type {
   GraphEdge,
   GraphGroup,
+  GraphLayer,
   GraphNode,
   GraphPath,
   GraphShapeNode,
@@ -19,7 +20,9 @@ import type { Renderer } from '../render/canvas2d.ts'
 
 /**
  * Hit-test element kind.
- * Pick order (top → bottom): node → shapeNode → edge → group → path.
+ * Outer order: document layers top → bottom (`visible: false` skipped).
+ * Within a layer: node → stroke shapeNode → edge → group → stroke path →
+ * filled path → filled shapeNode.
  */
 export type HitKind = 'node' | 'shapeNode' | 'edge' | 'group' | 'path'
 
@@ -92,6 +95,21 @@ export interface InteractionQueryHost {
   getPaths(): readonly GraphPath[]
   /** @returns shape nodes in the active network. */
   getShapeNodes(): readonly GraphShapeNode[]
+  /**
+   * Resolved layer policy for an element (omitted `layerId` → default).
+   * @param elementId - node / edge / group / path / shapeNode id.
+   */
+  getElementLayer(elementId: string): GraphLayer
+  /**
+   * Whether the element's layer allows drag-move (ignores `locked`).
+   * @param elementId - element id.
+   */
+  isLayerMovable(elementId: string): boolean
+  /**
+   * Whether the element's layer allows edit chrome (resize / rotate / vertices).
+   * @param elementId - element id.
+   */
+  isLayerEditable(elementId: string): boolean
   /**
    * Validated band / collapsed-body bounds of a group (auto-fit aware).
    * @param id - group id.

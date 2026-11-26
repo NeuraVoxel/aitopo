@@ -3,6 +3,7 @@ import { adasDrivableAreaSample } from './drivable-area.ts'
 import { adasEgoSample } from './ego.ts'
 import { adasStaticSample } from './static.ts'
 import { adasHdmapJunctionSample } from './hdmap-junction.ts'
+import { adasLaneSample } from './lane.ts'
 import { adasLaneCenterlineSample } from './lane-centerline.ts'
 import { adasLaneLinesSample } from './lane-lines.ts'
 import { adasOccupancyBevSample } from './occupancy-bev.ts'
@@ -21,6 +22,7 @@ const byId = new Map<string, DemoSample>([
   [adasEgoSample.id, adasEgoSample],
   [adasAgentSample.id, adasAgentSample],
   [adasStaticSample.id, adasStaticSample],
+  [adasLaneSample.id, adasLaneSample],
   [adasLaneLinesSample.id, adasLaneLinesSample],
   [adasLaneCenterlineSample.id, adasLaneCenterlineSample],
   [adasRoadBoundarySample.id, adasRoadBoundarySample],
@@ -42,6 +44,7 @@ const ADAS_ORDER: readonly string[] = [
   'adas-ego',
   'adas-agent',
   'adas-static',
+  'adas-lane',
   'adas-lane-lines',
   'adas-lane-centerline',
   'adas-road-boundary',

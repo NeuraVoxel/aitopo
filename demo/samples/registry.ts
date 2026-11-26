@@ -5,6 +5,7 @@ import { dshBootSample } from './dsh/boot.ts'
 import { subagentSample } from './agents/subagent.ts'
 import { edgeSample } from './elements/edge.ts'
 import { groupSample } from './elements/group.ts'
+import { layerSample } from './elements/layer.ts'
 import { nodeSample } from './elements/node.ts'
 import { pathSample } from './elements/path.ts'
 import { shapeNodeSample } from './elements/shape-node.ts'
@@ -35,6 +36,7 @@ const SAMPLES: readonly DemoSample[] = [
   edgeSample,
   pathSample,
   shapeNodeSample,
+  layerSample,
   groupSample,
   alarmSample,
   subnetworkSample,

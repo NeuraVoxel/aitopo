@@ -51,7 +51,7 @@ export class ResizeNodeInteraction implements Interaction {
       const pad = hitPadWorld()
       for (const id of network.getSelectedIds()) {
         const node = network.getNode(id)
-        if (node === undefined || node.locked === true) continue
+        if (node === undefined || node.locked === true || !network.isLayerEditable(id)) continue
         const bounds = nodeBounds(node)
         const box = { x: bounds.x, y: bounds.y, w: bounds.width, h: bounds.height }
         const angle = node.angle ?? 0
@@ -117,7 +117,7 @@ export class ResizeNodeInteraction implements Interaction {
         const size = handleSizeWorld()
         for (const id of network.getSelectedIds()) {
           const node = network.getNode(id)
-          if (node === undefined || node.locked === true) continue
+          if (node === undefined || node.locked === true || !network.isLayerEditable(id)) continue
           const bounds = nodeBounds(node)
           const box = { x: bounds.x, y: bounds.y, w: bounds.width, h: bounds.height }
           const angle = node.angle ?? 0

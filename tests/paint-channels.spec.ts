@@ -156,23 +156,28 @@ describe('paint channels', () => {
     await flushFrames(3)
     renderer.reset()
 
-    // Hovering a node highlights related data edges via an overlay-only frame.
+    // Related-edge hover stroke lives on root (layer order), so node hover
+    // that fans out to edges schedules a scene paint — not overlay-only.
     network.setHover('a')
     await flushFrames(2)
-    expect(renderer.beginDirties).toEqual(['overlay'])
+    expect(renderer.beginDirties.some(d => d !== 'overlay')).toBe(true)
+    expect(
+      vi.mocked(renderer.drawEdge).mock.calls.some(c => c[0].id === 'e1' && c[1].hovered),
+    ).toBe(true)
 
-    // Moving the node repaints the scene while it is still hovered; the edge
-    // must keep its base paint on the root layer, otherwise unhover (which is
-    // overlay-only) exposes a hole where the scene pass skipped the edge.
+    // Moving the node while hovered still paints the edge on the root layer.
     renderer.reset()
+    vi.mocked(renderer.drawEdge).mockClear()
     network.previewNodePosition('a', 80, 40)
     await flushFrames(2)
-    expect(renderer.edgeBasePaints).toBeGreaterThan(0)
+    expect(vi.mocked(renderer.drawEdge).mock.calls.some(c => c[0].id === 'e1')).toBe(true)
 
+    // Clearing hover scene-paints related edges back to the base stroke.
     renderer.reset()
     network.setHover(undefined)
     await flushFrames(2)
-    expect(renderer.beginDirties).toEqual(['overlay'])
+    expect(renderer.beginDirties.some(d => d !== 'overlay')).toBe(true)
+    expect(renderer.edgeBasePaints).toBeGreaterThan(0)
   })
 
   it('requestOverlayPaint does not draw scene bodies', async () => {
