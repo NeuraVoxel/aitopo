@@ -27,8 +27,8 @@ Gap backlog lists Performance waves as `proposed`. Placement follows ai-eng desi
 | Hot path | AITopo today | Typical vector-class target | Gap |
 |---|---|---|---|
 | Selection / hover / handles | Overlay-only (E) | Dual canvas / chrome layer | Closed |
-| Element apply / live preview | Dirty-rect clip (F); filter → `'all'` | Local invalidate; optional lazy | Medium |
-| Draw loop | Clip yes; still visits all elements | Cull by dirty/viewport | Large |
+| Element apply / live preview | Dirty-rect clip (F); baked View paint bounds ([note](../../implemented/architecture/2026-11-27-view-paint-bounds-dirty.md)); absorb cap ([absorb cap](../../implemented/architecture/2026-11-27-partial-dirty-flood-cap.md)); preview expands ([skip withdrawn](../../implemented/bug-fix/2026-11-27-preview-skip-expand-withdrawn.md)); filter → `'all'` | Local invalidate; optional lazy; multi-rect; lift-to-overlay | Medium (filter / multi-rect / lift remain) |
+| Draw loop | Clip + viewport/dirty cull (E); absorb cap on expand | Cull by dirty/viewport; multi-rect | Medium |
 | Pan / zoom | Every camera change `markAll` | Full frame or reduced-quality gesture | Large |
 | Hit-test | Brute-force nodes + edges | Spatial index | Large |
 | rAF | Always scheduled while mounted | Schedule only when dirty | Medium |
@@ -38,7 +38,7 @@ Gap backlog lists Performance waves as `proposed`. Placement follows ai-eng desi
 
 **J — Schedule and input:** demand-driven rAF; `setHover` no-op when unchanged; optional coalesce pointermove hit/hover once per frame; `debugPaintStats`; synthetic harness stub. Non-goals: culling, pan ladder, spatial index. Verify: idle CPU, hover same target, stats when debug on.
 
-**K — Draw less:** cull draws vs dirty/viewport; optional multi-rect dirty (cap N → `'all'`); revisit filter→`markAll`; host guidance for size-gated `lazyMove`. Non-goals: pan blit, WebGL. Verify: element visits on single-node drag ≪ N.
+**K — Draw less:** optional multi-rect dirty (cap N → `'all'`); revisit filter→`markAll`; host guidance for size-gated `lazyMove`; optional lift-to-overlay drag. Absorb→`'all'` shipped in [absorb cap](../../implemented/architecture/2026-11-27-partial-dirty-flood-cap.md); preview skip-expand withdrawn ([note](../../implemented/bug-fix/2026-11-27-preview-skip-expand-withdrawn.md)). Viewport/dirty cull already in E. Non-goals: pan blit, WebGL. Verify: element visits on single-node drag ≪ N.
 
 **L — Navigation quality ladder:** reduced detail and/or blit during pan/zoom; full quality on settle. Non-goals: tile pyramid, Overview. Verify: scripted pan vs J baseline.
 

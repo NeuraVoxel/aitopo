@@ -703,4 +703,26 @@ describe('MoveNodeInteraction', () => {
     expect(host.commitShapeNodeUpdate).not.toHaveBeenCalled()
     dispose()
   })
+
+  it('releases pointer capture when commit throws', () => {
+    const canvas = new FakeHitCanvas()
+    const host = createHost({
+      canvas,
+      nodes: [node({ id: 'a', x: 10, y: 20 })],
+      selectedIds: ['a'],
+      hitId: 'a',
+    })
+    host.commitNodeMove.mockImplementation(() => {
+      throw new Error('commit failed')
+    })
+    const dispose = new MoveNodeInteraction().attach(host)
+    canvas.dispatch('pointerdown', { button: 0, clientX: 10, clientY: 10 })
+    canvas.dispatch('pointermove', { button: 0, clientX: 40, clientY: 10 })
+    expect(canvas.pointerCaptureIds.has(1)).toBe(true)
+    expect(() => {
+      canvas.dispatch('pointerup', { button: 0, clientX: 40, clientY: 10 })
+    }).toThrow(/commit failed/)
+    expect(canvas.pointerCaptureIds.has(1)).toBe(false)
+    dispose()
+  })
 })

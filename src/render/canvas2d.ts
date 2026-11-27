@@ -2,7 +2,19 @@
  * Renderer abstraction and Canvas 2D implementation.
  */
 
-import { anglePivot, rotateCanvasAbout, type Point, type Rect } from '../geom.ts'
+import {
+  anglePivot,
+  normalizeAngleDegrees,
+  rectCorners,
+  rotateCanvasAbout,
+  rotatePointAround,
+  type Point,
+  type Rect,
+} from '../geom.ts'
+import {
+  DEBUG_BOUNDS_COLORS,
+  type DebugElementBounds,
+} from './debug-bounds.ts'
 import type {
   GraphAngleAnchor,
   GraphEdge,
@@ -239,6 +251,11 @@ export interface Renderer {
   drawEdgeBendHandle(center: Point, size: number): void
   /** Optional debug stroke of dirty unions. */
   setDebugPaintRects?(value: boolean): void
+  /**
+   * Overlay: per-element OBB (body/attachments) + AABB envelopes when debug is on.
+   * Call while overlay camera transform is active (before {@link endFrame}).
+   */
+  drawDebugElementBounds?(elements: readonly DebugElementBounds[]): void
 }
 
 export interface Canvas2DRendererOptions {
@@ -510,6 +527,38 @@ export class Canvas2DRenderer implements Renderer {
     ctx.restore()
   }
 
+  /**
+   * Stroke oriented parts (OBB when angled) and final AABB envelopes.
+   * World-space strokes; line width scales with zoom (twaver `_debug` idea).
+   * @param elements - collected view debug boxes.
+   */
+  drawDebugElementBounds(elements: readonly DebugElementBounds[]): void {
+    if (!this.debugPaintRects || elements.length === 0) return
+    const ctx = this.overlayCtx
+    const zoom = this.viewport.zoom
+    const lineWidth = 1 / zoom
+    ctx.save()
+    ctx.lineWidth = lineWidth
+    for (const element of elements) {
+      const angle = normalizeAngleDegrees(element.angle)
+      for (const part of element.oriented) {
+        const isBody = part.label === 'body' || part.label === 'band'
+          || part.label === 'path' || part.label === 'shape'
+        ctx.strokeStyle = isBody
+          ? DEBUG_BOUNDS_COLORS.bodyObb
+          : DEBUG_BOUNDS_COLORS.attachmentObb
+        strokeOrientedRect(ctx, part.rect, element.pivot, angle)
+      }
+      for (const aabb of element.aabbs) {
+        ctx.strokeStyle = aabb.label === 'paint'
+          ? DEBUG_BOUNDS_COLORS.paintAabb
+          : DEBUG_BOUNDS_COLORS.geometryAabb
+        ctx.strokeRect(aabb.rect.x, aabb.rect.y, aabb.rect.width, aabb.rect.height)
+      }
+    }
+    ctx.restore()
+  }
+
   endFrame(): void {
     if (
       this.debugPaintRects
@@ -518,7 +567,7 @@ export class Canvas2DRenderer implements Renderer {
     ) {
       const ctx = this.overlayCtx
       ctx.save()
-      ctx.strokeStyle = 'rgba(239, 68, 68, 0.8)'
+      ctx.strokeStyle = DEBUG_BOUNDS_COLORS.dirtyAabb
       ctx.lineWidth = 1 / this.viewport.zoom
       for (const rect of this.dirtyMode) {
         ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
@@ -1182,4 +1231,31 @@ function drawRoundedPolyline(
   }
   const last = points[points.length - 1]!
   ctx.lineTo(last.x, last.y)
+}
+
+/**
+ * Stroke a host-space rect as OBB when angled, else as AABB.
+ * @param ctx - overlay (or any) 2d context with camera transform already applied.
+ * @param rect - unrotated box in host space.
+ * @param pivot - rotation center (world).
+ * @param angleDeg - host angle degrees (0 → strokeRect).
+ */
+function strokeOrientedRect(
+  ctx: CanvasRenderingContext2D,
+  rect: Rect,
+  pivot: Point,
+  angleDeg: number,
+): void {
+  if (normalizeAngleDegrees(angleDeg) === 0) {
+    ctx.strokeRect(rect.x, rect.y, rect.width, rect.height)
+    return
+  }
+  const corners = rectCorners(rect).map(corner => rotatePointAround(corner, pivot, angleDeg))
+  ctx.beginPath()
+  ctx.moveTo(corners[0]!.x, corners[0]!.y)
+  for (let i = 1; i < corners.length; i += 1) {
+    ctx.lineTo(corners[i]!.x, corners[i]!.y)
+  }
+  ctx.closePath()
+  ctx.stroke()
 }

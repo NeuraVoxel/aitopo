@@ -141,6 +141,21 @@ export function invertOp(beforeDoc: GraphDocument, op: GraphPatchOp): GraphPatch
  * @returns inverse ops (may be empty when every forward op is skipped).
  */
 export function invertPatch(beforeDoc: GraphDocument, patch: GraphPatch): GraphPatchOp[] {
+  // Independent updateNode-only batch: invert against the pre-apply doc with a
+  // node id index. Avoids N× applyPatch (each structuredClone) on OCC-scale moves.
+  const independentNodeUpdates = asIndependentUpdateNodeBatch(patch.ops)
+  if (independentNodeUpdates !== undefined) {
+    const nodeById = new Map(beforeDoc.nodes.map(node => [node.id, node]))
+    const out: GraphPatchOp[] = []
+    for (let i = independentNodeUpdates.length - 1; i >= 0; i -= 1) {
+      const op = independentNodeUpdates[i]!
+      const node = nodeById.get(op.id)
+      if (node === undefined) throw new Error(`invert updateNode: missing id ${op.id}`)
+      out.push({ op: 'updateNode', id: op.id, patch: invertNodePatch(node, op.patch) })
+    }
+    return out
+  }
+
   let doc = beforeDoc
   const perOp: GraphPatchOp[][] = []
   for (const op of patch.ops) {
@@ -152,6 +167,24 @@ export function invertPatch(beforeDoc: GraphDocument, patch: GraphPatch): GraphP
     out.push(...perOp[i]!)
   }
   return out
+}
+
+type UpdateNodeOp = Extract<GraphPatchOp, { op: 'updateNode' }>
+
+/**
+ * @returns the ops when every op is updateNode on a distinct id; otherwise undefined.
+ */
+function asIndependentUpdateNodeBatch(
+  ops: readonly GraphPatchOp[],
+): readonly UpdateNodeOp[] | undefined {
+  if (ops.length === 0) return undefined
+  const seen = new Set<string>()
+  for (const op of ops) {
+    if (op.op !== 'updateNode') return undefined
+    if (seen.has(op.id)) return undefined
+    seen.add(op.id)
+  }
+  return ops as readonly UpdateNodeOp[]
 }
 
 function asOpList(inv: GraphPatchOp | GraphPatchOp[]): GraphPatchOp[] {

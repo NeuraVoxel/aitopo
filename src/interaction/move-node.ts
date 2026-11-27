@@ -3,8 +3,11 @@
  * (path / shapeNode body translates all control points).
  */
 
+import { unionRect, type Rect } from '../geom.ts'
+import type { Renderer } from '../render/canvas2d.ts'
 import { nodeBounds } from '../ui/bounds.ts'
 import { listDescendantGroupIds, listDescendantNodeIds } from '../ui/group-state.ts'
+import { BULK_SELECTION_UI_CAP } from './bulk-ui.ts'
 import type { Interaction, InteractionHost } from './types.ts'
 
 const DRAG_THRESHOLD_PX = 4
@@ -100,11 +103,12 @@ export class MoveNodeInteraction implements Interaction {
       capturedPointerId = null
     }
 
-    const lazyMove = this.lazyMove
+    /** Forced for bulk multi-select (OCC); otherwise host `lazyMove` option. */
+    let useLazy = this.lazyMove
     const hideOthers = this.hideOthersWhileDragging
 
     const clearPaintFilter = (): void => {
-      if (hideOthers && !lazyMove) {
+      if (hideOthers && !useLazy) {
         network.setDragPaintFilter(undefined)
       }
     }
@@ -112,6 +116,106 @@ export class MoveNodeInteraction implements Interaction {
     const clearChrome = (): void => {
       removeChrome?.()
       removeChrome = undefined
+    }
+
+    const paintLazyGhosts = (renderer: Renderer): void => {
+      if (!useLazy || !dragged) return
+      // Dense multi-move: one translated union AABB instead of N ghosts.
+      if (movers.length > BULK_SELECTION_UI_CAP) {
+        let union: Rect | undefined
+        for (const mover of movers) {
+          if (mover.kind === 'node') {
+            const node = network.getNode(mover.id)
+            if (node === undefined) continue
+            union = unionRect(union, nodeBounds({
+              ...node,
+              x: mover.fromX + dx,
+              y: mover.fromY + dy,
+            }))
+          } else if (mover.kind === 'group') {
+            const group = network.getGroup(mover.id)
+            if (group !== undefined) {
+              union = unionRect(union, {
+                x: mover.fromX + dx,
+                y: mover.fromY + dy,
+                width: group.w ?? 50,
+                height: group.h ?? 78,
+              })
+            }
+            for (const member of mover.members) {
+              const node = network.getNode(member.id)
+              if (node === undefined) continue
+              union = unionRect(union, nodeBounds({
+                ...node,
+                x: member.fromX + dx,
+                y: member.fromY + dy,
+              }))
+            }
+          } else {
+            for (const point of mover.fromPoints) {
+              union = unionRect(union, {
+                x: point.x + dx,
+                y: point.y + dy,
+                width: 1,
+                height: 1,
+              })
+            }
+          }
+        }
+        if (union !== undefined) renderer.drawLazyMoveGhost(union)
+        return
+      }
+      for (const mover of movers) {
+        if (mover.kind === 'node') {
+          const node = network.getNode(mover.id)
+          if (node === undefined) continue
+          renderer.drawLazyMoveGhost(nodeBounds({
+            ...node,
+            x: mover.fromX + dx,
+            y: mover.fromY + dy,
+          }))
+        } else if (mover.kind === 'group') {
+          const group = network.getGroup(mover.id)
+          if (group !== undefined) {
+            renderer.drawLazyMoveGhost({
+              x: mover.fromX + dx,
+              y: mover.fromY + dy,
+              width: group.w ?? 50,
+              height: group.h ?? 78,
+            })
+          }
+          for (const member of mover.members) {
+            const node = network.getNode(member.id)
+            if (node === undefined) continue
+            renderer.drawLazyMoveGhost(nodeBounds({
+              ...node,
+              x: member.fromX + dx,
+              y: member.fromY + dy,
+            }))
+          }
+        } else {
+          for (let i = 0; i < mover.fromPoints.length - 1; i += 1) {
+            const a = mover.fromPoints[i]!
+            const b = mover.fromPoints[i + 1]!
+            renderer.drawEdgeRubberBand(
+              { x: a.x + dx, y: a.y + dy },
+              { x: b.x + dx, y: b.y + dy },
+            )
+          }
+          if (
+            mover.kind === 'shapeNode'
+            && mover.closed
+            && mover.fromPoints.length >= 2
+          ) {
+            const last = mover.fromPoints[mover.fromPoints.length - 1]!
+            const first = mover.fromPoints[0]!
+            renderer.drawEdgeRubberBand(
+              { x: last.x + dx, y: last.y + dy },
+              { x: first.x + dx, y: first.y + dy },
+            )
+          }
+        }
+      }
     }
 
     const ensureChrome = (): void => {
@@ -130,69 +234,18 @@ export class MoveNodeInteraction implements Interaction {
               renderer.drawSelectionOverlay(band, group.style?.select)
             }
           }
-          if (!lazyMove || !dragged) return
-          for (const mover of movers) {
-            if (mover.kind === 'node') {
-              const node = network.getNode(mover.id)
-              if (node === undefined) continue
-              renderer.drawLazyMoveGhost(nodeBounds({
-                ...node,
-                x: mover.fromX + dx,
-                y: mover.fromY + dy,
-              }))
-            } else if (mover.kind === 'group') {
-              const group = network.getGroup(mover.id)
-              if (group !== undefined) {
-                renderer.drawLazyMoveGhost({
-                  x: (group.x ?? 0) - ((group.x ?? 0) - mover.fromX) + dx,
-                  y: (group.y ?? 0) - ((group.y ?? 0) - mover.fromY) + dy,
-                  width: group.w ?? 50,
-                  height: group.h ?? 78,
-                })
-              }
-              for (const member of mover.members) {
-                const node = network.getNode(member.id)
-                if (node === undefined) continue
-                renderer.drawLazyMoveGhost(nodeBounds({
-                  ...node,
-                  x: member.fromX + dx,
-                  y: member.fromY + dy,
-                }))
-              }
-            } else {
-              // path or shapeNode body ghost
-              for (let i = 0; i < mover.fromPoints.length - 1; i += 1) {
-                const a = mover.fromPoints[i]!
-                const b = mover.fromPoints[i + 1]!
-                renderer.drawEdgeRubberBand(
-                  { x: a.x + dx, y: a.y + dy },
-                  { x: b.x + dx, y: b.y + dy },
-                )
-              }
-              if (
-                mover.kind === 'shapeNode'
-                && mover.closed
-                && mover.fromPoints.length >= 2
-              ) {
-                const last = mover.fromPoints[mover.fromPoints.length - 1]!
-                const first = mover.fromPoints[0]!
-                renderer.drawEdgeRubberBand(
-                  { x: last.x + dx, y: last.y + dy },
-                  { x: first.x + dx, y: first.y + dy },
-                )
-              }
-            }
-          }
+          paintLazyGhosts(renderer)
         },
       })
     }
 
     /** Revert live previews to drag-start positions, release capture, clear state. */
     const abortWithoutCommit = (): void => {
-      if (active && dragged && !lazyMove) {
+      if (active && dragged && !useLazy) {
+        const nodeUpdates: { id: string; x: number; y: number }[] = []
         for (const mover of movers) {
           if (mover.kind === 'node') {
-            network.previewNodePosition(mover.id, mover.fromX, mover.fromY)
+            nodeUpdates.push({ id: mover.id, x: mover.fromX, y: mover.fromY })
           } else if (mover.kind === 'group') {
             network.previewGroupMove({
               groupId: mover.id,
@@ -205,6 +258,15 @@ export class MoveNodeInteraction implements Interaction {
             network.previewPathPoints(mover.id, mover.fromPoints)
           } else if (mover.kind === 'shapeNode') {
             network.previewShapeNodePoints(mover.id, mover.fromPoints)
+          }
+        }
+        if (nodeUpdates.length > 0) {
+          if (network.previewNodePositions !== undefined) {
+            network.previewNodePositions(nodeUpdates)
+          } else {
+            for (const update of nodeUpdates) {
+              network.previewNodePosition(update.id, update.x, update.y)
+            }
           }
         }
       }
@@ -266,6 +328,9 @@ export class MoveNodeInteraction implements Interaction {
 
       const nextMovers: Mover[] = []
       const coveredMembers = new Set<string>()
+      // Index once — avoid N× getPaths()/getShapeNodes() array copies on OCC select-all.
+      const pathById = new Map(network.getPaths().map(path => [path.id, path]))
+      const shapeById = new Map(network.getShapeNodes().map(shape => [shape.id, shape]))
 
       for (const id of selectedIds) {
         const group = network.getGroup(id)
@@ -284,7 +349,7 @@ export class MoveNodeInteraction implements Interaction {
           })
           continue
         }
-        const path = network.getPaths().find(p => p.id === id)
+        const path = pathById.get(id)
         if (path !== undefined) {
           if (path.locked === true || !network.isLayerMovable(id)) continue
           nextMovers.push({
@@ -294,7 +359,7 @@ export class MoveNodeInteraction implements Interaction {
           })
           continue
         }
-        const shapeNode = network.getShapeNodes().find(s => s.id === id)
+        const shapeNode = shapeById.get(id)
         if (shapeNode !== undefined) {
           if (shapeNode.locked === true || !network.isLayerMovable(id)) continue
           nextMovers.push({
@@ -322,6 +387,8 @@ export class MoveNodeInteraction implements Interaction {
       startClientX = event.clientX
       startClientY = event.clientY
       movers = nextMovers
+      // OCC select-all: skip live writePositions/validate/paint of N movers per move.
+      useLazy = this.lazyMove || nextMovers.length > BULK_SELECTION_UI_CAP
       dx = 0
       dy = 0
       dropTargetGroupId = undefined
@@ -331,10 +398,15 @@ export class MoveNodeInteraction implements Interaction {
       const zoom = network.viewport.state.zoom
       dx = (clientX - startClientX) / zoom
       dy = (clientY - startClientY) / zoom
-      if (!lazyMove) {
+      if (!useLazy) {
+        const nodeUpdates: { id: string; x: number; y: number }[] = []
         for (const mover of movers) {
           if (mover.kind === 'node') {
-            network.previewNodePosition(mover.id, mover.fromX + dx, mover.fromY + dy)
+            nodeUpdates.push({
+              id: mover.id,
+              x: mover.fromX + dx,
+              y: mover.fromY + dy,
+            })
           } else if (mover.kind === 'group') {
             network.previewGroupMove({
               groupId: mover.id,
@@ -354,6 +426,15 @@ export class MoveNodeInteraction implements Interaction {
               mover.id,
               mover.fromPoints.map(p => ({ x: p.x + dx, y: p.y + dy })),
             )
+          }
+        }
+        if (nodeUpdates.length > 0) {
+          if (network.previewNodePositions !== undefined) {
+            network.previewNodePositions(nodeUpdates)
+          } else {
+            for (const update of nodeUpdates) {
+              network.previewNodePosition(update.id, update.x, update.y)
+            }
           }
         }
       }
@@ -397,7 +478,7 @@ export class MoveNodeInteraction implements Interaction {
         if (dist < DRAG_THRESHOLD_PX) return
         dragged = true
         network.markGestureDragged()
-        if (hideOthers && !lazyMove) {
+        if (hideOthers && !useLazy) {
           const filterIds: string[] = []
           for (const mover of movers) {
             if (mover.kind === 'node') filterIds.push(mover.id)
@@ -406,6 +487,7 @@ export class MoveNodeInteraction implements Interaction {
           }
           if (filterIds.length > 0) network.setDragPaintFilter(filterIds)
         }
+        if (useLazy) ensureChrome()
         try {
           canvas.setPointerCapture(event.pointerId)
           capturedPointerId = event.pointerId
@@ -414,12 +496,15 @@ export class MoveNodeInteraction implements Interaction {
         }
       }
       previewAt(event.clientX, event.clientY)
+      if (useLazy) ensureChrome()
       updateDropTarget(event.clientX, event.clientY)
     }
 
     const onPointerUp = (event: PointerEvent): void => {
       if (!active) return
-      if (dragged) {
+      const wasDragged = dragged
+      try {
+        if (!wasDragged) return
         const zoom = network.viewport.state.zoom
         const finalDx = (event.clientX - startClientX) / zoom
         const finalDy = (event.clientY - startClientY) / zoom
@@ -430,6 +515,21 @@ export class MoveNodeInteraction implements Interaction {
             event.clientX - rect.left,
             event.clientY - rect.top,
           )
+        const nodeMoves = movers.filter((m): m is NodeMover => m.kind === 'node')
+        const batchCommit = network.commitNodeMoves
+        const canBatchNodes =
+          nodeMoves.length > 1
+          && batchCommit !== undefined
+          && groupHit === undefined
+        if (canBatchNodes && batchCommit !== undefined) {
+          batchCommit(
+            nodeMoves.map(mover => ({
+              nodeId: mover.id,
+              from: { x: mover.fromX, y: mover.fromY },
+              to: { x: mover.fromX + finalDx, y: mover.fromY + finalDy },
+            })),
+          )
+        }
         for (const mover of movers) {
           if (mover.kind === 'group') {
             network.commitGroupMove({
@@ -467,7 +567,7 @@ export class MoveNodeInteraction implements Interaction {
                 })),
               },
             })
-          } else {
+          } else if (!canBatchNodes) {
             network.commitNodeMove({
               nodeId: mover.id,
               from: { x: mover.fromX, y: mover.fromY },
@@ -476,11 +576,15 @@ export class MoveNodeInteraction implements Interaction {
             })
           }
         }
-        clearPaintFilter()
-        clearChrome()
-        releaseCapture()
+      } finally {
+        // Always drop capture / chrome even when bulk commit throws or hangs long.
+        if (wasDragged) {
+          clearPaintFilter()
+          clearChrome()
+          releaseCapture()
+        }
+        reset()
       }
-      reset()
     }
 
     const onPointerCancel = (): void => {

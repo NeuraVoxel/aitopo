@@ -44,6 +44,30 @@ describe('invertOp', () => {
     ])
   })
 
+  it('invertPatch handles a large independent updateNode batch under a time budget', () => {
+    const nodes = Array.from({ length: 2000 }, (_, i) => ({
+      id: `n${i}`,
+      type: 'agent',
+      label: `N${i}`,
+      x: i,
+      y: i * 2,
+    }))
+    const doc = parseDocument({ version: 1, nodes, edges: [] })
+    const patch = {
+      ops: nodes.map(n => ({
+        op: 'updateNode' as const,
+        id: n.id,
+        patch: { x: n.x + 3, y: n.y + 4 },
+      })),
+    }
+    const started = performance.now()
+    const inv = invertPatch(doc, patch)
+    expect(performance.now() - started).toBeLessThan(1_000)
+    expect(inv).toHaveLength(2000)
+    expect(inv[0]).toEqual({ op: 'updateNode', id: 'n1999', patch: { x: 1999, y: 3998 } })
+    expect(inv[1999]).toEqual({ op: 'updateNode', id: 'n0', patch: { x: 0, y: 0 } })
+  })
+
   it('inverts edge waypoint updates including clear-to-auto', () => {
     const doc = parseDocument({
       version: 1,

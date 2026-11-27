@@ -24,6 +24,7 @@ import { flowProcessSample } from './flows/process.ts'
 import { flowStateSample } from './flows/state.ts'
 import { flowSwimlaneSample } from './flows/swimlane.ts'
 import { helloWorldSample } from './elements/hello-world.ts'
+import { perfGridSample } from './elements/perf-grid.ts'
 import type { DemoSample } from './types.ts'
 
 export type { DemoSample, DemoSampleGroupId } from './types.ts'
@@ -40,6 +41,7 @@ const SAMPLES: readonly DemoSample[] = [
   groupSample,
   alarmSample,
   subnetworkSample,
+  perfGridSample,
   ...adasSamples,
   codeAgentsSample,
   subagentSample,

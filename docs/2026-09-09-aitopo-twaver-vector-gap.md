@@ -138,7 +138,7 @@ Do not import SDK2D, copy identifiers (`DataBox`, `ElementUI`, `DefaultInteracti
 | Wave | Focus | Status |
 |---|---|---|
 | J | Demand-driven rAF, hover coalesce, paint stats | `proposed` — [roadmap](../.agents/notes/proposed/architecture/2026-09-11-performance-roadmap.md) |
-| K | Draw culling, multi-rect dirty, filter/lazy defaults | `proposed` |
+| K | Multi-rect dirty, filter/lazy defaults, lift-to-overlay (absorb cap + baked view paint bounds done; preview skip-expand withdrawn) | `proposed` — [absorb cap](../.agents/notes/implemented/architecture/2026-11-27-partial-dirty-flood-cap.md), [view paint bounds](../.agents/notes/implemented/architecture/2026-11-27-view-paint-bounds-dirty.md), [skip withdrawn](../.agents/notes/implemented/bug-fix/2026-11-27-preview-skip-expand-withdrawn.md) |
 | L | Pan/zoom quality ladder | `proposed` |
 | M | Spatial hit index | `proposed` |
 | N | WebGL/hybrid after measured threshold | `proposed` (gated) |

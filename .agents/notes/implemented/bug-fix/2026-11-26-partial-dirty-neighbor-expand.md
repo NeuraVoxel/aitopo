@@ -8,7 +8,7 @@ ADAS Ego pulses `heading` `vectorImagePhase`. At peak arrow length the heading d
 
 ## Decision
 
-Before a partial scene paint, expand the dirty seed with `expandPartialDirty`: while any node / group / edge / path / shapeNode padded paint AABB intersects the region and is not already contained, union its **full** padded bounds (each element absorbed at most once; non-finite AABBs skipped). Clear and clip then cover whole neighbors; cull still skips distant elements.
+Before a partial scene paint, when `NetworkOptions.expandPartialDirty` is **true** (default **true** — see [defaults on](../architecture/2026-11-27-expand-partial-dirty-default-on.md)), expand the dirty seed with `expandPartialDirty`: while any node / group / edge / path / shapeNode padded paint AABB intersects the region and is not already contained, union its **full** padded bounds (each element absorbed at most once; non-finite AABBs skipped). Clear and clip then cover whole neighbors; cull still skips distant elements. Dense hosts pass `false` ([expand gate](../architecture/2026-11-27-expand-partial-dirty-opt-in.md)).
 
 Also: `Network.load` consumes `scene.takeDirty()` after rebuild so the load-time `invalidateAll` does not linger and force the first `apply()` into `markAll` (which skipped old/new element rect capture).
 
@@ -19,7 +19,7 @@ Also: `Network.load` consumes `scene.takeDirty()` after rebuild so the load-time
 
 ## Consequences
 
-Pulsing or editing an element whose dirty AABB overlaps a sibling forces that sibling into the same partial frame. Each element is absorbed at most once; non-finite AABBs are skipped so a NaN pad cannot hang the `while` loop (NaN makes intersect true and contains false forever).
+Pulsing or editing an element whose dirty AABB overlaps a sibling forces that sibling into the same partial frame. Each element is absorbed at most once; non-finite AABBs are skipped so a NaN pad cannot hang the `while` loop (NaN makes intersect true and contains false forever). Absorb count is capped with `'all'` fallback — see [partial dirty absorb cap](../architecture/2026-11-27-partial-dirty-flood-cap.md). Preview skip-expand was withdrawn — see [preview skip-expand withdrawn](./2026-11-27-preview-skip-expand-withdrawn.md).
 
 ## Testing
 

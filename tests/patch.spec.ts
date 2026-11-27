@@ -26,6 +26,29 @@ describe('applyPatch', () => {
     expect(base.nodes[0]?.label).toBe('A')
   })
 
+  it('applies a large updateNode-only batch without mutating input', () => {
+    const nodes = Array.from({ length: 500 }, (_, i) => ({
+      id: `n${i}`,
+      type: 'agent',
+      label: `N${i}`,
+      x: i,
+      y: i,
+    }))
+    const doc = parseDocument({ version: 1, nodes, edges: [] })
+    const started = performance.now()
+    const next = applyPatch(doc, {
+      ops: nodes.map(n => ({
+        op: 'updateNode' as const,
+        id: n.id,
+        patch: { x: n.x + 1, y: n.y + 2 },
+      })),
+    })
+    expect(performance.now() - started).toBeLessThan(500)
+    expect(next.nodes[0]?.x).toBe(1)
+    expect(next.nodes[499]?.y).toBe(501)
+    expect(doc.nodes[0]?.x).toBe(0)
+  })
+
   it('sets alarms on a node', () => {
     const next = applyPatch(base, {
       ops: [{

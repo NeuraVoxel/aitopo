@@ -22,4 +22,9 @@ export interface DemoSample {
    * host renders a data source bar that replaces it with fetched content.
    */
   readonly live?: 'dsh-sessions'
+  /**
+   * When set, applied on sample mount for Network `expandPartialDirty`.
+   * Omit to keep the engine default (`true`). Dense stress samples pass `false`.
+   */
+  readonly expandPartialDirty?: boolean
 }

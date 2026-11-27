@@ -16,3 +16,10 @@ export {
   type Renderer,
   type ViewportState,
 } from './canvas2d.ts'
+
+export {
+  DEBUG_BOUNDS_COLORS,
+  type DebugAabbPart,
+  type DebugElementBounds,
+  type DebugOrientedPart,
+} from './debug-bounds.ts'

@@ -51,14 +51,57 @@ export function applyPatch(doc: GraphDocument, patch: unknown): GraphDocument {
     throw new Error(`GraphPatch parse failed at ${path}: ${issue?.message ?? 'invalid patch'}`)
   }
   const expanded = expandFollowMotion(doc, parsed.data)
-  let next = structuredClone(doc)
-  for (const op of expanded.ops) {
-    next = applyOp(next, op)
+  // Homogeneous updateNode batches (OCC select-all move): one node-index pass,
+  // not N× findIndex+slice after a full structuredClone.
+  let next: GraphDocument
+  if (isUpdateNodeOnlyPatch(expanded.ops)) {
+    next = applyUpdateNodeBatch(doc, expanded.ops)
+  } else {
+    next = structuredClone(doc)
+    for (const op of expanded.ops) {
+      next = applyOp(next, op)
+    }
   }
   assertGroupParentAcyclic(next.groups ?? [])
   assertFollowHostValid(next)
   assertLayerIdsValid(next)
   return next
+}
+
+type UpdateNodeOp = Extract<GraphPatchOp, { op: 'updateNode' }>
+
+function isUpdateNodeOnlyPatch(
+  ops: readonly GraphPatchOp[],
+): ops is readonly UpdateNodeOp[] {
+  return ops.length > 0 && ops.every(op => op.op === 'updateNode')
+}
+
+/**
+ * Apply only `updateNode` ops in O(nodes + ops) with shallow document copy.
+ * Later ops for the same id merge over earlier patches.
+ */
+function applyUpdateNodeBatch(
+  doc: GraphDocument,
+  ops: readonly UpdateNodeOp[],
+): GraphDocument {
+  const merged = new Map<string, UpdateNodeOp['patch']>()
+  for (const op of ops) {
+    const prev = merged.get(op.id)
+    merged.set(op.id, prev === undefined ? { ...op.patch } : { ...prev, ...op.patch })
+  }
+  const indexById = new Map<string, number>()
+  for (let i = 0; i < doc.nodes.length; i += 1) {
+    indexById.set(doc.nodes[i]!.id, i)
+  }
+  for (const id of merged.keys()) {
+    if (!indexById.has(id)) throw new Error(`updateNode: missing id ${id}`)
+  }
+  const nodes = doc.nodes.slice()
+  for (const [id, patch] of merged) {
+    const index = indexById.get(id)!
+    nodes[index] = mergeNode(nodes[index]!, patch)
+  }
+  return { ...doc, nodes }
 }
 
 function applyOp(doc: GraphDocument, op: GraphPatchOp): GraphDocument {

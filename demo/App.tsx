@@ -40,6 +40,8 @@ export function App() {
           selectedIds={demo.selectedIds}
           applyPatch={demo.applyPatch}
           getNetwork={demo.getNetwork}
+          expandPartialDirty={demo.expandPartialDirty}
+          setExpandPartialDirty={demo.setExpandPartialDirty}
         />
       </div>
       <StatusBar status={demo.status} />

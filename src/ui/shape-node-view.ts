@@ -20,6 +20,7 @@ import type {
   GraphTextStyle,
 } from '../protocol/types.ts'
 import type { PathPaintView } from '../render/canvas2d.ts'
+import type { DebugElementBounds } from '../render/debug-bounds.ts'
 import { samplePolylineAt } from './attachment/path.ts'
 import {
   resolveMaxChars,
@@ -83,6 +84,27 @@ export class ShapeNodeView {
   /** Densified polyline AABB (+ pad, label) for dirty-rect / hit culling. */
   get bounds(): Rect {
     return this.shapeBounds
+  }
+
+  /** Dirty-rect seed; same as {@link bounds} (stroke extents already baked). */
+  get paintBounds(): Rect {
+    return this.shapeBounds
+  }
+
+  /**
+   * Debug overlay: unrotated shape/label box as OBB source + rotated paint AABB.
+   * @returns undefined when empty.
+   */
+  debugBounds(): DebugElementBounds | undefined {
+    if (this.pointsCache.length < 2) return undefined
+    const oriented = [{ label: 'shape', rect: this.originalBounds }]
+    return {
+      id: this.id,
+      angle: this.angleDeg,
+      pivot: this.pivot,
+      oriented,
+      aabbs: [{ label: 'paint', rect: this.shapeBounds }],
+    }
   }
 
   /** Unrotated padded polyline ∪ label AABB. */
@@ -167,14 +189,6 @@ export class ShapeNodeView {
     for (const point of this.pointsCache) {
       box = unionPoint(box, point)
     }
-    const pad = Math.max(
-      SHAPE_BOUNDS_PAD,
-      (shapeNode.style?.lineWidth ?? DEFAULT_LINE_WIDTH) / 2 + 2,
-    )
-    this.pointsBox = box ?? { x: 0, y: 0, width: 0, height: 0 }
-    this.angleDeg = normalizeAngleDegrees(shapeNode.angle ?? 0)
-    this.angleAnchorCache = shapeNode.angleAnchor
-    this.shapeBounds = growRect(this.pointsBox, pad)
     this.alphaCache = clampAlpha(shapeNode.style?.alpha)
     this.strokeCache = shapeNode.style?.stroke ?? DEFAULT_STROKE
     this.fillCache = shapeNode.style?.fill
@@ -182,6 +196,16 @@ export class ShapeNodeView {
     this.strokeDashCache = shapeNode.style?.strokeDash
     this.selectStyle = shapeNode.style?.select
     this.hoverStyle = shapeNode.style?.hover
+    const pad = Math.max(
+      SHAPE_BOUNDS_PAD,
+      this.lineWidthCache / 2 + 2,
+      (this.selectStyle?.width ?? 0) / 2 + 2,
+      (this.hoverStyle?.width ?? 2.5) / 2 + 2,
+    )
+    this.pointsBox = box ?? { x: 0, y: 0, width: 0, height: 0 }
+    this.angleDeg = normalizeAngleDegrees(shapeNode.angle ?? 0)
+    this.angleAnchorCache = shapeNode.angleAnchor
+    this.shapeBounds = growRect(this.pointsBox, pad)
     this.syncLabel(shapeNode.label, shapeNode.style?.label)
     this.finalizeAngle()
     this.dirty = false

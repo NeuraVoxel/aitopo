@@ -271,7 +271,7 @@ describe('paint channels', () => {
     expect(renderer.beginDirties.length).toBeGreaterThan(0)
   })
 
-  it('partial dirty expands to full bounds of intersecting neighbors', async () => {
+  it('partial dirty expands to full bounds of intersecting neighbors by default', async () => {
     const renderer = recordingRenderer()
     network = new Network({
       defaultInteractions: false,
@@ -629,5 +629,139 @@ describe('paint channels', () => {
     network.mount(host)
     await flushFrames(2)
     expect(host.querySelector('.aitopo-view-stats')).toBeNull()
+  })
+
+  it('skips neighbor expand when expandPartialDirty is false', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      expandPartialDirty: false,
+      createRenderer: () => renderer,
+    })
+    network.load({
+      version: 1,
+      nodes: [
+        {
+          id: 'a',
+          type: 'unit',
+          label: 'A',
+          x: 0,
+          y: 0,
+          w: 100,
+          h: 40,
+          style: { shadow: null, select: { glow: false }, showIcon: false },
+        },
+        {
+          id: 'b',
+          type: 'unit',
+          label: 'B',
+          x: 80,
+          y: 0,
+          w: 100,
+          h: 40,
+          style: { shadow: null, select: { glow: false }, showIcon: false },
+        },
+      ],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '500px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+    vi.mocked(renderer.drawNode).mockClear()
+
+    network.apply({
+      ops: [{ op: 'updateNode', id: 'a', patch: { label: 'A2' } }],
+    })
+    await flushFrames(2)
+
+    const dirty = renderer.beginDirties[0]
+    expect(Array.isArray(dirty)).toBe(true)
+    const rect = (dirty as Exclude<FrameDirty, 'all' | 'overlay'>)[0]!
+    // Without expand, overlapping neighbor b is not force-unioned into the hole
+    // (with expand the right edge reaches ≥ 180).
+    expect(rect.x + rect.width).toBeLessThan(180)
+    expect(vi.mocked(renderer.drawNode).mock.calls.map(call => call[0].id)).toContain('a')
+  })
+
+  it('solo node preview dirty stays near body plus baked extent and AA grow', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      createRenderer: () => renderer,
+    })
+    // No shadow / glow → View.bounds ≡ body; Network only adds DIRTY_SEED_AA_GROW (2).
+    network.load({
+      version: 1,
+      nodes: [{
+        id: 'a',
+        type: 'unit',
+        label: 'A',
+        x: 0,
+        y: 0,
+        w: 40,
+        h: 24,
+        style: { shadow: null, select: { glow: false } },
+      }],
+      edges: [],
+    })
+    host = document.createElement('div')
+    host.style.width = '400px'
+    host.style.height = '300px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+
+    network.previewNodePosition('a', 20, 10)
+    await flushFrames(2)
+
+    const dirty = renderer.beginDirties[0]
+    expect(Array.isArray(dirty)).toBe(true)
+    const rect = (dirty as { x: number; y: number; width: number; height: number }[])[0]!
+    // old∪new body ≈ [0,0]–[60,34]; +AA grow 2 → about [-2,-2] 64×38. Must not
+    // carry the old min-8 / glowBlur stack (would push height past ~50).
+    expect(rect.x).toBeGreaterThanOrEqual(-4)
+    expect(rect.y).toBeGreaterThanOrEqual(-4)
+    // Label attachment may extend the box; still far below the old min-8+glow stack.
+    expect(rect.width).toBeLessThanOrEqual(90)
+    expect(rect.height).toBeLessThanOrEqual(80)
+  })
+
+  it('neighbor expand falls back to all when absorb cap is exceeded', async () => {
+    const renderer = recordingRenderer()
+    network = new Network({
+      defaultInteractions: false,
+      expandPartialDirty: true,
+      createRenderer: () => renderer,
+    })
+    const nodes = Array.from({ length: 40 }, (_, i) => ({
+      id: `n${i}`,
+      type: 'unit' as const,
+      label: `${i}`,
+      x: i * 28,
+      y: 0,
+      w: 40,
+      h: 24,
+    }))
+    network.load({ version: 1, nodes, edges: [] })
+    host = document.createElement('div')
+    host.style.width = '1200px'
+    host.style.height = '200px'
+    document.body.appendChild(host)
+    network.mount(host)
+    await flushFrames(3)
+    renderer.reset()
+
+    network.apply({
+      ops: [{ op: 'updateNode', id: 'n0', patch: { label: 'x' } }],
+    })
+    await flushFrames(2)
+
+    expect(renderer.beginDirties).toHaveLength(1)
+    expect(renderer.beginDirties[0]).toBe('all')
   })
 })

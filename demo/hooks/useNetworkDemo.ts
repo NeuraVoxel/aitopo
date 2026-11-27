@@ -22,6 +22,8 @@ export interface NetworkDemoApi {
   sampleId: string
   mode: DemoMode
   debug: boolean
+  /** Neighbor flood for partial dirty paints (Network default on; Perf sample opts out). */
+  expandPartialDirty: boolean
   status: string
   selectedIds: readonly string[]
   canUndo: boolean
@@ -33,6 +35,7 @@ export interface NetworkDemoApi {
   setSampleId: (id: string) => void
   setMode: (mode: DemoMode) => void
   setDebug: (value: boolean) => void
+  setExpandPartialDirty: (value: boolean) => void
   setAdasThemeId: (id: AdasThemeId) => void
   undo: () => void
   redo: () => void
@@ -86,10 +89,12 @@ export function useNetworkDemo(): NetworkDemoApi {
   const undoDepthRef = useRef(0)
   const redoDepthRef = useRef(0)
   const debugRef = useRef(false)
+  const expandPartialDirtyRef = useRef(true)
 
   const [sampleId, setSampleIdState] = useState(DEFAULT_SAMPLE_ID)
   const [mode, setMode] = useState<DemoMode>('observe')
   const [debug, setDebugState] = useState(false)
+  const [expandPartialDirty, setExpandPartialDirtyState] = useState(true)
   const [adasTheme, setAdasThemeState] = useState<AdasThemeId>(() => getAdasTheme())
   const [status, setStatus] = useState('')
   const [selectedIds, setSelectedIds] = useState<readonly string[]>([])
@@ -97,6 +102,7 @@ export function useNetworkDemo(): NetworkDemoApi {
   const [canRedo, setCanRedo] = useState(false)
 
   debugRef.current = debug
+  expandPartialDirtyRef.current = expandPartialDirty
 
   const syncHistoryFlags = useCallback(() => {
     setCanUndo(undoDepthRef.current > 0)
@@ -124,8 +130,16 @@ export function useNetworkDemo(): NetworkDemoApi {
       return
     }
 
+    // Sample opt-out (Perf) or engine default on; keeps property-panel checkbox in sync.
+    const expandDirty = sample.expandPartialDirty ?? true
+    if (expandPartialDirtyRef.current !== expandDirty) {
+      expandPartialDirtyRef.current = expandDirty
+      setExpandPartialDirtyState(expandDirty)
+    }
+
     const network = new Network({
       debugPaintRects: debugRef.current,
+      expandPartialDirty: expandDirty,
       interactions: buildInteractions(mode),
     })
     network.mount(host)
@@ -263,6 +277,10 @@ export function useNetworkDemo(): NetworkDemoApi {
     networkRef.current?.setDebugPaintRects(debug)
   }, [debug])
 
+  useEffect(() => {
+    networkRef.current?.setExpandPartialDirty(expandPartialDirty)
+  }, [expandPartialDirty])
+
   // Stage bubble pointerup runs after SelectActivate on the canvas.
   useEffect(() => {
     if (mode !== 'create-node') return
@@ -339,6 +357,10 @@ export function useNetworkDemo(): NetworkDemoApi {
     setDebugState(value)
   }, [])
 
+  const setExpandPartialDirty = useCallback((value: boolean) => {
+    setExpandPartialDirtyState(value)
+  }, [])
+
   const setAdasThemeId = useCallback((id: AdasThemeId) => {
     setAdasTheme(id)
     setAdasThemeState(id)
@@ -399,6 +421,7 @@ export function useNetworkDemo(): NetworkDemoApi {
     sampleId,
     mode,
     debug,
+    expandPartialDirty,
     status,
     selectedIds,
     canUndo,
@@ -408,6 +431,7 @@ export function useNetworkDemo(): NetworkDemoApi {
     setSampleId,
     setMode,
     setDebug,
+    setExpandPartialDirty,
     setAdasThemeId,
     undo,
     redo,

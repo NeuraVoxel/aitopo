@@ -2,7 +2,11 @@
  * Scene apply uses validated GraphPatch; navigation ops are handled by Network.
  */
 
-import { expandFollowMotion, translateFollowersLive } from './follow.ts'
+import {
+  expandFollowMotion,
+  translateFollowersLive,
+  translateHostMovesLive,
+} from './follow.ts'
 import {
   listPaintLayers,
   resolveLayer,
@@ -250,19 +254,15 @@ export class GraphScene {
       this.markDirty(id)
       if (dx !== 0 || dy !== 0) hostMoves.push({ id, dx, dy })
     }
-    for (const move of hostMoves) {
-      translateFollowersLive({
-        hostId: move.id,
-        dx: move.dx,
-        dy: move.dy,
-        skipIds,
-        nodes: this.nodeMap,
-        groups: this.groupMap,
-        paths: this.pathMap,
-        shapeNodes: this.shapeNodeMap,
-        markDirty: id => this.markDirty(id),
-      })
-    }
+    translateHostMovesLive({
+      moves: hostMoves,
+      skipIds,
+      nodes: this.nodeMap,
+      groups: this.groupMap,
+      paths: this.pathMap,
+      shapeNodes: this.shapeNodeMap,
+      markDirty: id => this.markDirty(id),
+    })
     this.sceneVersion += 1
     this.syncActiveFromMaps()
   }
@@ -283,19 +283,15 @@ export class GraphScene {
       this.markDirty(id)
       if (dx !== 0 || dy !== 0) hostMoves.push({ id, dx, dy })
     }
-    for (const move of hostMoves) {
-      translateFollowersLive({
-        hostId: move.id,
-        dx: move.dx,
-        dy: move.dy,
-        skipIds,
-        nodes: this.nodeMap,
-        groups: this.groupMap,
-        paths: this.pathMap,
-        shapeNodes: this.shapeNodeMap,
-        markDirty: id => this.markDirty(id),
-      })
-    }
+    translateHostMovesLive({
+      moves: hostMoves,
+      skipIds,
+      nodes: this.nodeMap,
+      groups: this.groupMap,
+      paths: this.pathMap,
+      shapeNodes: this.shapeNodeMap,
+      markDirty: id => this.markDirty(id),
+    })
     this.sceneVersion += 1
     this.syncActiveFromMaps()
   }
@@ -316,19 +312,15 @@ export class GraphScene {
       this.markDirty(id)
       if (dx !== 0 || dy !== 0) hostMoves.push({ id, dx, dy })
     }
-    for (const move of hostMoves) {
-      translateFollowersLive({
-        hostId: move.id,
-        dx: move.dx,
-        dy: move.dy,
-        skipIds,
-        nodes: this.nodeMap,
-        groups: this.groupMap,
-        paths: this.pathMap,
-        shapeNodes: this.shapeNodeMap,
-        markDirty: id => this.markDirty(id),
-      })
-    }
+    translateHostMovesLive({
+      moves: hostMoves,
+      skipIds,
+      nodes: this.nodeMap,
+      groups: this.groupMap,
+      paths: this.pathMap,
+      shapeNodes: this.shapeNodeMap,
+      markDirty: id => this.markDirty(id),
+    })
     this.sceneVersion += 1
     this.syncActiveFromMaps()
   }

@@ -2,8 +2,8 @@
  * Editor gesture state: drag filter, gesture flag, preview + commit mutations.
  */
 
-import { growRect, type Rect } from '../geom.ts'
-import { listTransitiveFollowers } from '../model/follow.ts'
+import { type Rect } from '../geom.ts'
+import { listTransitiveFollowers, listTransitiveFollowersMany } from '../model/follow.ts'
 import type { GraphScene } from '../model/scene.ts'
 import type { GraphEvent } from '../protocol/events.ts'
 import type { GraphPatch } from '../protocol/patch.ts'
@@ -13,8 +13,8 @@ import {
   listOwningGroupChain,
   listOwningGroupChainForShapeNode,
 } from '../ui/group-state.ts'
-import type { DirtyAccumulator } from './dirty.ts'
-import { elementPaintPad } from './paint-pad.ts'
+import { BULK_SELECTION_UI_CAP } from '../interaction/bulk-ui.ts'
+import { MAX_PARTIAL_DIRTY_ABSORBS, type DirtyAccumulator } from './dirty.ts'
 import type { ViewSet } from '../ui/view-set.ts'
 
 /** Collaborators GestureEditor needs from Network. */
@@ -82,10 +82,87 @@ export class GestureEditor {
    * @param y - world y.
    */
   previewNodePosition(id: string, x: number, y: number): void {
-    if (this.deps.scene.nodes.get(id) === undefined) return
-    this.previewNodeGeometry(id, () => {
-      this.deps.scene.writePositions({ [id]: { x, y } })
-    })
+    this.previewNodePositions([{ id, x, y }])
+  }
+
+  /**
+   * Batch live preview for multi-select drag (one validate / dirty / schedule).
+   * Large batches fall back to `markAll` instead of O(movers) rect capture.
+   * @param updates - id → world x/y.
+   */
+  previewNodePositions(
+    updates: readonly { readonly id: string; readonly x: number; readonly y: number }[],
+  ): void {
+    if (updates.length === 0) return
+    if (updates.length === 1) {
+      const only = updates[0]!
+      if (this.deps.scene.nodes.get(only.id) === undefined) return
+      this.previewNodeGeometry(only.id, () => {
+        this.deps.scene.writePositions({ [only.id]: { x: only.x, y: only.y } })
+      })
+      return
+    }
+    const positions: Record<string, { x: number; y: number }> = {}
+    const ids: string[] = []
+    for (const update of updates) {
+      if (this.deps.scene.nodes.get(update.id) === undefined) continue
+      positions[update.id] = { x: update.x, y: update.y }
+      ids.push(update.id)
+    }
+    if (ids.length === 0) return
+    if (ids.length === 1) {
+      const id = ids[0]!
+      const pos = positions[id]!
+      this.previewNodeGeometry(id, () => {
+        this.deps.scene.writePositions({ [id]: pos })
+      })
+      return
+    }
+
+    const useAll = ids.length > MAX_PARTIAL_DIRTY_ABSORBS || this.filter !== undefined
+    const oldRects: Rect[] = []
+    const oldGroupRects: Rect[] = []
+    const followerIds = useAll ? [] : listTransitiveFollowersMany(this.deps.scene, ids)
+    const oldFollowerRects: Rect[] = []
+    if (!useAll) {
+      for (const id of ids) {
+        oldRects.push(...this.captureNodeGeometryRects(id))
+        oldGroupRects.push(...this.captureNodeGroupRects(id))
+      }
+      for (const followerId of followerIds) {
+        oldFollowerRects.push(...this.captureFollowGeometryRects(followerId))
+      }
+    }
+
+    this.deps.scene.writePositions(positions)
+    for (const id of ids) {
+      this.deps.views.markNodeGeometryDirty(this.deps.scene, id)
+    }
+    for (const followerId of followerIds) {
+      this.deps.views.markDirty(followerId)
+    }
+    this.deps.views.validateDirty(this.deps.scene)
+
+    if (useAll) {
+      this.deps.dirty.markAll()
+    } else {
+      for (const rect of oldRects) this.deps.dirty.add(rect)
+      for (const id of ids) {
+        for (const rect of this.captureNodeGeometryRects(id)) this.deps.dirty.add(rect)
+      }
+      for (const rect of oldGroupRects) this.deps.dirty.add(rect)
+      for (const id of ids) {
+        for (const rect of this.captureNodeGroupRects(id)) this.deps.dirty.add(rect)
+      }
+      for (const rect of oldFollowerRects) this.deps.dirty.add(rect)
+      for (const followerId of followerIds) {
+        for (const rect of this.captureFollowGeometryRects(followerId)) {
+          this.deps.dirty.add(rect)
+        }
+      }
+    }
+    this.deps.scene.takeDirty()
+    this.deps.scheduleScenePaint()
   }
 
   /**
@@ -180,6 +257,52 @@ export class GestureEditor {
         fromGroupId,
         toGroupId,
       })
+    }
+  }
+
+  /**
+   * Batch commit node translations (one GraphPatch). No membership changes.
+   * @param moves - per-node from/to.
+   */
+  commitNodeMoves(
+    moves: readonly {
+      readonly nodeId: string
+      readonly from: { x: number; y: number }
+      readonly to: { x: number; y: number }
+    }[],
+  ): void {
+    if (moves.length === 0) return
+    if (moves.length === 1) {
+      const only = moves[0]!
+      this.commitNodeMove({
+        nodeId: only.nodeId,
+        from: only.from,
+        to: only.to,
+      })
+      return
+    }
+    const ops: GraphPatch['ops'] = []
+    for (const move of moves) {
+      if (this.deps.scene.nodes.get(move.nodeId) === undefined) {
+        throw new Error(`commitNodeMoves: missing node ${move.nodeId}`)
+      }
+      ops.push({
+        op: 'updateNode',
+        id: move.nodeId,
+        patch: { x: move.to.x, y: move.to.y },
+      })
+    }
+    this.deps.apply({ ops })
+    // Skip N nodeMoved fan-out on OCC-scale batches; documentChanged already fired.
+    if (moves.length <= BULK_SELECTION_UI_CAP) {
+      for (const move of moves) {
+        this.deps.emit({
+          type: 'nodeMoved',
+          nodeId: move.nodeId,
+          from: { x: move.from.x, y: move.from.y },
+          to: { x: move.to.x, y: move.to.y },
+        })
+      }
     }
   }
 
@@ -815,7 +938,7 @@ export class GestureEditor {
     if (kind === 'group') {
       const groupView = this.deps.views.getGroup(id)
       if (groupView?.isActive !== true) return []
-      return [growRect(groupView.bounds, 8)]
+      return [groupView.paintBounds]
     }
     if (kind === 'path') return this.capturePathGeometryRects(id)
     return this.captureShapeNodeGeometryRects(id)
@@ -856,9 +979,7 @@ export class GestureEditor {
     if (this.deps.scene.nodes.has(id)) return this.captureNodeGeometryRects(id)
     if (this.deps.scene.groups.has(id)) {
       const groupView = this.deps.views.getGroup(id)
-      return groupView?.isActive === true
-        ? [growRect(groupView.bounds, 8)]
-        : []
+      return groupView?.isActive === true ? [groupView.paintBounds] : []
     }
     if (this.deps.scene.paths.has(id)) return this.capturePathGeometryRects(id)
     if (this.deps.scene.shapeNodes.has(id)) return this.captureShapeNodeGeometryRects(id)
@@ -868,9 +989,7 @@ export class GestureEditor {
   private captureNodeGeometryRects(nodeId: string): Rect[] {
     const rects: Rect[] = []
     const nodeView = this.deps.views.getNode(nodeId)
-    if (nodeView?.isActive === true) {
-      rects.push(growRect(nodeView.bounds, this.nodePaintPad(nodeId)))
-    }
+    if (nodeView?.isActive === true) rects.push(nodeView.paintBounds)
     const groupIds = new Set(listOwningGroupChain(this.deps.scene, nodeId))
     for (const edge of this.deps.scene.edges.values()) {
       if (
@@ -880,7 +999,7 @@ export class GestureEditor {
         && !groupIds.has(edge.to)
       ) continue
       const edgeView = this.deps.views.getEdge(edge.id)
-      if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
+      if (edgeView?.isActive === true) rects.push(edgeView.paintBounds)
       // Edge dirty often clips only a strip of the far endpoint. Partial clear +
       // clip through that body leaves shadow / AA seams (hello From residual).
       const otherId = edge.from === nodeId || groupIds.has(edge.from)
@@ -891,38 +1010,15 @@ export class GestureEditor {
     return rects
   }
 
-  /** Grow pad covering drop shadow and selection glow for a node id. */
-  private nodePaintPad(nodeId: string): number {
-    const paint = this.deps.views.getNode(nodeId)?.toPaintView(
-      this.deps.scene.selectedIds.has(nodeId),
-      false,
-    )
-    return elementPaintPad({
-      shadowBlur: paint?.shadow?.blur,
-      shadowOffsetY: paint?.shadow?.offsetY,
-      selected: paint?.selected,
-      glow: paint?.selectStyle?.glow,
-      glowBlur: paint?.selectStyle?.glowBlur,
-    })
-  }
-
   private pushEndpointPaintRect(rects: Rect[], endpointId: string): void {
     const nodeView = this.deps.views.getNode(endpointId)
     if (nodeView?.isActive === true) {
-      rects.push(growRect(nodeView.bounds, this.nodePaintPad(endpointId)))
+      rects.push(nodeView.paintBounds)
       return
     }
     const groupView = this.deps.views.getGroup(endpointId)
     if (groupView?.isActive !== true) return
-    const selected = this.deps.scene.selectedIds.has(endpointId)
-    const paint = groupView.toPaintView(selected, false)
-    rects.push(growRect(groupView.bounds, elementPaintPad({
-      shadowBlur: paint.shadow?.blur,
-      shadowOffsetY: paint.shadow?.offsetY,
-      selected,
-      glow: paint.selectStyle?.glow,
-      glowBlur: paint.selectStyle?.glowBlur,
-    })))
+    rects.push(groupView.paintBounds)
   }
 
   /** Bounds of owning groups and ancestors (auto-fit chain). */
@@ -930,7 +1026,7 @@ export class GestureEditor {
     const rects: Rect[] = []
     for (const id of listOwningGroupChain(this.deps.scene, nodeId)) {
       const groupView = this.deps.views.getGroup(id)
-      if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
+      if (groupView?.isActive === true) rects.push(groupView.paintBounds)
     }
     return rects
   }
@@ -938,20 +1034,14 @@ export class GestureEditor {
   private captureEdgeGeometryRects(edgeId: string): Rect[] {
     const edgeView = this.deps.views.getEdge(edgeId)
     if (edgeView?.isActive !== true) return []
-    return [growRect(edgeView.bounds, 8)]
+    return [edgeView.paintBounds]
   }
 
   private capturePathGeometryRects(pathId: string): Rect[] {
     const pathView = this.deps.views.getPath(pathId)
     // PathView has no isActive flag; skip only when densify produced nothing.
     if (pathView === undefined || pathView.points.length < 2) return []
-    const selected = this.deps.scene.selectedIds.has(pathId)
-    const paint = pathView.toPaintView(selected, false)
-    return [growRect(pathView.bounds, elementPaintPad({
-      selected,
-      glow: paint.selectStyle?.glow,
-      glowBlur: paint.selectStyle?.glowBlur,
-    }))]
+    return [pathView.paintBounds]
   }
 
   private captureShapeNodeGeometryRects(shapeNodeId: string): Rect[] {
@@ -961,29 +1051,14 @@ export class GestureEditor {
     // `isActive === true` always failed, so only the tiny group band was dirtied
     // and the filled body left a root-layer ghost while the overlay moved.
     if (shapeView !== undefined && shapeView.points.length >= 2) {
-      const selected = this.deps.scene.selectedIds.has(shapeNodeId)
-      const paint = shapeView.toPaintView(selected, false)
-      rects.push(growRect(shapeView.bounds, elementPaintPad({
-        selected,
-        glow: paint.selectStyle?.glow,
-        glowBlur: paint.selectStyle?.glowBlur,
-      })))
+      rects.push(shapeView.paintBounds)
     }
     for (const groupId of listOwningGroupChainForShapeNode(
       this.deps.scene,
       shapeNodeId,
     )) {
       const groupView = this.deps.views.getGroup(groupId)
-      if (groupView?.isActive !== true) continue
-      const selected = this.deps.scene.selectedIds.has(groupId)
-      const paint = groupView.toPaintView(selected, false)
-      rects.push(growRect(groupView.bounds, elementPaintPad({
-        shadowBlur: paint.shadow?.blur,
-        shadowOffsetY: paint.shadow?.offsetY,
-        selected,
-        glow: paint.selectStyle?.glow,
-        glowBlur: paint.selectStyle?.glowBlur,
-      })))
+      if (groupView?.isActive === true) rects.push(groupView.paintBounds)
     }
     return rects
   }

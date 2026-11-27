@@ -4,6 +4,7 @@
 
 import {
   anglePivot,
+  growRect,
   normalizeAngleDegrees,
   rotatedAabbOfRectAbout,
   unionRect,
@@ -11,6 +12,7 @@ import {
   type Rect,
 } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
+import { paintExtentGrow } from '../network/paint-pad.ts'
 import type {
   GraphAngleAnchor,
   GraphChromeStyle,
@@ -18,6 +20,7 @@ import type {
   GraphShadowStyle,
 } from '../protocol/types.ts'
 import type { GroupPaintView } from '../render/canvas2d.ts'
+import type { DebugElementBounds } from '../render/debug-bounds.ts'
 import {
   AlarmAttachment,
   Attachment,
@@ -46,8 +49,10 @@ export class GroupView {
   readonly id: string
   private dirty = true
   private band: Rect = { x: 0, y: 0, width: 0, height: 0 }
-  /** Rotated AABB of {@link originalUnion} (dirty / cull); equals it when angle ≡ 0. */
+  /** Rotated AABB of {@link originalUnion} (geometry / hit cull); equals it when angle ≡ 0. */
   private union: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** {@link union} plus baked shadow / selection-glow paint extent (dirty seeds). */
+  private paintUnion: Rect = { x: 0, y: 0, width: 0, height: 0 }
   /** Unrotated band ∪ attachments (hit after inverse rotation). */
   private originalUnion: Rect = { x: 0, y: 0, width: 0, height: 0 }
   private angleDeg = 0
@@ -71,9 +76,17 @@ export class GroupView {
     this.id = id
   }
 
-  /** Rotated union AABB (dirty + hit cull); excludes hover-only tooltip. */
+  /** Rotated geometry AABB (hit / layout); excludes hover-only tooltip. */
   get bounds(): Rect {
     return this.union
+  }
+
+  /**
+   * Paint footprint for dirty-rect seeds (geometry + baked shadow / glow).
+   * Same as {@link bounds} when there is no drop shadow or selection glow pad.
+   */
+  get paintBounds(): Rect {
+    return this.paintUnion
   }
 
   /** Unrotated band ∪ attachments. */
@@ -121,6 +134,31 @@ export class GroupView {
 
   markDirty(): void {
     this.dirty = true
+  }
+
+  /**
+   * Debug overlay parts: band + attachments as OBB sources, geometry/paint AABBs.
+   * @returns undefined when inactive.
+   */
+  debugBounds(): DebugElementBounds | undefined {
+    if (!this.active) return undefined
+    const oriented = [
+      { label: 'band', rect: this.band },
+      ...this.attachments.map(attachment => ({
+        label: attachmentDebugLabel(attachment),
+        rect: attachment.bounds,
+      })),
+    ]
+    return {
+      id: this.id,
+      angle: this.angleDeg,
+      pivot: this.pivot,
+      oriented,
+      aabbs: [
+        { label: 'geometry', rect: this.union },
+        { label: 'paint', rect: this.paintUnion },
+      ],
+    }
   }
 
   /**
@@ -186,6 +224,15 @@ export class GroupView {
       anglePivot(this.band, this.angleAnchorCache),
       this.angleDeg,
     )
+    const extent = paintExtentGrow({
+      shadowBlur: this.shadow?.blur,
+      shadowOffsetX: this.shadow?.offsetX,
+      shadowOffsetY: this.shadow?.offsetY,
+      includeGlow: true,
+      glow: this.selectStyle?.glow,
+      glowBlur: this.selectStyle?.glowBlur,
+    })
+    this.paintUnion = extent > 0 ? growRect(this.union, extent) : this.union
     this.dirty = false
   }
 
@@ -231,6 +278,7 @@ export class GroupView {
     this.expanded = false
     this.band = { x: 0, y: 0, width: 0, height: 0 }
     this.union = this.band
+    this.paintUnion = this.band
     this.originalUnion = this.band
     this.angleDeg = 0
     this.angleAnchorCache = undefined
@@ -282,4 +330,9 @@ function takeOrCreate<T extends Attachment>(
 ): T {
   const found = previous.find((a): a is T => a instanceof ctor)
   return found ?? create()
+}
+
+function attachmentDebugLabel(attachment: Attachment): string {
+  const name = attachment.constructor.name
+  return name.endsWith('Attachment') ? name.slice(0, -'Attachment'.length) : name
 }

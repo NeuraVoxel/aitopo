@@ -210,6 +210,19 @@ export function anglePivot(
 }
 
 /**
+ * Four corners of an AABB in order (TL, TR, BR, BL).
+ * @param rect - axis-aligned box.
+ */
+export function rectCorners(rect: Rect): readonly [Point, Point, Point, Point] {
+  return [
+    { x: rect.x, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y },
+    { x: rect.x + rect.width, y: rect.y + rect.height },
+    { x: rect.x, y: rect.y + rect.height },
+  ]
+}
+
+/**
  * Rotate a point about a pivot by degrees (canvas y-down, positive = clockwise).
  * @param point - world point.
  * @param pivot - rotation center.

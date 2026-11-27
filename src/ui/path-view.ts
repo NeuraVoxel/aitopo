@@ -20,6 +20,7 @@ import type {
   GraphTextStyle,
 } from '../protocol/types.ts'
 import type { PathPaintView } from '../render/canvas2d.ts'
+import type { DebugElementBounds } from '../render/debug-bounds.ts'
 import { samplePolylineAt } from './attachment/path.ts'
 import {
   resolveMaxChars,
@@ -80,6 +81,27 @@ export class PathView {
   /** Densified polyline AABB (+ pad, label) for dirty-rect / hit culling. */
   get bounds(): Rect {
     return this.pathBounds
+  }
+
+  /** Dirty-rect seed; same as {@link bounds} (stroke extents already baked). */
+  get paintBounds(): Rect {
+    return this.pathBounds
+  }
+
+  /**
+   * Debug overlay: unrotated path/label box as OBB source + rotated paint AABB.
+   * @returns undefined when empty.
+   */
+  debugBounds(): DebugElementBounds | undefined {
+    if (this.pointsCache.length < 2) return undefined
+    const oriented = [{ label: 'path', rect: this.originalBounds }]
+    return {
+      id: this.id,
+      angle: this.angleDeg,
+      pivot: this.pivot,
+      oriented,
+      aabbs: [{ label: 'paint', rect: this.pathBounds }],
+    }
   }
 
   /** Unrotated padded polyline ∪ label AABB. */
@@ -163,14 +185,6 @@ export class PathView {
     for (const point of this.pointsCache) {
       box = unionPoint(box, point)
     }
-    const pad = Math.max(
-      PATH_BOUNDS_PAD,
-      (path.style?.lineWidth ?? DEFAULT_LINE_WIDTH) / 2 + 2,
-    )
-    this.pointsBox = box ?? { x: 0, y: 0, width: 0, height: 0 }
-    this.angleDeg = normalizeAngleDegrees(path.angle ?? 0)
-    this.angleAnchorCache = path.angleAnchor
-    this.pathBounds = growRect(this.pointsBox, pad)
     this.alphaCache = clampAlpha(path.style?.alpha)
     this.strokeCache = path.style?.stroke ?? DEFAULT_STROKE
     this.fillCache = path.style?.fill
@@ -178,6 +192,16 @@ export class PathView {
     this.strokeDashCache = path.style?.strokeDash
     this.selectStyle = path.style?.select
     this.hoverStyle = path.style?.hover
+    const pad = Math.max(
+      PATH_BOUNDS_PAD,
+      this.lineWidthCache / 2 + 2,
+      (this.selectStyle?.width ?? 0) / 2 + 2,
+      (this.hoverStyle?.width ?? 2.5) / 2 + 2,
+    )
+    this.pointsBox = box ?? { x: 0, y: 0, width: 0, height: 0 }
+    this.angleDeg = normalizeAngleDegrees(path.angle ?? 0)
+    this.angleAnchorCache = path.angleAnchor
+    this.pathBounds = growRect(this.pointsBox, pad)
     this.syncLabel(path.label, path.style?.label)
     this.finalizeAngle()
     this.dirty = false

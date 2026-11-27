@@ -320,4 +320,53 @@ describe('buildPropertyPatch', () => {
       },
     }])
   })
+
+  it('writes style.shadow null when shadow is disabled', () => {
+    const patch = buildPropertyPatch(
+      { kind: 'node', element: node },
+      { shadowEnabled: false },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateNode',
+      id: 'a',
+      patch: { style: { shadow: null } },
+    }])
+  })
+
+  it('merges style.shadow blur/offsets from the node default when omitted', () => {
+    const patch = buildPropertyPatch(
+      { kind: 'node', element: node },
+      { shadowBlur: 12, shadowOffsetY: 4 },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateNode',
+      id: 'a',
+      patch: {
+        style: {
+          shadow: {
+            color: 'rgba(0, 0, 0, 0.35)',
+            blur: 12,
+            offsetX: 0,
+            offsetY: 4,
+          },
+        },
+      },
+    }])
+  })
+
+  it('merges group shadow without inventing a default when enabling', () => {
+    const patch = buildPropertyPatch(
+      { kind: 'group', element: group },
+      { shadowEnabled: true, shadowBlur: 8, shadowOffsetX: 1 },
+    )
+    expect(patch.ops).toEqual([{
+      op: 'updateGroup',
+      id: 'g1',
+      patch: {
+        style: {
+          shadow: { blur: 8, offsetX: 1 },
+        },
+      },
+    }])
+  })
 })

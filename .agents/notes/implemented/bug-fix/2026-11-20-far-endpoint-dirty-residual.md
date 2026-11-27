@@ -8,7 +8,7 @@ In the hello demo, dragging node `To` left a residual seam on stationary `From`.
 
 ## Decision
 
-When dirtying a moved node (preview and apply sync), also grow the **far endpoint** node/group bounds into the dirty union (with `elementPaintPad` for drop shadow / selection glow). Partial edge AABB alone is not enough. Mover pads use the same helper so selection glow (`glowBlur` default 16) clears with the body.
+When dirtying a moved node (preview and apply sync), also union the **far endpoint** node/group **`paintBounds`** into the dirty seed. Partial edge AABB alone is not enough. Shadow / selection glow live in `paintBounds` via bake ([view paint bounds dirty](../architecture/2026-11-27-view-paint-bounds-dirty.md)); capture sites no longer re-apply `elementPaintPad`.
 
 ## Alternatives considered
 

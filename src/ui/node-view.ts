@@ -4,6 +4,7 @@
 
 import {
   anglePivot,
+  growRect,
   normalizeAngleDegrees,
   rotatedAabbOfRectAbout,
   unionRect,
@@ -11,8 +12,10 @@ import {
   type Rect,
 } from '../geom.ts'
 import type { GraphScene } from '../model/scene.ts'
+import { DEFAULT_NODE_SHADOW, paintExtentGrow } from '../network/paint-pad.ts'
 import type { GraphAngleAnchor, GraphChromeStyle, GraphShadowStyle } from '../protocol/types.ts'
 import type { NodePaintView } from '../render/canvas2d.ts'
+import type { DebugElementBounds } from '../render/debug-bounds.ts'
 import {
   AlarmAttachment,
   Attachment,
@@ -26,20 +29,15 @@ import { nodeBounds } from './bounds.ts'
 import { isNodeVisibleInScene } from './group-state.ts'
 import { getVectorImage, vectorImagePaintCtx } from './vector-image-registry.ts'
 
-const DEFAULT_SHADOW: GraphShadowStyle = {
-  color: 'rgba(0, 0, 0, 0.35)',
-  blur: 6,
-  offsetX: 0,
-  offsetY: 2,
-}
-
 /** Per-node View: invalidate → validate attachments → paint DTO. */
 export class NodeView {
   readonly id: string
   private dirty = true
   private body: Rect = { x: 0, y: 0, width: 0, height: 0 }
-  /** Rotated AABB of {@link originalUnion} (dirty / cull); equals it when angle ≡ 0. */
+  /** Rotated AABB of {@link originalUnion} (geometry / hit cull); equals it when angle ≡ 0. */
   private union: Rect = { x: 0, y: 0, width: 0, height: 0 }
+  /** {@link union} plus baked shadow / selection-glow paint extent (dirty seeds). */
+  private paintUnion: Rect = { x: 0, y: 0, width: 0, height: 0 }
   /** Unrotated body ∪ attachments (hit after inverse rotation). */
   private originalUnion: Rect = { x: 0, y: 0, width: 0, height: 0 }
   private angleDeg = 0
@@ -61,9 +59,17 @@ export class NodeView {
     this.id = id
   }
 
-  /** Rotated union AABB (dirty + hit cull); excludes hover-only tooltip. */
+  /** Rotated geometry AABB (hit / layout); excludes hover-only tooltip. */
   get bounds(): Rect {
     return this.union
+  }
+
+  /**
+   * Paint footprint for dirty-rect seeds (geometry + baked shadow / glow).
+   * Same as {@link bounds} when there is no drop shadow or selection glow pad.
+   */
+  get paintBounds(): Rect {
+    return this.paintUnion
   }
 
   /** Unrotated body ∪ attachments (hit-test after inverse-rotating the pointer). */
@@ -111,6 +117,31 @@ export class NodeView {
   }
 
   /**
+   * Debug overlay parts: body + attachments as OBB sources, geometry/paint AABBs.
+   * @returns undefined when inactive.
+   */
+  debugBounds(): DebugElementBounds | undefined {
+    if (!this.active) return undefined
+    const oriented = [
+      { label: 'body', rect: this.body },
+      ...this.attachments.map(attachment => ({
+        label: attachmentDebugLabel(attachment),
+        rect: attachment.bounds,
+      })),
+    ]
+    return {
+      id: this.id,
+      angle: this.angleDeg,
+      pivot: this.pivot,
+      oriented,
+      aabbs: [
+        { label: 'geometry', rect: this.union },
+        { label: 'paint', rect: this.paintUnion },
+      ],
+    }
+  }
+
+  /**
    * Recompute body, attachments, and union when dirty.
    * @param scene - active graph scene.
    * @param opts - host defaults (icon visibility).
@@ -126,6 +157,7 @@ export class NodeView {
       this.visible = false
       this.body = { x: 0, y: 0, width: 0, height: 0 }
       this.union = this.body
+      this.paintUnion = this.body
       this.originalUnion = this.body
       this.angleDeg = 0
       this.angleAnchorCache = undefined
@@ -150,7 +182,7 @@ export class NodeView {
     // `null` opts out of the default soft shadow (dense occupancy cells, etc.).
     this.shadow = node.style?.shadow === null
       ? undefined
-      : (node.style?.shadow ?? DEFAULT_SHADOW)
+      : (node.style?.shadow ?? DEFAULT_NODE_SHADOW)
     this.alpha = clampAlpha(node.style?.alpha)
     this.strokeDash = node.style?.strokeDash
     this.selectStyle = node.style?.select
@@ -175,6 +207,17 @@ export class NodeView {
       anglePivot(this.body, this.angleAnchorCache),
       this.angleDeg,
     )
+    // Bake shadow + worst-case selection glow for dirty seeds (twaver
+    // appendShadowBound). Geometry {@link bounds} stays unpadded for hit/layout.
+    const extent = paintExtentGrow({
+      shadowBlur: this.shadow?.blur,
+      shadowOffsetX: this.shadow?.offsetX,
+      shadowOffsetY: this.shadow?.offsetY,
+      includeGlow: true,
+      glow: this.selectStyle?.glow,
+      glowBlur: this.selectStyle?.glowBlur,
+    })
+    this.paintUnion = extent > 0 ? growRect(this.union, extent) : this.union
     this.dirty = false
   }
 
@@ -255,4 +298,10 @@ function takeOrCreate<T extends Attachment>(
 ): T {
   const found = previous.find((a): a is T => a instanceof ctor)
   return found ?? create()
+}
+
+/** Short label for debug strokes (twaver-style per-attachment boxes). */
+function attachmentDebugLabel(attachment: Attachment): string {
+  const name = attachment.constructor.name
+  return name.endsWith('Attachment') ? name.slice(0, -'Attachment'.length) : name
 }

@@ -13,6 +13,7 @@ import {
   distanceToPolyline,
   type Rect,
 } from '../geom.ts'
+import { BULK_SELECTION_UI_CAP } from '../interaction/bulk-ui.ts'
 import {
   DEFAULT_LAYER_ID,
   isLayerEditable,
@@ -35,6 +36,7 @@ import type {
 } from '../protocol/types.ts'
 import { Canvas2DRenderer } from '../render/canvas2d.ts'
 import type { OverlayRotation, Renderer } from '../render/canvas2d.ts'
+import type { DebugElementBounds } from '../render/debug-bounds.ts'
 import {
   groupBounds,
   nodeBounds,
@@ -57,10 +59,10 @@ import {
   type OverlayChrome,
 } from '../interaction/index.ts'
 import { layoutFlowColumns, layoutGrid } from '../layout/index.ts'
-import { DirtyAccumulator } from './dirty.ts'
+import { DirtyAccumulator, MAX_PARTIAL_DIRTY_ABSORBS } from './dirty.ts'
+import { DIRTY_SEED_AA_GROW } from './paint-pad.ts'
 import { GestureEditor } from './gesture-editor.ts'
 import { OverlayChromeRegistry } from './overlay-chrome-registry.ts'
-import { elementPaintPad } from './paint-pad.ts'
 import { Viewport } from './viewport.ts'
 
 export type GraphEventHandler = (event: GraphEvent) => void
@@ -80,6 +82,12 @@ export interface NetworkOptions {
    */
   readonly createEdgeKind?: string
   debugPaintRects?: boolean
+  /**
+   * When true, partial scene paints flood-absorb intersecting neighbors
+   * (AA grow + neighbor union, absorb cap → `'all'`).
+   * Default `true`. Dense hosts (OCC-scale) pass `false` for AA grow only.
+   */
+  readonly expandPartialDirty?: boolean
   /**
    * Host default for node icon visibility when `style.showIcon` is omitted.
    * Default `true`. Per-node `style.showIcon` always wins.
@@ -143,6 +151,10 @@ export class Network {
   private flowPhase = 0
   private needsScenePaint = true
   private needsOverlayPaint = true
+  /** Mirrors renderer debug flag; gates OBB/AABB collection each validate. */
+  private debugPaintRects = false
+  /** Neighbor flood for partial dirty; default on (`NetworkOptions.expandPartialDirty`). */
+  private expandPartialDirtyEnabled = true
   private disposed = false
   private resizeObserver: ResizeObserver | null = null
   private readonly disposers: Array<() => void> = []
@@ -166,6 +178,8 @@ export class Network {
 
   constructor(options: NetworkOptions = {}) {
     this.options = options
+    this.debugPaintRects = options.debugPaintRects === true
+    this.expandPartialDirtyEnabled = options.expandPartialDirty !== false
     this.views.setShowNodeIconsDefault(options.showNodeIcons !== false)
     this.chrome = new OverlayChromeRegistry(() => {
       this.requestOverlayPaint()
@@ -350,7 +364,7 @@ export class Network {
     this.views.validateDirty(this.scene)
     for (const id of Object.keys(positions)) {
       const view = this.views.getNode(id)
-      if (view?.isActive === true) this.dirty.add(growRect(view.bounds, 4))
+      if (view?.isActive === true) this.dirty.add(view.paintBounds)
     }
     this.scheduleScenePaint()
     this.emit({ type: 'layoutCompleted', name, positions })
@@ -534,9 +548,18 @@ export class Network {
   }
 
   setDebugPaintRects(value: boolean): void {
+    this.debugPaintRects = value
     this.renderer?.setDebugPaintRects?.(value)
     this.dirty.markAll()
     this.scheduleScenePaint()
+  }
+
+  /**
+   * Enable/disable neighbor flood expand for partial dirty paints.
+   * @param value - true to run {@link expandPartialDirty}; false keeps AA grow only.
+   */
+  setExpandPartialDirty(value: boolean): void {
+    this.expandPartialDirtyEnabled = value
   }
 
   /**
@@ -551,39 +574,19 @@ export class Network {
     const touched = new Set([...previous, ...ids])
     for (const id of touched) {
       const nodeView = this.views.getNode(id)
-      if (nodeView?.isActive === true) {
-        const paint = nodeView.toPaintView(true, false)
-        this.dirty.add(growRect(nodeView.bounds, elementPaintPad({
-          shadowBlur: paint.shadow?.blur,
-          shadowOffsetY: paint.shadow?.offsetY,
-          selected: true,
-          glow: paint.selectStyle?.glow,
-          glowBlur: paint.selectStyle?.glowBlur,
-        })))
-      }
+      if (nodeView?.isActive === true) this.dirty.add(nodeView.paintBounds)
       const groupView = this.views.getGroup(id)
-      if (groupView?.isActive === true) {
-        const paint = groupView.toPaintView(true, false)
-        this.dirty.add(growRect(groupView.bounds, elementPaintPad({
-          shadowBlur: paint.shadow?.blur,
-          shadowOffsetY: paint.shadow?.offsetY,
-          selected: true,
-          glow: paint.selectStyle?.glow,
-          glowBlur: paint.selectStyle?.glowBlur,
-        })))
-      }
+      if (groupView?.isActive === true) this.dirty.add(groupView.paintBounds)
       const pathView = this.views.getPath(id)
       if (pathView !== undefined && pathView.points.length >= 2) {
-        this.dirty.add(growRect(pathView.bounds, 8))
+        this.dirty.add(pathView.paintBounds)
       }
       const shapeNodeView = this.views.getShapeNode(id)
       if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
-        this.dirty.add(growRect(shapeNodeView.bounds, 8))
+        this.dirty.add(shapeNodeView.paintBounds)
       }
       const edgeView = this.views.getEdge(id)
-      if (edgeView?.isActive === true) {
-        this.dirty.add(growRect(edgeView.bounds, 8))
-      }
+      if (edgeView?.isActive === true) this.dirty.add(edgeView.paintBounds)
     }
     this.scheduleScenePaint()
     this.emit({ type: 'selectionChanged', selectedIds: ids })
@@ -602,19 +605,19 @@ export class Network {
     const dirtyEdge = (edgeId: string): void => {
       const edgeView = this.views.getEdge(edgeId)
       if (edgeView?.isActive !== true) return
-      this.dirty.add(growRect(edgeView.bounds, 8))
+      this.dirty.add(edgeView.paintBounds)
       needsScene = true
     }
     for (const hid of [previous, id]) {
       if (hid === undefined) continue
       const pathView = this.views.getPath(hid)
       if (pathView !== undefined && pathView.points.length >= 2) {
-        this.dirty.add(growRect(pathView.bounds, 8))
+        this.dirty.add(pathView.paintBounds)
         needsScene = true
       }
       const shapeNodeView = this.views.getShapeNode(hid)
       if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
-        this.dirty.add(growRect(shapeNodeView.bounds, 8))
+        this.dirty.add(shapeNodeView.paintBounds)
         needsScene = true
       }
       if (this.scene.edges.has(hid)) dirtyEdge(hid)
@@ -669,19 +672,19 @@ export class Network {
     let bounds: Rect | undefined
     for (const view of this.views.pathViews()) {
       if (view.points.length < 2) continue
-      bounds = unionRect(bounds, view.bounds)
+      bounds = unionRect(bounds, view.paintBounds)
     }
     for (const view of this.views.shapeNodeViews()) {
       if (view.points.length < 2) continue
-      bounds = unionRect(bounds, view.bounds)
+      bounds = unionRect(bounds, view.paintBounds)
     }
     for (const view of this.views.nodeViews()) {
       if (!view.isActive) continue
-      bounds = unionRect(bounds, view.bounds)
+      bounds = unionRect(bounds, view.paintBounds)
     }
     for (const view of this.views.edgeViews()) {
       if (!view.isActive) continue
-      bounds = unionRect(bounds, view.bounds)
+      bounds = unionRect(bounds, view.paintBounds)
     }
     for (const view of this.views.groupViews()) {
       if (!view.isActive) continue
@@ -928,6 +931,16 @@ export class Network {
   }
 
   /**
+   * Batch live preview for multi-select node drag.
+   * @param updates - id → world x/y.
+   */
+  previewNodePositions(
+    updates: readonly { readonly id: string; readonly x: number; readonly y: number }[],
+  ): void {
+    this.gestures.previewNodePositions(updates)
+  }
+
+  /**
    * Live preview of a group drag (group origin + member nodes).
    * @param args - deltas and drag-start origins.
    */
@@ -972,6 +985,20 @@ export class Network {
     toGroupId?: string | undefined
   }): void {
     this.gestures.commitNodeMove(args)
+  }
+
+  /**
+   * Batch commit many node moves in one patch (dense multi-select).
+   * @param moves - per-node from/to.
+   */
+  commitNodeMoves(
+    moves: readonly {
+      readonly nodeId: string
+      readonly from: { x: number; y: number }
+      readonly to: { x: number; y: number }
+    }[],
+  ): void {
+    this.gestures.commitNodeMoves(moves)
   }
 
   /**
@@ -1241,7 +1268,8 @@ export class Network {
 
   private syncDirtyFromScene(): void {
     const peek = this.scene.takeDirty()
-    if (peek.invalidateAll) {
+    // Dense multi-op patches (OCC select-all commit): skip O(ids) rect capture.
+    if (peek.invalidateAll || peek.ids.size > BULK_SELECTION_UI_CAP) {
       this.views.sync(this.scene)
       for (const view of this.views.nodeViews()) view.markDirty()
       for (const view of this.views.edgeViews()) view.markDirty()
@@ -1258,27 +1286,27 @@ export class Network {
     for (const id of peek.ids) {
       const nodeView = this.views.getNode(id)
       if (nodeView?.isActive === true) {
-        oldRects.push(growRect(nodeView.bounds, this.nodePaintPad(id)))
+        oldRects.push(nodeView.paintBounds)
         this.pushIncidentEdgeAndEndpointRects(oldRects, id)
       }
       const edgeView = this.views.getEdge(id)
       if (edgeView?.isActive === true) {
-        oldRects.push(growRect(edgeView.bounds, 8))
+        oldRects.push(edgeView.paintBounds)
         this.pushEdgeEndpointRects(oldRects, id)
       }
       const pathView = this.views.getPath(id)
       if (pathView !== undefined && pathView.points.length >= 2) {
-        oldRects.push(growRect(pathView.bounds, 8))
+        oldRects.push(pathView.paintBounds)
       }
       const shapeNodeView = this.views.getShapeNode(id)
       if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
-        oldRects.push(growRect(shapeNodeView.bounds, 8))
+        oldRects.push(shapeNodeView.paintBounds)
       }
       if (this.scene.groups.has(id)) {
         for (const rect of this.captureGroupTopologyRects(id)) oldRects.push(rect)
       } else {
         const groupView = this.views.getGroup(id)
-        if (groupView?.isActive === true) oldRects.push(growRect(groupView.bounds, 8))
+        if (groupView?.isActive === true) oldRects.push(groupView.paintBounds)
       }
     }
     this.views.sync(this.scene)
@@ -1296,24 +1324,24 @@ export class Network {
     for (const id of peek.ids) {
       const nodeView = this.views.getNode(id)
       if (nodeView?.isActive === true) {
-        this.dirty.add(growRect(nodeView.bounds, this.nodePaintPad(id)))
+        this.dirty.add(nodeView.paintBounds)
         this.pushIncidentEdgeAndEndpointRects(undefined, id)
         continue
       }
       const edgeView = this.views.getEdge(id)
       if (edgeView?.isActive === true) {
-        this.dirty.add(growRect(edgeView.bounds, 8))
+        this.dirty.add(edgeView.paintBounds)
         this.pushEdgeEndpointRects(undefined, id)
         continue
       }
       const pathView = this.views.getPath(id)
       if (pathView !== undefined && pathView.points.length >= 2) {
-        this.dirty.add(growRect(pathView.bounds, 8))
+        this.dirty.add(pathView.paintBounds)
         continue
       }
       const shapeNodeView = this.views.getShapeNode(id)
       if (shapeNodeView !== undefined && shapeNodeView.points.length >= 2) {
-        this.dirty.add(growRect(shapeNodeView.bounds, 8))
+        this.dirty.add(shapeNodeView.paintBounds)
         continue
       }
       if (this.scene.groups.has(id)) {
@@ -1321,36 +1349,25 @@ export class Network {
         continue
       }
       const groupView = this.views.getGroup(id)
-      if (groupView?.isActive === true) this.dirty.add(growRect(groupView.bounds, 8))
+      if (groupView?.isActive === true) this.dirty.add(groupView.paintBounds)
     }
-  }
-
-  /** Grow pad covering drop shadow and selection glow for a node id. */
-  private nodePaintPad(nodeId: string): number {
-    const selected = this.scene.selectedIds.has(nodeId)
-    const paint = this.views.getNode(nodeId)?.toPaintView(selected, false)
-    return elementPaintPad({
-      shadowBlur: paint?.shadow?.blur,
-      shadowOffsetY: paint?.shadow?.offsetY,
-      selected,
-      glow: paint?.selectStyle?.glow,
-      glowBlur: paint?.selectStyle?.glowBlur,
-    })
   }
 
   /**
    * Expand a partial dirty seed so any element whose paint AABB intersects it
-   * contributes its **full** padded bounds. Stops mid-element clip clears that
+   * contributes its **full** paint bounds. Stops mid-element clip clears that
    * leave AA / rotated-ink residuals on neighbors (e.g. pulsing vectorImage
    * AABB grazing a sibling ego).
    *
    * Each element is absorbed at most once. Non-finite AABBs are skipped —
    * NaN pads make `intersectsRect` true and `containsRect` false forever,
    * which previously hung the paint loop and froze the page.
+   * Absorbs beyond {@link MAX_PARTIAL_DIRTY_ABSORBS} return `'all'`.
    */
-  private expandPartialDirty(seed: Rect): Rect {
+  private expandPartialDirty(seed: Rect): Rect | 'all' {
     if (!isFiniteRect(seed)) return seed
-    let region = seed
+    // twaver grows the unioned dirty rect by 2px after viewRect collection.
+    let region = growRect(seed, DIRTY_SEED_AA_GROW)
     const absorbed = new Set<string>()
     let grew = true
     while (grew) {
@@ -1359,62 +1376,60 @@ export class Network {
         if (absorbed.has(`n:${node.id}`)) continue
         const view = this.views.getNode(node.id)
         if (view === undefined || !view.isVisible) continue
-        const padded = growRect(view.bounds, this.nodePaintPad(node.id))
+        const padded = view.paintBounds
         if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
         absorbed.add(`n:${node.id}`)
+        if (absorbed.size > MAX_PARTIAL_DIRTY_ABSORBS) return 'all'
         grew = true
       }
       for (const group of this.scene.groups.values()) {
         if (absorbed.has(`g:${group.id}`)) continue
         const view = this.views.getGroup(group.id)
         if (view === undefined || !view.isVisible) continue
-        const paint = view.toPaintView(this.scene.selectedIds.has(group.id), false)
-        const padded = growRect(view.bounds, elementPaintPad({
-          shadowBlur: paint.shadow?.blur,
-          shadowOffsetY: paint.shadow?.offsetY,
-          selected: paint.selected,
-          glow: paint.selectStyle?.glow,
-          glowBlur: paint.selectStyle?.glowBlur,
-        }))
+        const padded = view.paintBounds
         if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
         absorbed.add(`g:${group.id}`)
+        if (absorbed.size > MAX_PARTIAL_DIRTY_ABSORBS) return 'all'
         grew = true
       }
       for (const edge of this.scene.edges.values()) {
         if (absorbed.has(`e:${edge.id}`)) continue
         const view = this.views.getEdge(edge.id)
         if (view === undefined || !view.isActive) continue
-        const padded = growRect(view.bounds, 8)
+        const padded = view.paintBounds
         if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
         absorbed.add(`e:${edge.id}`)
+        if (absorbed.size > MAX_PARTIAL_DIRTY_ABSORBS) return 'all'
         grew = true
       }
       for (const path of this.scene.paths.values()) {
         if (absorbed.has(`p:${path.id}`)) continue
         const view = this.views.getPath(path.id)
         if (view === undefined || view.points.length < 2) continue
-        const padded = growRect(view.bounds, 8)
+        const padded = view.paintBounds
         if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
         absorbed.add(`p:${path.id}`)
+        if (absorbed.size > MAX_PARTIAL_DIRTY_ABSORBS) return 'all'
         grew = true
       }
       for (const shapeNode of this.scene.shapeNodes.values()) {
         if (absorbed.has(`s:${shapeNode.id}`)) continue
         const view = this.views.getShapeNode(shapeNode.id)
         if (view === undefined || view.points.length < 2) continue
-        const padded = growRect(view.bounds, 8)
+        const padded = view.paintBounds
         if (!isFiniteRect(padded)) continue
         if (!intersectsRect(padded, region) || containsRect(region, padded)) continue
         region = unionRect(region, padded)!
         absorbed.add(`s:${shapeNode.id}`)
+        if (absorbed.size > MAX_PARTIAL_DIRTY_ABSORBS) return 'all'
         grew = true
       }
     }
@@ -1433,7 +1448,7 @@ export class Network {
       if (edge.from !== nodeId && edge.to !== nodeId) continue
       const edgeView = this.views.getEdge(edge.id)
       if (edgeView?.isActive === true) {
-        this.pushPaintRect(into, growRect(edgeView.bounds, 8))
+        this.pushPaintRect(into, edgeView.paintBounds)
       }
       this.pushEndpointPaintRect(into, edge.from === nodeId ? edge.to : edge.from)
     }
@@ -1449,20 +1464,12 @@ export class Network {
   private pushEndpointPaintRect(into: Rect[] | undefined, endpointId: string): void {
     const nodeView = this.views.getNode(endpointId)
     if (nodeView?.isActive === true) {
-      this.pushPaintRect(into, growRect(nodeView.bounds, this.nodePaintPad(endpointId)))
+      this.pushPaintRect(into, nodeView.paintBounds)
       return
     }
     const groupView = this.views.getGroup(endpointId)
     if (groupView?.isActive !== true) return
-    const selected = this.scene.selectedIds.has(endpointId)
-    const paint = groupView.toPaintView(selected, false)
-    this.pushPaintRect(into, growRect(groupView.bounds, elementPaintPad({
-      shadowBlur: paint.shadow?.blur,
-      shadowOffsetY: paint.shadow?.offsetY,
-      selected,
-      glow: paint.selectStyle?.glow,
-      glowBlur: paint.selectStyle?.glowBlur,
-    })))
+    this.pushPaintRect(into, groupView.paintBounds)
   }
 
   private pushPaintRect(into: Rect[] | undefined, rect: Rect): void {
@@ -1477,18 +1484,18 @@ export class Network {
   private captureGroupTopologyRects(groupId: string): Rect[] {
     const rects: Rect[] = []
     const groupView = this.views.getGroup(groupId)
-    if (groupView?.isActive === true) rects.push(growRect(groupView.bounds, 8))
+    if (groupView?.isActive === true) rects.push(groupView.paintBounds)
     const group = this.scene.groups.get(groupId)
     if (group === undefined) return rects
     const members = new Set(listDescendantNodeIds(this.scene, group))
     for (const memberId of members) {
       const nodeView = this.views.getNode(memberId)
-      if (nodeView?.isActive === true) rects.push(growRect(nodeView.bounds, 8))
+      if (nodeView?.isActive === true) rects.push(nodeView.paintBounds)
     }
     for (const edge of this.scene.edges.values()) {
       if (!members.has(edge.from) && !members.has(edge.to)) continue
       const edgeView = this.views.getEdge(edge.id)
-      if (edgeView?.isActive === true) rects.push(growRect(edgeView.bounds, 8))
+      if (edgeView?.isActive === true) rects.push(edgeView.paintBounds)
     }
     return rects
   }
@@ -1526,16 +1533,40 @@ export class Network {
         renderer.drawOverlayAttachments?.(paint.overlayAttachments, paint.alpha)
       }
     }
-    for (const groupId of this.scene.selectedIds) {
-      if (!this.scene.groups.has(groupId)) continue
-      this.paintGroupOverlay(renderer, groupId, true, hoverId === groupId)
+    const selectedGroupIds: string[] = []
+    const selectedNodeIds: string[] = []
+    for (const id of this.scene.selectedIds) {
+      if (this.scene.groups.has(id)) selectedGroupIds.push(id)
+      else if (this.scene.nodes.has(id)) selectedNodeIds.push(id)
+    }
+    const bulkSelection =
+      selectedGroupIds.length + selectedNodeIds.length > BULK_SELECTION_UI_CAP
+    if (bulkSelection) {
+      // OCC select-all: one union ring instead of N overlay strokes.
+      let union: Rect | undefined
+      for (const groupId of selectedGroupIds) {
+        const view = this.views.getGroup(groupId)
+        if (view === undefined || !view.isVisible) continue
+        union = unionRect(union, view.bandBounds)
+      }
+      for (const nodeId of selectedNodeIds) {
+        const view = this.views.getNode(nodeId)
+        if (view === undefined || !view.isVisible) continue
+        union = unionRect(union, view.bodyBounds)
+      }
+      if (union !== undefined) {
+        renderer.drawSelectionOverlay(union)
+      }
+    } else {
+      for (const groupId of selectedGroupIds) {
+        this.paintGroupOverlay(renderer, groupId, true, hoverId === groupId)
+      }
+      for (const nodeId of selectedNodeIds) {
+        this.paintNodeOverlay(renderer, nodeId, true, hoverId === nodeId)
+      }
     }
     if (hoverId !== undefined && this.scene.groups.has(hoverId) && !this.scene.selectedIds.has(hoverId)) {
       this.paintGroupOverlay(renderer, hoverId, false, true)
-    }
-    for (const nodeId of this.scene.selectedIds) {
-      if (!this.scene.nodes.has(nodeId)) continue
-      this.paintNodeOverlay(renderer, nodeId, true, hoverId === nodeId)
     }
     if (hoverId !== undefined && this.scene.nodes.has(hoverId) && !this.scene.selectedIds.has(hoverId)) {
       this.paintNodeOverlay(renderer, hoverId, false, true)
@@ -1603,11 +1634,18 @@ export class Network {
         // Filtered drag paint must wipe the whole root layer; partial dirty would leave
         // stale pixels for skipped nodes/groups.
         const filter = this.gestures.dragPaintFilter
-        const dirtyRects: Rect[] | 'all' = filter !== undefined || snapshot.invalidateAll
-          ? 'all'
-          : snapshot.rect === undefined
-            ? 'all'
-            : [this.expandPartialDirty(snapshot.rect)]
+        let dirtyRects: Rect[] | 'all'
+        if (filter !== undefined || snapshot.invalidateAll) {
+          dirtyRects = 'all'
+        } else if (snapshot.rect === undefined) {
+          dirtyRects = 'all'
+        } else if (this.expandPartialDirtyEnabled) {
+          const expanded = this.expandPartialDirty(snapshot.rect)
+          dirtyRects = expanded === 'all' ? 'all' : [expanded]
+        } else {
+          // Default: skip neighbor flood; keep twaver-style AA slop only.
+          dirtyRects = [growRect(snapshot.rect, DIRTY_SEED_AA_GROW)]
+        }
         // Partial dirty: skip draw calls whose bounds miss the cleared hole.
         // (Canvas clip alone still paid O(n) CPU; selection glow relies on this cull.)
         const cullRects = dirtyRects === 'all' ? undefined : dirtyRects
@@ -1647,12 +1685,31 @@ export class Network {
         return
       }
       this.paintOverlayPass(renderer)
+      if (this.debugPaintRects) this.paintDebugElementBounds(renderer)
       renderer.endFrame()
     } catch {
       // Paint failed: schedule a full-frame retry next tick.
       this.dirty.markAll()
       this.scheduleScenePaint()
     }
+  }
+
+  /**
+   * Collect per-view OBB sources + AABB envelopes onto the overlay (twaver `_debug`).
+   * @param renderer - active frame renderer (camera transform still open).
+   */
+  private paintDebugElementBounds(renderer: Renderer): void {
+    if (renderer.drawDebugElementBounds === undefined) return
+    const elements: DebugElementBounds[] = []
+    const push = (bounds: DebugElementBounds | undefined): void => {
+      if (bounds !== undefined) elements.push(bounds)
+    }
+    for (const view of this.views.pathViews()) push(view.debugBounds())
+    for (const view of this.views.shapeNodeViews()) push(view.debugBounds())
+    for (const view of this.views.groupViews()) push(view.debugBounds())
+    for (const view of this.views.edgeViews()) push(view.debugBounds())
+    for (const view of this.views.nodeViews()) push(view.debugBounds())
+    renderer.drawDebugElementBounds(elements)
   }
 
   /** Count one rAF tick toward the HUD FPS window; refresh the label ~1×/s. */
@@ -1810,7 +1867,7 @@ export class Network {
         if (!onLayer(shapeNode.layerId) || !isFilledSurfaceShape(shapeNode)) continue
         const view = this.views.getShapeNode(shapeNode.id)
         if (view === undefined || view.points.length < 2) continue
-        if (!inDirty(view.bounds)) continue
+        if (!inDirty(view.paintBounds)) continue
         renderer.drawShapeNode(shapeNode, view.toPaintView(
           this.scene.selectedIds.has(shapeNode.id),
           hoverId === shapeNode.id,
@@ -1820,7 +1877,7 @@ export class Network {
         if (!onLayer(path.layerId) || !isFilledSurfacePath(path)) continue
         const view = this.views.getPath(path.id)
         if (view === undefined || view.points.length < 2) continue
-        if (!inDirty(view.bounds)) continue
+        if (!inDirty(view.paintBounds)) continue
         renderer.drawPath(path, view.toPaintView(
           this.scene.selectedIds.has(path.id),
           hoverId === path.id,
@@ -1830,7 +1887,7 @@ export class Network {
         if (!onLayer(path.layerId) || isFilledSurfacePath(path)) continue
         const view = this.views.getPath(path.id)
         if (view === undefined || view.points.length < 2) continue
-        if (!inDirty(view.bounds)) continue
+        if (!inDirty(view.paintBounds)) continue
         renderer.drawPath(path, view.toPaintView(
           this.scene.selectedIds.has(path.id),
           hoverId === path.id,
@@ -1840,7 +1897,7 @@ export class Network {
         if (!onLayer(group.layerId)) continue
         const view = this.views.getGroup(group.id)
         if (view === undefined || !view.isVisible) continue
-        if (!inDirty(view.bounds)) continue
+        if (!inDirty(view.paintBounds)) continue
         const selected = this.scene.selectedIds.has(group.id)
         const hovered = hoverId === group.id
         renderer.drawGroup(group, view.toPaintView(selected, hovered))
@@ -1851,7 +1908,7 @@ export class Network {
       if (filter !== undefined && !filter.has(edge.from) && !filter.has(edge.to)) continue
       const view = this.views.getEdge(edge.id)
       if (view === undefined || !view.isActive) continue
-      if (!inDirty(view.bounds)) continue
+      if (!inDirty(view.paintBounds)) continue
       // Select/hover stroke on root with the layer (not overlay) so upper layers win.
       const flags = this.edgeHighlightFlags(edge)
       renderer.drawEdge(edge, view.toPaintView(flags.selected, flags.hovered))
@@ -1861,7 +1918,7 @@ export class Network {
         if (!onLayer(shapeNode.layerId) || isFilledSurfaceShape(shapeNode)) continue
         const view = this.views.getShapeNode(shapeNode.id)
         if (view === undefined || view.points.length < 2) continue
-        if (!inDirty(view.bounds)) continue
+        if (!inDirty(view.paintBounds)) continue
         renderer.drawShapeNode(shapeNode, view.toPaintView(
           this.scene.selectedIds.has(shapeNode.id),
           hoverId === shapeNode.id,
@@ -1873,7 +1930,7 @@ export class Network {
       if (filter !== undefined && !filter.has(node.id)) continue
       const view = this.views.getNode(node.id)
       if (view === undefined || !view.isVisible) continue
-      if (!inDirty(view.bounds)) continue
+      if (!inDirty(view.paintBounds)) continue
       renderer.drawNode(node, view.toPaintView(
         this.scene.selectedIds.has(node.id),
         this.scene.hover === node.id,

@@ -161,6 +161,13 @@ export interface InteractionEditHost {
   /** Live preview during drag (does not emit nodeMoved). */
   previewNodePosition(id: string, x: number, y: number): void
   /**
+   * Batch live preview for multi-select drag (preferred over N× {@link previewNodePosition}).
+   * @param updates - id → world x/y.
+   */
+  previewNodePositions?(
+    updates: readonly { readonly id: string; readonly x: number; readonly y: number }[],
+  ): void
+  /**
    * Live preview bounds during resize (does not emit nodeResized).
    * @param id - node id.
    * @param bounds - world x/y/w/h.
@@ -184,6 +191,17 @@ export interface InteractionEditHost {
     to: { x: number; y: number }
     toGroupId?: string | undefined
   }): void
+  /**
+   * Batch commit many node moves in one patch (OCC multi-select).
+   * No membership change — callers that reparent must use {@link commitNodeMove}.
+   */
+  commitNodeMoves?(
+    moves: readonly {
+      readonly nodeId: string
+      readonly from: { x: number; y: number }
+      readonly to: { x: number; y: number }
+    }[],
+  ): void
   /**
    * Live preview of a group drag: translate group x/y and all member nodes.
    * @param groupId - group id.

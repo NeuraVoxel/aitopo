@@ -12,9 +12,14 @@ import type {
   GraphPath,
   GraphPatch,
   GraphPatchOp,
+  GraphShadowStyle,
   GraphShapeNode,
   GraphTextStyle,
 } from '../../src/index.ts'
+import { DEFAULT_NODE_SHADOW } from '../../src/network/paint-pad.ts'
+
+/** Re-export for the property panel (matches NodeView when `style.shadow` is omitted). */
+export const NODE_DEFAULT_SHADOW = DEFAULT_NODE_SHADOW
 
 export type PropTarget =
   | { kind: 'node'; element: GraphNode }
@@ -54,6 +59,19 @@ export interface PropertyFields {
   selectGlow?: boolean
   /** Selection glow blur px (`style.select.glowBlur`; omitted ≡ 16). */
   selectGlowBlur?: number
+  /**
+   * Drop shadow on/off for node/group (`style.shadow`).
+   * `false` → `null` (opt out); `true` writes a shadow object.
+   */
+  shadowEnabled?: boolean
+  /** Drop shadow blur px (`style.shadow.blur`). */
+  shadowBlur?: number
+  /** Drop shadow offset X (`style.shadow.offsetX`). */
+  shadowOffsetX?: number
+  /** Drop shadow offset Y (`style.shadow.offsetY`). */
+  shadowOffsetY?: number
+  /** Drop shadow color (`style.shadow.color`). */
+  shadowColor?: string
   /** JSON object of string values; invalid JSON throws. */
   dataJson?: string
 }
@@ -141,6 +159,7 @@ function nodePatch(element: GraphNode, fields: PropertyFields): NodeUpdate {
   }
   if (label !== undefined) style.label = label
   assignSelectChrome(style, fields, element.style?.select)
+  assignShadowStyle(style, fields, element.style?.shadow, 'node')
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as NodeUpdate
@@ -177,6 +196,7 @@ function groupPatch(element: GraphGroup, fields: PropertyFields): GroupUpdate {
   }
   if (label !== undefined) style.label = label
   assignSelectChrome(style, fields, element.style?.select)
+  assignShadowStyle(style, fields, element.style?.shadow, 'group')
   if (Object.keys(style).length > 0) patch.style = style
   if (fields.dataJson !== undefined) patch.data = parseDataJson(fields.dataJson)
   return patch as GroupUpdate
@@ -256,6 +276,40 @@ function assignSelectChrome(
     ...(fields.selectGlowBlur !== undefined ? { glowBlur: fields.selectGlowBlur } : {}),
   }
   style.select = select
+}
+
+/**
+ * Merge `style.shadow` for node/group.
+ * `shadowEnabled: false` writes `null`; enabling or tweaking fields writes an object.
+ */
+function assignShadowStyle(
+  style: Record<string, unknown>,
+  fields: PropertyFields,
+  current: GraphShadowStyle | null | undefined,
+  host: 'node' | 'group',
+): void {
+  if (fields.shadowEnabled === false) {
+    style.shadow = null
+    return
+  }
+  const touched =
+    fields.shadowEnabled !== undefined
+    || fields.shadowBlur !== undefined
+    || fields.shadowOffsetX !== undefined
+    || fields.shadowOffsetY !== undefined
+    || fields.shadowColor !== undefined
+  if (!touched) return
+  const base: GraphShadowStyle =
+    current !== null && current !== undefined
+      ? current
+      : (host === 'node' ? NODE_DEFAULT_SHADOW : {})
+  style.shadow = {
+    ...base,
+    ...(fields.shadowColor !== undefined ? { color: fields.shadowColor } : {}),
+    ...(fields.shadowBlur !== undefined ? { blur: fields.shadowBlur } : {}),
+    ...(fields.shadowOffsetX !== undefined ? { offsetX: fields.shadowOffsetX } : {}),
+    ...(fields.shadowOffsetY !== undefined ? { offsetY: fields.shadowOffsetY } : {}),
+  }
 }
 
 function mergeLabelText(

@@ -3,6 +3,7 @@ import type { GraphPatch, Network } from '../../src/index.ts'
 import {
   buildPropertyPatch,
   LABEL_POSITIONS,
+  NODE_DEFAULT_SHADOW,
   type PropertyFields,
   type PropTarget,
 } from '../lib/property-patch.ts'
@@ -11,6 +12,9 @@ export interface PropertyPanelProps {
   readonly selectedIds: readonly string[]
   readonly applyPatch: (patch: GraphPatch) => void
   readonly getNetwork: () => Network | null
+  /** Network neighbor-flood for partial dirty (default off). */
+  readonly expandPartialDirty: boolean
+  readonly setExpandPartialDirty: (value: boolean) => void
 }
 
 interface FormDraft {
@@ -36,6 +40,11 @@ interface FormDraft {
   selectPadding: string
   selectGlow: boolean
   selectGlowBlur: string
+  shadowEnabled: boolean
+  shadowBlur: string
+  shadowOffsetX: string
+  shadowOffsetY: string
+  shadowColor: string
   dataJson: string
 }
 
@@ -73,11 +82,22 @@ const EMPTY_DRAFT: FormDraft = {
   selectPadding: String(SELECT_DEFAULTS.padding),
   selectGlow: SELECT_DEFAULTS.glow,
   selectGlowBlur: String(SELECT_DEFAULTS.glowBlur),
+  shadowEnabled: true,
+  shadowBlur: String(NODE_DEFAULT_SHADOW.blur),
+  shadowOffsetX: String(NODE_DEFAULT_SHADOW.offsetX),
+  shadowOffsetY: String(NODE_DEFAULT_SHADOW.offsetY),
+  shadowColor: NODE_DEFAULT_SHADOW.color ?? '',
   dataJson: '{}',
 }
 
-/** Right-column inspector: single-select write-back on blur/Enter. */
-export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyPanelProps) {
+/** Right-column inspector: global Network flags + single-select write-back. */
+export function PropertyPanel({
+  selectedIds,
+  applyPatch,
+  getNetwork,
+  expandPartialDirty,
+  setExpandPartialDirty,
+}: PropertyPanelProps) {
   const [draft, setDraft] = useState<FormDraft>(EMPTY_DRAFT)
   const [error, setError] = useState<string | undefined>(undefined)
   const [seenSnapshot, setSeenSnapshot] = useState('')
@@ -110,11 +130,31 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
     setDraft(current => ({ ...current, [key]: value }))
   }
 
+  const globalSection = (
+    <section className="property-section" aria-label="Global">
+      <h2 className="property-panel-title">Global</h2>
+      <Row label="expand dirty">
+        <input
+          type="checkbox"
+          checked={expandPartialDirty}
+          title="Flood-absorb intersecting neighbors into partial dirty (O(n); default on)"
+          onChange={event => setExpandPartialDirty(event.target.checked)}
+        />
+      </Row>
+      <p className="property-hint">
+        Neighbor flood for partial paints (default on). Off = AA grow only — use for dense stress samples.
+      </p>
+    </section>
+  )
+
   if (selectedIds.length !== 1) {
     return (
       <aside className="property-panel" aria-label="Properties">
-        <h2 className="property-panel-title">Properties</h2>
-        <p className="property-empty">Select one element</p>
+        {globalSection}
+        <section className="property-section" aria-label="Element">
+          <h2 className="property-panel-title">Element</h2>
+          <p className="property-empty">Select one element</p>
+        </section>
       </aside>
     )
   }
@@ -122,8 +162,11 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
   if (target === null) {
     return (
       <aside className="property-panel" aria-label="Properties">
-        <h2 className="property-panel-title">Properties</h2>
-        <p className="property-empty">Element not in the active network</p>
+        {globalSection}
+        <section className="property-section" aria-label="Element">
+          <h2 className="property-panel-title">Element</h2>
+          <p className="property-empty">Element not in the active network</p>
+        </section>
       </aside>
     )
   }
@@ -139,10 +182,13 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
     || target.kind === 'group'
     || target.kind === 'path'
     || target.kind === 'shapeNode'
+  const showsShadow = target.kind === 'node' || target.kind === 'group'
 
   return (
     <aside className="property-panel" aria-label="Properties">
-      <h2 className="property-panel-title">Properties · {kindLabel}</h2>
+      {globalSection}
+      <section className="property-section" aria-label={`Element ${kindLabel}`}>
+      <h2 className="property-panel-title">Element · {kindLabel}</h2>
       <Row label="id">
         <span className="property-readonly">{id}</span>
       </Row>
@@ -311,6 +357,45 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
         onChange={value => setField('selectGlowBlur', value)}
         onCommit={() => commit()}
       />
+      {showsShadow && (
+        <>
+          <Row label="shadow">
+            <input
+              type="checkbox"
+              checked={formDraft.shadowEnabled}
+              onChange={event => {
+                const next = { ...draftRef.current, shadowEnabled: event.target.checked }
+                setDraft(next)
+                commit(next)
+              }}
+            />
+          </Row>
+          <TextRow
+            label="shadow blur"
+            value={formDraft.shadowBlur}
+            onChange={value => setField('shadowBlur', value)}
+            onCommit={() => commit()}
+          />
+          <TextRow
+            label="shadow ox"
+            value={formDraft.shadowOffsetX}
+            onChange={value => setField('shadowOffsetX', value)}
+            onCommit={() => commit()}
+          />
+          <TextRow
+            label="shadow oy"
+            value={formDraft.shadowOffsetY}
+            onChange={value => setField('shadowOffsetY', value)}
+            onCommit={() => commit()}
+          />
+          <TextRow
+            label="shadow color"
+            value={formDraft.shadowColor}
+            onChange={value => setField('shadowColor', value)}
+            onCommit={() => commit()}
+          />
+        </>
+      )}
       <Row label="alarms">
         <span className="property-readonly">{alarms}</span>
       </Row>
@@ -324,6 +409,7 @@ export function PropertyPanel({ selectedIds, applyPatch, getNetwork }: PropertyP
         />
       </Row>
       {error !== undefined && <p className="property-error" role="alert">{error}</p>}
+      </section>
     </aside>
   )
 }
@@ -407,6 +493,33 @@ function selectDraftFields(
   }
 }
 
+function shadowDraftFields(
+  shadow: { readonly color?: string; readonly blur?: number; readonly offsetX?: number; readonly offsetY?: number } | null | undefined,
+  host: 'node' | 'group',
+): Pick<FormDraft, 'shadowEnabled' | 'shadowBlur' | 'shadowOffsetX' | 'shadowOffsetY' | 'shadowColor'> {
+  if (shadow === null) {
+    const fallback = host === 'node' ? NODE_DEFAULT_SHADOW : { blur: 0, offsetX: 0, offsetY: 0, color: '' }
+    return {
+      shadowEnabled: false,
+      shadowBlur: numStr(fallback.blur ?? 0),
+      shadowOffsetX: numStr(fallback.offsetX ?? 0),
+      shadowOffsetY: numStr(fallback.offsetY ?? 0),
+      shadowColor: fallback.color ?? '',
+    }
+  }
+  const resolved =
+    shadow !== undefined
+      ? shadow
+      : (host === 'node' ? NODE_DEFAULT_SHADOW : undefined)
+  return {
+    shadowEnabled: host === 'node' ? true : resolved !== undefined,
+    shadowBlur: numStr(resolved?.blur ?? (host === 'node' ? NODE_DEFAULT_SHADOW.blur : 0)),
+    shadowOffsetX: numStr(resolved?.offsetX ?? (host === 'node' ? NODE_DEFAULT_SHADOW.offsetX : 0)),
+    shadowOffsetY: numStr(resolved?.offsetY ?? (host === 'node' ? NODE_DEFAULT_SHADOW.offsetY : 0)),
+    shadowColor: resolved?.color ?? (host === 'node' ? (NODE_DEFAULT_SHADOW.color ?? '') : ''),
+  }
+}
+
 function draftFrom(target: PropTarget): FormDraft {
   const data = stringData(target.element.data)
   const labelStyle = target.element.style?.label
@@ -423,6 +536,7 @@ function draftFrom(target: PropTarget): FormDraft {
     case 'node':
       return {
         ...base,
+        ...shadowDraftFields(target.element.style?.shadow, 'node'),
         type: target.element.type,
         x: numStr(target.element.x),
         y: numStr(target.element.y),
@@ -443,6 +557,7 @@ function draftFrom(target: PropTarget): FormDraft {
     case 'group':
       return {
         ...base,
+        ...shadowDraftFields(target.element.style?.shadow, 'group'),
         expanded: target.element.expanded === true,
         x: numStr(target.element.x),
         y: numStr(target.element.y),
@@ -512,6 +627,11 @@ function fieldsFromDraft(target: PropTarget, draft: FormDraft): PropertyFields {
   assignNumber(fields, 'selectPadding', draft.selectPadding, current.selectPadding)
   if (draft.selectGlow !== current.selectGlow) fields.selectGlow = draft.selectGlow
   assignNumber(fields, 'selectGlowBlur', draft.selectGlowBlur, current.selectGlowBlur)
+  if (draft.shadowEnabled !== current.shadowEnabled) fields.shadowEnabled = draft.shadowEnabled
+  assignNumber(fields, 'shadowBlur', draft.shadowBlur, current.shadowBlur)
+  assignNumber(fields, 'shadowOffsetX', draft.shadowOffsetX, current.shadowOffsetX)
+  assignNumber(fields, 'shadowOffsetY', draft.shadowOffsetY, current.shadowOffsetY)
+  if (draft.shadowColor !== current.shadowColor) fields.shadowColor = draft.shadowColor
   if (draft.dataJson !== current.dataJson) fields.dataJson = draft.dataJson
   return fields
 }
@@ -530,7 +650,10 @@ function assignNumber(
     | 'labelFontSize'
     | 'selectWidth'
     | 'selectPadding'
-    | 'selectGlowBlur',
+    | 'selectGlowBlur'
+    | 'shadowBlur'
+    | 'shadowOffsetX'
+    | 'shadowOffsetY',
   draft: string,
   current: string,
 ): void {

@@ -124,11 +124,30 @@ export function listTransitiveFollowers(
   },
   hostId: string,
 ): string[] {
+  return listTransitiveFollowersMany(doc, [hostId])
+}
+
+/**
+ * Transitive followers of any host in `hostIds` (one index build).
+ * @param doc - document or scene projection with follow edges.
+ * @param hostIds - host element ids.
+ */
+export function listTransitiveFollowersMany(
+  doc: {
+    readonly nodes: ReadonlyMap<string, GraphNode> | readonly GraphNode[]
+    readonly groups?: ReadonlyMap<string, GraphGroup> | readonly GraphGroup[]
+    readonly paths?: ReadonlyMap<string, GraphPath> | readonly GraphPath[]
+    readonly shapeNodes?: ReadonlyMap<string, GraphShapeNode> | readonly GraphShapeNode[]
+  },
+  hostIds: readonly string[],
+): string[] {
+  if (hostIds.length === 0) return []
   const hostOf = collectHostOfLoose(doc)
+  if (hostOf.size === 0) return []
   const followersOf = invertHostMap(hostOf)
   const out: string[] = []
   const seen = new Set<string>()
-  const queue = [hostId]
+  const queue = [...hostIds]
   while (queue.length > 0) {
     const current = queue.shift()!
     const followers = followersOf.get(current)
@@ -141,6 +160,68 @@ export function listTransitiveFollowers(
     }
   }
   return out
+}
+
+/** Followers-of-host index used by live translate (built once per write batch). */
+export type FollowersIndex = ReadonlyMap<string, readonly string[]>
+
+/**
+ * Build host→followers index from live scene maps.
+ * @returns empty map when no element sets `followHostId`.
+ */
+export function buildFollowersIndex(args: {
+  readonly nodes: ReadonlyMap<string, GraphNode>
+  readonly groups: ReadonlyMap<string, GraphGroup>
+  readonly paths: ReadonlyMap<string, GraphPath>
+  readonly shapeNodes: ReadonlyMap<string, GraphShapeNode>
+}): FollowersIndex {
+  const hostOf = new Map<string, string>()
+  for (const node of args.nodes.values()) {
+    if (node.followHostId !== undefined) hostOf.set(node.id, node.followHostId)
+  }
+  for (const group of args.groups.values()) {
+    if (group.followHostId !== undefined) hostOf.set(group.id, group.followHostId)
+  }
+  for (const path of args.paths.values()) {
+    if (path.followHostId !== undefined) hostOf.set(path.id, path.followHostId)
+  }
+  for (const shape of args.shapeNodes.values()) {
+    if (shape.followHostId !== undefined) hostOf.set(shape.id, shape.followHostId)
+  }
+  return invertHostMap(hostOf)
+}
+
+/**
+ * Apply host moves to followers using one shared index (OCC / multi-select safe).
+ * Builds the index once; no-ops when the graph has no follow edges.
+ */
+export function translateHostMovesLive(args: {
+  readonly moves: readonly { readonly id: string; readonly dx: number; readonly dy: number }[]
+  readonly skipIds: ReadonlySet<string>
+  readonly nodes: Map<string, GraphNode>
+  readonly groups: Map<string, GraphGroup>
+  readonly paths: Map<string, GraphPath>
+  readonly shapeNodes: Map<string, GraphShapeNode>
+  readonly markDirty: (id: string) => void
+}): void {
+  if (args.moves.length === 0) return
+  const followersOf = buildFollowersIndex(args)
+  if (followersOf.size === 0) return
+  for (const move of args.moves) {
+    if (move.dx === 0 && move.dy === 0) continue
+    translateFollowersWithIndex({
+      hostId: move.id,
+      dx: move.dx,
+      dy: move.dy,
+      skipIds: args.skipIds,
+      followersOf,
+      nodes: args.nodes,
+      groups: args.groups,
+      paths: args.paths,
+      shapeNodes: args.shapeNodes,
+      markDirty: args.markDirty,
+    })
+  }
 }
 
 /**
@@ -157,27 +238,43 @@ export function translateFollowersLive(args: {
   readonly paths: Map<string, GraphPath>
   readonly shapeNodes: Map<string, GraphShapeNode>
   readonly markDirty: (id: string) => void
+  /** Optional prebuilt index; omit to scan maps once for this call. */
+  readonly followersOf?: FollowersIndex
 }): void {
   if (args.dx === 0 && args.dy === 0) return
-  const hostOf = new Map<string, string>()
-  for (const node of args.nodes.values()) {
-    if (node.followHostId !== undefined) hostOf.set(node.id, node.followHostId)
-  }
-  for (const group of args.groups.values()) {
-    if (group.followHostId !== undefined) hostOf.set(group.id, group.followHostId)
-  }
-  for (const path of args.paths.values()) {
-    if (path.followHostId !== undefined) hostOf.set(path.id, path.followHostId)
-  }
-  for (const shape of args.shapeNodes.values()) {
-    if (shape.followHostId !== undefined) hostOf.set(shape.id, shape.followHostId)
-  }
-  const followersOf = invertHostMap(hostOf)
+  const followersOf = args.followersOf ?? buildFollowersIndex(args)
+  if (followersOf.size === 0) return
+  translateFollowersWithIndex({
+    hostId: args.hostId,
+    dx: args.dx,
+    dy: args.dy,
+    skipIds: args.skipIds,
+    followersOf,
+    nodes: args.nodes,
+    groups: args.groups,
+    paths: args.paths,
+    shapeNodes: args.shapeNodes,
+    markDirty: args.markDirty,
+  })
+}
+
+function translateFollowersWithIndex(args: {
+  readonly hostId: string
+  readonly dx: number
+  readonly dy: number
+  readonly skipIds: ReadonlySet<string>
+  readonly followersOf: FollowersIndex
+  readonly nodes: Map<string, GraphNode>
+  readonly groups: Map<string, GraphGroup>
+  readonly paths: Map<string, GraphPath>
+  readonly shapeNodes: Map<string, GraphShapeNode>
+  readonly markDirty: (id: string) => void
+}): void {
   const queue = [args.hostId]
   const applied = new Set<string>()
   while (queue.length > 0) {
     const hostId = queue.shift()!
-    const followers = followersOf.get(hostId)
+    const followers = args.followersOf.get(hostId)
     if (followers === undefined) continue
     for (const followerId of followers) {
       if (args.skipIds.has(followerId)) continue

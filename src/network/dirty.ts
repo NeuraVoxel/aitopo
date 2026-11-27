@@ -4,6 +4,13 @@
 
 import { unionRect, type Rect } from '../geom.ts'
 
+/**
+ * Max elements `expandPartialDirty` may absorb before the frame falls back to
+ * `'all'`. Stops AABB flood-fill from turning a local edit into a whole-graph
+ * union (and unbounded while-loop cost on dense overlap chains).
+ */
+export const MAX_PARTIAL_DIRTY_ABSORBS = 24
+
 /** Accumulates world-space dirty rectangles and invalidate-all. */
 export class DirtyAccumulator {
   private invalidateAll = false

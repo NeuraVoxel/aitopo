@@ -9,6 +9,7 @@ import type {
   GraphEdgeArrowStyle,
 } from '../protocol/types.ts'
 import type { EdgePaintView } from '../render/canvas2d.ts'
+import type { DebugElementBounds } from '../render/debug-bounds.ts'
 import {
   Attachment,
   EdgeAlarmAttachment,
@@ -107,9 +108,36 @@ export class EdgeView {
     return this.flow && this.active
   }
 
-  /** Union bounds (dirty); excludes hover-only tooltip. */
+  /** Union bounds (geometry + stroke/arrow pad); excludes hover-only tooltip. */
   get bounds(): Rect {
     return this.union
+  }
+
+  /** Dirty-rect seed; same as {@link bounds} (stroke extents already baked). */
+  get paintBounds(): Rect {
+    return this.union
+  }
+
+  /**
+   * Debug overlay: path AABB + attachment boxes (edges are not host-rotated).
+   * @returns undefined when inactive.
+   */
+  debugBounds(): DebugElementBounds | undefined {
+    if (!this.active) return undefined
+    const oriented = [
+      { label: 'path', rect: this.path },
+      ...this.attachments.map(attachment => ({
+        label: attachmentDebugLabel(attachment),
+        rect: attachment.bounds,
+      })),
+    ]
+    return {
+      id: this.id,
+      angle: 0,
+      pivot: { x: this.path.x, y: this.path.y },
+      oriented,
+      aabbs: [{ label: 'paint', rect: this.union }],
+    }
   }
 
   /** Polyline AABB (+ pad) for path hit / bend chrome. */
@@ -301,14 +329,6 @@ export class EdgeView {
     this.toPt = toPt
     this.orientation = orientation
     this.pointsCache = points
-    let pathBounds: Rect | undefined
-    for (const point of points) {
-      pathBounds = unionPoint(pathBounds, point)
-    }
-    this.path = growRect(
-      pathBounds ?? { x: fromPt.x, y: fromPt.y, width: 1, height: 1 },
-      PATH_BOUNDS_PAD,
-    )
     this.alpha = clampAlpha(style?.alpha)
     this.stroke = style?.stroke ?? DEFAULT_STROKE
     this.strokeHover = style?.strokeHover ?? DEFAULT_STROKE_HOVER
@@ -323,6 +343,25 @@ export class EdgeView {
     this.cornerRadius = style?.cornerRadius ?? DEFAULT_CORNER_RADIUS
     this.flow = style?.flow === true
     this.flowConverse = style?.flowConverse === true
+    let pathBounds: Rect | undefined
+    for (const point of points) {
+      pathBounds = unionPoint(pathBounds, point)
+    }
+    // Stroke / arrow extents baked into bounds (replaces Network +8 dirty pad).
+    const maxStroke = Math.max(
+      this.lineWidth,
+      this.selectStyle?.width ?? 0,
+      this.hoverStyle?.width ?? 2.5,
+    )
+    let pad = Math.ceil(maxStroke / 2) + 2
+    if (this.arrowFrom || this.arrowTo) {
+      const arrowSize = this.arrowStyle?.size ?? DEFAULT_ARROW_SIZE
+      pad = Math.max(pad, Math.ceil(arrowSize / 2) + 2)
+    }
+    this.path = growRect(
+      pathBounds ?? { x: fromPt.x, y: fromPt.y, width: 1, height: 1 },
+      Math.max(PATH_BOUNDS_PAD, pad),
+    )
     this.attachments = syncAttachments(edge, this.attachments)
     const ctx = { edge, points: this.pointsCache }
     let union: Rect | undefined = this.path
@@ -533,4 +572,9 @@ function takeOrCreate<T extends Attachment>(
 ): T {
   const found = previous.find((a): a is T => a instanceof ctor)
   return found ?? create()
+}
+
+function attachmentDebugLabel(attachment: Attachment): string {
+  const name = attachment.constructor.name
+  return name.endsWith('Attachment') ? name.slice(0, -'Attachment'.length) : name
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parseDocument } from '../src/protocol/index.ts'
 import { OCC_CELL_COUNT } from '../demo/samples/adas/occupancy-bev.ts'
+import { PERF_CELL_COUNT } from '../demo/samples/elements/perf-grid.ts'
 import { DEFAULT_SAMPLE_ID, getSample, listSamples } from '../demo/samples/registry.ts'
 
 describe('demo sample registry', () => {
@@ -53,6 +54,19 @@ describe('demo sample registry', () => {
       expect(count).toBeLessThanOrEqual(id === 'edge' ? 120 : 15)
       expect(doc.nodes.every(n => n.x !== undefined && n.y !== undefined)).toBe(true)
     }
+
+    expect(ids.has('elements-perf-grid')).toBe(true)
+    const perf = getSample('elements-perf-grid')!
+    expect(perf.group).toBe('elements')
+    expect(perf.title).toBe('Perf')
+    expect(perf.expandPartialDirty).toBe(false)
+    const perfDoc = parseDocument(perf.document)
+    expect(perfDoc.nodes).toHaveLength(PERF_CELL_COUNT)
+    expect(perfDoc.nodes.every(n =>
+      n.style?.shadow === null
+      && n.style?.select?.glow === false
+      && n.style?.hover?.glow === false
+    )).toBe(true)
     const node = parseDocument(getSample('node')!.document)
     expect(node.nodes.find(n => n.id === 'follow-node')?.followHostId).toBe('follow-host')
     expect(node.paths?.find(p => p.id === 'follow-trail')?.followHostId).toBe('follow-host')
@@ -446,14 +460,32 @@ describe('demo sample registry', () => {
     expect(agentDoc.nodes.find(n => n.id === 'unclassified-1')?.alarms?.[0]?.level).toBe('error')
 
     expect(getSample('adas-occupancy-bev')!.title).toBe('OCC')
+    expect(getSample('adas-occupancy-bev')!.expandPartialDirty).toBeUndefined()
     const occ = parseDocument(getSample('adas-occupancy-bev')!.document)
+    expect(occ.layers?.map(l => l.id)).toEqual(['occupancy', 'agents'])
     expect(occ.nodes.filter(n => n.type === 'occupancy')).toHaveLength(OCC_CELL_COUNT)
     expect(
-      occ.nodes.filter(n => n.type === 'occupancy').every(n => n.style?.shadow === null),
+      occ.nodes.filter(n => n.type === 'occupancy').every(n =>
+        n.layerId === 'occupancy'
+        && n.style?.showIcon === false
+        && n.data?.occupancy !== undefined
+      ),
     ).toBe(true)
+    const kinds = new Set(
+      occ.nodes.filter(n => n.type === 'occupancy').map(n => n.data?.occupancy),
+    )
+    expect(kinds.has(0)).toBe(true)
+    expect(kinds.has(1)).toBe(true)
+    expect(kinds.has(2)).toBe(true)
+    expect(occ.nodes.filter(n => n.data?.role === 'detection').map(n => n.id).sort()).toEqual([
+      'det-lead',
+      'det-parked',
+      'det-ped',
+    ])
     const occEgo = occ.nodes.find(n => n.id === 'ego')
     expect(occEgo?.vectorImage).toBe('demo-ego-axle-frame')
     expect(occEgo?.data?.axle).toBe('rear')
+    expect(occEgo?.layerId).toBe('agents')
     expect(occEgo?.angleAnchor).toEqual({ u: 0.5, v: 0.82 })
 
     expect(getSample('adas-map')!.title).toBe('Map')
