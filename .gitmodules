@@ -10,3 +10,7 @@
 	path = vendor/nuplan-devkit
 	url = https://github.com/motional/nuplan-devkit.git
 	shallow = true
+[submodule "vendor/leafer-ui"]
+	path = vendor/leafer-ui
+	url = https://github.com/leaferjs/leafer-ui.git
+	shallow = true

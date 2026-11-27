@@ -6,6 +6,7 @@ Read-only **design / domain references** checked in as git submodules. They are 
 |---|---|---|
 | `vendor/archify` | [tt-a1i/archify](https://github.com/tt-a1i/archify) | Product-level architecture / authoring UX reference |
 | `vendor/diagram-design` | [cathrynlavery/diagram-design](https://github.com/cathrynlavery/diagram-design) | Product-level diagram design / presentation reference |
+| `vendor/leafer-ui` | [leaferjs/leafer-ui](https://github.com/leaferjs/leafer-ui) | Canvas / infinite-canvas UI engine reference — ideas only |
 | `vendor/nuplan-devkit` | [motional/nuplan-devkit](https://github.com/motional/nuplan-devkit) | ADAS / nuBoard palette, TrackedObjectType, ego Pacifica parameters — ideas only |
 
 ## Reference split
@@ -13,6 +14,7 @@ Read-only **design / domain references** checked in as git submodules. They are 
 | Concern | Authority |
 |---|---|
 | Render engine behavior (dirty paint, interactions, chrome, link geometry) | `twaver.vector` at `/home/jeff/Documents/DT/SDK2D/twaver` (Mac: `/Users/macff/Documents/DT/SDK2D/twaver`) — clean-room ideas only |
+| Canvas / infinite-canvas UI patterns (scene graph, edit, performance) | `vendor/leafer-ui` — ideas only; no Leafer API names in `src/` |
 | Product-facing UX, information design, authoring flows | `vendor/archify`, `vendor/diagram-design` — ideas only |
 | ADAS catalog colors / agent taxonomy / ego box sizes | `vendor/nuplan-devkit` (`nuboard/style.py`, `TrackedObjectType`, `get_pacifica_parameters`) — ideas only; demo tokens live in `demo/lib/*-palette.ts` |
 
@@ -21,9 +23,10 @@ AITopo remains a clean-room TypeScript engine: no imports from these trees, no c
 ## Clone / update
 
 ```sh
-git submodule update --init --depth 1 vendor/archify vendor/diagram-design vendor/nuplan-devkit
+git submodule update --init --depth 1 vendor/archify vendor/diagram-design vendor/leafer-ui vendor/nuplan-devkit
 git submodule update --remote --depth 1 vendor/archify   # optional tip bump
 git submodule update --remote --depth 1 vendor/diagram-design
+git submodule update --remote --depth 1 vendor/leafer-ui
 git submodule update --remote --depth 1 vendor/nuplan-devkit
 ```
 
